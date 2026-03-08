@@ -100,6 +100,33 @@
 
     td.label { color: #555; font-size: 0.9rem; width: 55%; }
     td.value { font-family: monospace; font-size: 0.95rem; }
+
+    .has-tip {
+      position: relative;
+      cursor: help;
+      text-decoration: underline dotted #aaa;
+    }
+
+    .has-tip .tip {
+      display: none;
+      position: absolute;
+      left: 0;
+      top: calc(100% + 6px);
+      z-index: 10;
+      background: #111;
+      color: #f0f0f0;
+      font-size: 0.82rem;
+      font-family: monospace;
+      padding: 0.5rem 0.75rem;
+      border-radius: 6px;
+      white-space: normal;
+      word-break: break-all;
+      max-width: 420px;
+      line-height: 1.6;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+
+    .has-tip:hover .tip { display: block; }
   </style>
 </head>
 <body>
@@ -138,19 +165,27 @@
         return;
       }
 
+      const isElement = x => x >= s.apery_set[x % s.m];
+      const elements = Array.from({length: s.f + 1}, (_, x) => x).filter(isElement);
+      const gaps     = Array.from({length: s.f},     (_, x) => x + 1).filter(x => !isElement(x));
+
+      function tipCell(value, tipText) {
+        return `<td class="value has-tip">${value}<span class="tip">${tipText}</span></td>`;
+      }
+
       const rows = [
-        ['Embedding dimension (e)', s.e],
-        ['Frobenius number (f)',    s.f],
-        ['Multiplicity (m)',        s.m],
-        ['# elements ≤ f',         s.count_set],
-        ['# gaps',                 s.count_gap],
-        ['Largest generator',      s.max_gen],
-        ['Generators',             s.gen_set.join(', ')],
-        ['Apéry set',              s.apery_set.join(', ')],
+        ['Embedding dimension (e)', `<td class="value">${s.e}</td>`],
+        ['Frobenius number (f)',    `<td class="value">${s.f}</td>`],
+        ['Multiplicity (m)',        `<td class="value">${s.m}</td>`],
+        ['# elements ≤ f',         tipCell(s.count_set, elements.join(', '))],
+        ['# gaps',                 tipCell(s.count_gap, gaps.join(', '))],
+        ['Largest generator',      `<td class="value">${s.max_gen}</td>`],
+        ['Generators',             `<td class="value">${s.gen_set.join(', ')}</td>`],
+        ['Apéry set',              `<td class="value">${s.apery_set.join(', ')}</td>`],
       ];
 
-      const tbody = rows.map(([label, value]) =>
-        `<tr><td class="label">${label}</td><td class="value">${value}</td></tr>`
+      const tbody = rows.map(([label, cell]) =>
+        `<tr><td class="label">${label}</td>${cell}</tr>`
       ).join('');
 
       resultEl.innerHTML = `

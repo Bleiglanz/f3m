@@ -1,0 +1,15 @@
+{
+  "name": "f3m",
+  "type": "module",
+  "version": "0.1.0",
+  "files": [
+    "f3m_bg.wasm",
+    "f3m.js",
+    "f3m.d.ts"
+  ],
+  "main": "f3m.js",
+  "types": "f3m.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

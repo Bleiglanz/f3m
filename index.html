@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Numerical Semigroup Calculator</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, sans-serif;
+      background: #f5f5f5;
+      color: #222;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 3rem 1rem;
+      min-height: 100vh;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+    }
+
+    p.subtitle {
+      color: #666;
+      margin-bottom: 2rem;
+      font-size: 0.95rem;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 0.5rem;
+      width: 100%;
+      max-width: 480px;
+      margin-bottom: 2rem;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      padding: 0.6rem 0.9rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    input[type="text"]:focus { border-color: #555; }
+
+    button {
+      padding: 0.6rem 1.2rem;
+      background: #222;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    button:hover { background: #444; }
+
+    #error {
+      color: #c00;
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+      display: none;
+    }
+
+    #result { width: 100%; max-width: 600px; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    }
+
+    th, td {
+      padding: 0.65rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+
+    th {
+      background: #222;
+      color: #fff;
+      font-weight: 500;
+      font-size: 0.9rem;
+      letter-spacing: 0.03em;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:nth-child(even) td { background: #fafafa; }
+
+    td.label { color: #555; font-size: 0.9rem; width: 55%; }
+    td.value { font-family: monospace; font-size: 0.95rem; }
+  </style>
+</head>
+<body>
+  <h1>Numerical Semigroup Calculator</h1>
+  <p class="subtitle">Enter a comma-separated list of generators</p>
+
+  <div class="input-row">
+    <input type="text" id="gens" placeholder="e.g. 3, 5, 7" value="3, 5, 7" />
+    <button id="compute-btn">Compute</button>
+  </div>
+
+  <div id="error"></div>
+  <div id="result"></div>
+
+  <script type="module">
+    import init, { js_semigroup } from './pkg/f3m.js';
+
+    await init();
+
+    function compute() {
+      const raw = document.getElementById('gens').value.trim();
+      const errEl = document.getElementById('error');
+      const resultEl = document.getElementById('result');
+
+      errEl.style.display = 'none';
+      resultEl.innerHTML = '';
+
+      if (!raw) { return; }
+
+      let s;
+      try {
+        s = JSON.parse(js_semigroup(raw));
+      } catch (e) {
+        errEl.textContent = 'Error: ' + e.message;
+        errEl.style.display = 'block';
+        return;
+      }
+
+      const rows = [
+        ['Embedding dimension (e)', s.e],
+        ['Frobenius number (f)',    s.f],
+        ['Multiplicity (m)',        s.m],
+        ['# elements ≤ f',         s.count_set],
+        ['# gaps',                 s.count_gap],
+        ['Largest generator',      s.max_gen],
+        ['Generators',             s.gen_set.join(', ')],
+        ['Apéry set',              s.apery_set.join(', ')],
+      ];
+
+      const tbody = rows.map(([label, value]) =>
+        `<tr><td class="label">${label}</td><td class="value">${value}</td></tr>`
+      ).join('');
+
+      resultEl.innerHTML = `
+        <table>
+          <thead><tr><th>Property</th><th>Value</th></tr></thead>
+          <tbody>${tbody}</tbody>
+        </table>`;
+    }
+
+    document.getElementById('compute-btn').addEventListener('click', compute);
+    document.getElementById('gens').addEventListener('keydown', e => {
+      if (e.key === 'Enter') compute();
+    });
+
+    compute();
+  </script>
+</body>
+</html>

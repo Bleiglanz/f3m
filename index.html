@@ -4,130 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Numerical Semigroup Calculator</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: system-ui, sans-serif;
-      background: #f5f5f5;
-      color: #222;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 3rem 1rem;
-      min-height: 100vh;
-    }
-
-    h1 {
-      font-size: 1.6rem;
-      font-weight: 600;
-      margin-bottom: 0.4rem;
-    }
-
-    p.subtitle {
-      color: #666;
-      margin-bottom: 2rem;
-      font-size: 0.95rem;
-    }
-
-    .input-row {
-      display: flex;
-      gap: 0.5rem;
-      width: 100%;
-      max-width: 480px;
-      margin-bottom: 2rem;
-    }
-
-    input[type="text"] {
-      flex: 1;
-      padding: 0.6rem 0.9rem;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      font-size: 1rem;
-      outline: none;
-      transition: border-color 0.15s;
-    }
-
-    input[type="text"]:focus { border-color: #555; }
-
-    button {
-      padding: 0.6rem 1.2rem;
-      background: #222;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: background 0.15s;
-    }
-
-    button:hover { background: #444; }
-
-    #error {
-      color: #c00;
-      font-size: 0.9rem;
-      margin-bottom: 1rem;
-      display: none;
-    }
-
-    #result { width: 100%; max-width: 600px; }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background: #fff;
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-    }
-
-    th, td {
-      padding: 0.65rem 1rem;
-      text-align: left;
-      border-bottom: 1px solid #eee;
-    }
-
-    th {
-      background: #222;
-      color: #fff;
-      font-weight: 500;
-      font-size: 0.9rem;
-      letter-spacing: 0.03em;
-    }
-
-    tr:last-child td { border-bottom: none; }
-    tr:nth-child(even) td { background: #fafafa; }
-
-    td.label { color: #555; font-size: 0.9rem; width: 55%; }
-    td.value { font-family: monospace; font-size: 0.95rem; }
-
-    .has-tip {
-      position: relative;
-      cursor: help;
-      text-decoration: underline dotted #aaa;
-    }
-
-    .has-tip .tip {
-      display: none;
-      position: absolute;
-      left: 0;
-      top: calc(100% + 6px);
-      z-index: 10;
-      background: #111;
-      color: #f0f0f0;
-      font-size: 0.82rem;
-      font-family: monospace;
-      padding: 0.5rem 0.75rem;
-      border-radius: 6px;
-      white-space: normal;
-      word-break: break-all;
-      max-width: 420px;
-      line-height: 1.6;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-    }
-
-    .has-tip:hover .tip { display: block; }
-  </style>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <h1>Numerical Semigroup Calculator</h1>
@@ -136,6 +13,7 @@
   <div class="input-row">
     <input type="text" id="gens" placeholder="e.g. 3, 5, 7" value="3, 5, 7" />
     <button id="compute-btn">Compute</button>
+    <button id="random-btn">Random</button>
   </div>
 
   <div id="error"></div>
@@ -174,14 +52,33 @@
       }
 
       const rows = [
-        ['Embedding dimension (e)', `<td class="value">${s.e}</td>`],
+        ['Embedding&nbsp;dimension&nbsp;(e)', `<td class="value">${s.e}</td>`],
         ['Frobenius number (f)',    `<td class="value">${s.f}</td>`],
         ['Multiplicity (m)',        `<td class="value">${s.m}</td>`],
         ['# elements ≤ f',         tipCell(s.count_set, elements.join(', '))],
         ['# gaps',                 tipCell(s.count_gap, gaps.join(', '))],
         ['Largest generator',      `<td class="value">${s.max_gen}</td>`],
         ['Generators',             `<td class="value">${s.gen_set.join(', ')}</td>`],
-        ['Apéry set',              `<td class="value">${s.apery_set.join(', ')}</td>`],
+        ['Apéry set',              `<td class="value apery-cell"><table class="apery-table"><tr>${s.apery_set.map((_, i) => `<th>${i}</th>`).join('')}</tr><tr>${s.apery_set.map(v => `<td>${v}</td>`).join('')}</tr></table></td>`],
+        ['Structure', (() => {
+          const m = s.m, numRows = Math.ceil(s.f / m) + 3;
+          const gens = new Set(s.gen_set);
+          let html = '<td class="value sg-cell"><table class="sg-grid">';
+          html += '<thead><tr>' + Array.from({length: m}, (_, i) => `<th>${i}</th>`).join('') + '</tr></thead>';
+          html += '<tbody>';
+          for (let row = numRows - 1; row >= 0; row--) {
+            html += '<tr>';
+            for (let col = 0; col < m; col++) {
+              const n = row * m + col;
+              const apery = n === s.apery_set[col];
+              const cls = n === s.f ? 'sg-frob' : gens.has(n) ? 'sg-gen' : apery ? 'sg-apery' : isElement(n) ? 'sg-in' : 'sg-out';
+              html += `<td class="${cls}">${n}</td>`;
+            }
+            html += '</tr>';
+          }
+          html += '</tbody></table></td>';
+          return html;
+        })()],
       ];
 
       const tbody = rows.map(([label, cell]) =>
@@ -194,6 +91,12 @@
           <tbody>${tbody}</tbody>
         </table>`;
     }
+
+    document.getElementById('random-btn').addEventListener('click', () => {
+      const nums = Array.from({length: 8}, () => Math.floor(Math.random() * 91) + 10);
+      document.getElementById('gens').value = nums.join(', ');
+      compute();
+    });
 
     document.getElementById('compute-btn').addEventListener('click', compute);
     document.getElementById('gens').addEventListener('keydown', e => {

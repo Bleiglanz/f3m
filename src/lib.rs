@@ -158,9 +158,11 @@ pub fn compute(input: &[usize]) -> Semigroup {
     }
 }
 
+pub mod js_helper;
+
 // the following is the interface to JavaScript
 #[wasm_bindgen]
-pub struct JsSemigroup (Semigroup);
+pub struct JsSemigroup (pub(crate) Semigroup);
 
 #[wasm_bindgen]
 impl JsSemigroup {

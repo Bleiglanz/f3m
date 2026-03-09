@@ -19,6 +19,12 @@ export class JsSemigroup {
 
 export function js_compute(input: string): JsSemigroup;
 
+/**
+ * Build the structure grid HTML table for the given semigroup and column offset.
+ * The column at position `col` shows residue `(offset + col) % m`.
+ */
+export function structure_table(s: JsSemigroup, offset: number): string;
+
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
@@ -35,6 +41,7 @@ export interface InitOutput {
     readonly jssemigroup_is_element: (a: number, b: number) => number;
     readonly jssemigroup_m: (a: number) => number;
     readonly jssemigroup_max_gen: (a: number) => number;
+    readonly structure_table: (a: number, b: number) => [number, number];
     readonly __wbindgen_externrefs: WebAssembly.Table;
     readonly __wbindgen_malloc: (a: number, b: number) => number;
     readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;

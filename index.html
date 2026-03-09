@@ -20,7 +20,7 @@
   <div id="result"></div>
 
   <script type="module">
-    import init, { js_compute } from './pkg/f3m.js';
+    import init, { js_compute, structure_table } from './pkg/f3m.js';
 
     await init();
 
@@ -54,25 +54,6 @@
       const blobSet  = new Set(blobs);
 
       const gens = new Set(genSetArr);
-      function buildSgGrid(offset) {
-        const m = s.m, numRows = Math.ceil(s.f / m) + 3;
-        let html = '<table class="sg-grid">';
-        html += '<thead><tr>' + Array.from({length: m}, (_, col) => `<th>${(offset + col) % m}</th>`).join('') + '</tr></thead>';
-        html += '<tbody>';
-        for (let row = numRows - 1; row >= 0; row--) {
-          html += '<tr>';
-          for (let col = 0; col < m; col++) {
-            const residue = (offset + col) % m;
-            const n = row * m + residue;
-            const apery = n === aperySet[residue];
-            const cls = n === s.f ? 'sg-frob' : gens.has(n) ? 'sg-gen' : apery ? 'sg-apery' : isElement(n) ? 'sg-in' : blobSet.has(n) ? 'sg-blob' : 'sg-out';
-            html += `<td class="${cls}">${n}</td>`;
-          }
-          html += '</tr>';
-        }
-        html += '</tbody></table>';
-        return html;
-      }
 
       function tipCell(value, tipText) {
         return `<td class="value has-tip">${value}<span class="tip">${tipText}</span></td>`;
@@ -95,7 +76,7 @@
               `<label>Start column (i): <span id="sg-offset-val">0</span></label>` +
               `<input type="range" id="sg-offset" min="0" max="${m - 1}" value="0"${m <= 1 ? ' disabled' : ''}>` +
             `</div>` +
-            `<div id="sg-grid-container">${buildSgGrid(0)}</div>` +
+            `<div id="sg-grid-container">${structure_table(s, 0)}</div>` +
             `</td>`;
         })()],
       ];
@@ -114,7 +95,7 @@
       if (slider) {
         slider.addEventListener('input', () => {
           document.getElementById('sg-offset-val').textContent = slider.value;
-          document.getElementById('sg-grid-container').innerHTML = buildSgGrid(parseInt(slider.value));
+          document.getElementById('sg-grid-container').innerHTML = structure_table(s, parseInt(slider.value));
         });
       }
     }

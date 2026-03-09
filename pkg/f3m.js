@@ -109,6 +109,27 @@ export function js_compute(input) {
     return JsSemigroup.__wrap(ret);
 }
 
+/**
+ * Build the structure grid HTML table for the given semigroup and column offset.
+ * The column at position `col` shows residue `(offset + col) % m`.
+ * @param {JsSemigroup} s
+ * @param {number} offset
+ * @returns {string}
+ */
+export function structure_table(s, offset) {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        _assertClass(s, JsSemigroup);
+        const ret = wasm.structure_table(s.__wbg_ptr, offset);
+        deferred1_0 = ret[0];
+        deferred1_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+    }
+}
+
 function __wbg_get_imports() {
     const import0 = {
         __proto__: null,
@@ -134,6 +155,12 @@ function __wbg_get_imports() {
 const JsSemigroupFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_jssemigroup_free(ptr >>> 0, 1));
+
+function _assertClass(instance, klass) {
+    if (!(instance instanceof klass)) {
+        throw new Error(`expected instance of ${klass.name}`);
+    }
+}
 
 function getArrayU32FromWasm0(ptr, len) {
     ptr = ptr >>> 0;

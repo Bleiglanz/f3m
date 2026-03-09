@@ -1,11 +1,13 @@
 use wasm_bindgen::prelude::*;
-
+// compute the greatest common divisor of two numbers
 pub fn gcd(mut a: usize, mut b: usize) -> usize {
     while b != 0 {
         (a, b) = (b, a % b);
     }
     a
 }
+
+// compute the greatest common divisor of a vector of numbers
 
 pub fn gcd_vec(numbers: &[usize]) -> usize {
     let mut d = numbers[0];
@@ -19,6 +21,12 @@ pub fn gcd_vec(numbers: &[usize]) -> usize {
 // simple struct to hold the results
 //
 pub struct Semigroup {
+    // e is the embedding dimension, f is the Frobenius number, m is the multiplicity
+    // gen_set is the set of minimal generators, apery_set is the Apery set with respect to m
+    // count_set is the number of elements in the semigroup <f - the sporadic elements
+    // count_gap is the number of gaps
+    // b is the number of reflected gaps (i.e. gaps g such that f-g is also a gap)
+    // blob_set is the set of reflected gaps
     pub e:usize,
     pub f:usize,
     pub m:usize,
@@ -30,10 +38,25 @@ pub struct Semigroup {
 }
 
 impl Semigroup {
-    pub fn element(&self, x:usize)->bool{
+    // check if a number is an element of the semigroup
+    pub fn element(&self, x: usize) -> bool {
         let modu = x % self.m;
         let ap = self.apery_set[modu];
         x >= ap
+    }
+    // check if a number is a gap of the semigroup
+    pub fn is_gap(&self, x: usize) -> bool {
+        !self.element(x)
+    }
+
+    // check if a number is a reflected gap
+    pub fn is_reflected_gap(&self, x: usize) -> bool {
+        self.is_gap(x) && self.is_gap(self.f - x)
+    }
+
+    // get the blob, the number of reflected gaps
+    pub fn blob(&self) -> Vec<usize> {
+        (0..self.f).filter(|&x| self.is_reflected_gap(x)).collect()
     }
 }
 
@@ -43,6 +66,8 @@ impl Semigroup {
 //
 // the algorithm is very simple, inspired by wilf ("the circle of lights")
 // we just move a window of width 2*(maximal input) along the natural numbers
+//
+//
 //
 pub fn compute(input: &[usize]) -> Semigroup {
     let d = gcd_vec(input);
@@ -120,6 +145,7 @@ pub fn compute(input: &[usize]) -> Semigroup {
     assert_eq!(genset.len(),minimal_generators);
     genset.sort();
     assert_eq!(aperyset.len(),m);
+
     Semigroup{
         e:minimal_generators,
         f:max_apery-m,
@@ -131,8 +157,6 @@ pub fn compute(input: &[usize]) -> Semigroup {
         apery_set:aperyset,
     }
 }
-
-
 
 
 
@@ -168,5 +192,7 @@ mod tests {
         let s = compute(&[2, 3]);
         assert_eq!(s.e, 2);
         assert_eq!(s.f, 1);
+        let s = compute(&[21,23,27,29,30]);
+        assert_eq!(s.blob().len()+s.count_set,s.count_gap);
     }
 }

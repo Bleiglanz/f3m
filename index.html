@@ -84,7 +84,7 @@
         ['Multiplicity (m)',        `<td class="value">${s.m}</td>`],
         ['# elements ≤ f',         tipCell(s.count_set, elements.join(', '))],
         ['# gaps',                 tipCell(s.count_gap, gaps.join(', '))],
-        ['Blobs (b)',              tipCell(blobs.length, blobs.join(', '))],
+        ['# blobs=&nbsp;non-reflected&nbsp;gaps',              tipCell(blobs.length, blobs.join(', '))],
         ['Largest generator',      `<td class="value"><span class="sg-gen">${s.max_gen}</span></td>`],
         ['Generators',             `<td class="value">${Array.from(genSetArr, g => `<span class="sg-gen">${g}</span>`).join(', ')}</td>`],
         ['Apéry set',              `<td class="value apery-cell"><table class="apery-table"><tr>${Array.from(aperySet, (_, i) => `<th>${i}</th>`).join('')}</tr><tr>${Array.from(aperySet, v => { const c = v === s.f ? 'sg-frob' : gens.has(v) ? 'sg-gen' : 'sg-apery'; return `<td class="${c}">${v}</td>`; }).join('')}</tr></table></td>`],

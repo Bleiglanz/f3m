@@ -46,6 +46,29 @@
       const isElement = x => x >= s.apery_set[x % s.m];
       const elements = Array.from({length: s.f + 1}, (_, x) => x).filter(isElement);
       const gaps     = Array.from({length: s.f},     (_, x) => x + 1).filter(x => !isElement(x));
+      const blobs    = Array.from({length: s.f - 1}, (_, x) => x + 1).filter(x => !isElement(x) && !isElement(s.f - x));
+      const blobSet  = new Set(blobs);
+
+      const gens = new Set(s.gen_set);
+      function buildSgGrid(offset) {
+        const m = s.m, numRows = Math.ceil(s.f / m) + 3;
+        let html = '<table class="sg-grid">';
+        html += '<thead><tr>' + Array.from({length: m}, (_, col) => `<th>${(offset + col) % m}</th>`).join('') + '</tr></thead>';
+        html += '<tbody>';
+        for (let row = numRows - 1; row >= 0; row--) {
+          html += '<tr>';
+          for (let col = 0; col < m; col++) {
+            const residue = (offset + col) % m;
+            const n = row * m + residue;
+            const apery = n === s.apery_set[residue];
+            const cls = n === s.f ? 'sg-frob' : gens.has(n) ? 'sg-gen' : apery ? 'sg-apery' : isElement(n) ? 'sg-in' : blobSet.has(n) ? 'sg-blob' : 'sg-out';
+            html += `<td class="${cls}">${n}</td>`;
+          }
+          html += '</tr>';
+        }
+        html += '</tbody></table>';
+        return html;
+      }
 
       function tipCell(value, tipText) {
         return `<td class="value has-tip">${value}<span class="tip">${tipText}</span></td>`;
@@ -53,31 +76,23 @@
 
       const rows = [
         ['Embedding&nbsp;dimension&nbsp;(e)', `<td class="value">${s.e}</td>`],
-        ['Frobenius number (f)',    `<td class="value">${s.f}</td>`],
+        ['Frobenius number (f)',    `<td class="value"><span class="sg-frob">${s.f}</span></td>`],
         ['Multiplicity (m)',        `<td class="value">${s.m}</td>`],
         ['# elements ≤ f',         tipCell(s.count_set, elements.join(', '))],
         ['# gaps',                 tipCell(s.count_gap, gaps.join(', '))],
-        ['Largest generator',      `<td class="value">${s.max_gen}</td>`],
-        ['Generators',             `<td class="value">${s.gen_set.join(', ')}</td>`],
-        ['Apéry set',              `<td class="value apery-cell"><table class="apery-table"><tr>${s.apery_set.map((_, i) => `<th>${i}</th>`).join('')}</tr><tr>${s.apery_set.map(v => `<td>${v}</td>`).join('')}</tr></table></td>`],
+        ['Blobs (b)',              tipCell(blobs.length, blobs.join(', '))],
+        ['Largest generator',      `<td class="value"><span class="sg-gen">${s.max_gen}</span></td>`],
+        ['Generators',             `<td class="value">${s.gen_set.map(g => `<span class="sg-gen">${g}</span>`).join(', ')}</td>`],
+        ['Apéry set',              `<td class="value apery-cell"><table class="apery-table"><tr>${s.apery_set.map((_, i) => `<th>${i}</th>`).join('')}</tr><tr>${s.apery_set.map(v => { const c = v === s.f ? 'sg-frob' : gens.has(v) ? 'sg-gen' : 'sg-apery'; return `<td class="${c}">${v}</td>`; }).join('')}</tr></table></td>`],
         ['Structure', (() => {
-          const m = s.m, numRows = Math.ceil(s.f / m) + 3;
-          const gens = new Set(s.gen_set);
-          let html = '<td class="value sg-cell"><table class="sg-grid">';
-          html += '<thead><tr>' + Array.from({length: m}, (_, i) => `<th>${i}</th>`).join('') + '</tr></thead>';
-          html += '<tbody>';
-          for (let row = numRows - 1; row >= 0; row--) {
-            html += '<tr>';
-            for (let col = 0; col < m; col++) {
-              const n = row * m + col;
-              const apery = n === s.apery_set[col];
-              const cls = n === s.f ? 'sg-frob' : gens.has(n) ? 'sg-gen' : apery ? 'sg-apery' : isElement(n) ? 'sg-in' : 'sg-out';
-              html += `<td class="${cls}">${n}</td>`;
-            }
-            html += '</tr>';
-          }
-          html += '</tbody></table></td>';
-          return html;
+          const m = s.m;
+          return `<td class="value sg-cell">` +
+            `<div class="sg-slider-row">` +
+              `<label>Start column (i): <span id="sg-offset-val">0</span></label>` +
+              `<input type="range" id="sg-offset" min="0" max="${m - 1}" value="0"${m <= 1 ? ' disabled' : ''}>` +
+            `</div>` +
+            `<div id="sg-grid-container">${buildSgGrid(0)}</div>` +
+            `</td>`;
         })()],
       ];
 
@@ -90,6 +105,14 @@
           <thead><tr><th>Property</th><th>Value</th></tr></thead>
           <tbody>${tbody}</tbody>
         </table>`;
+
+      const slider = document.getElementById('sg-offset');
+      if (slider) {
+        slider.addEventListener('input', () => {
+          document.getElementById('sg-offset-val').textContent = slider.value;
+          document.getElementById('sg-grid-container').innerHTML = buildSgGrid(parseInt(slider.value));
+        });
+      }
     }
 
     document.getElementById('random-btn').addEventListener('click', () => {

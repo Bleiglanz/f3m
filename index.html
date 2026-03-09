@@ -20,7 +20,7 @@
   <div id="result"></div>
 
   <script type="module">
-    import init, { js_semigroup } from './pkg/f3m.js';
+    import init, { js_compute } from './pkg/f3m.js';
 
     await init();
 
@@ -36,20 +36,24 @@
 
       let s;
       try {
-        s = JSON.parse(js_semigroup(raw));
+        s = js_compute(raw);
       } catch (e) {
         errEl.textContent = 'Error: ' + e.message;
         errEl.style.display = 'block';
         return;
       }
 
-      const isElement = x => x >= s.apery_set[x % s.m];
+      // cache Vec getters — each call allocates a new Uint32Array from WASM
+      const aperySet = s.apery_set;
+      const genSetArr = s.gen_set;
+      const blobs    = Array.from(s.blob);
+
+      const isElement = x => x >= aperySet[x % s.m];
       const elements = Array.from({length: s.f + 1}, (_, x) => x).filter(isElement);
       const gaps     = Array.from({length: s.f},     (_, x) => x + 1).filter(x => !isElement(x));
-      const blobs    = Array.from({length: s.f - 1}, (_, x) => x + 1).filter(x => !isElement(x) && !isElement(s.f - x));
       const blobSet  = new Set(blobs);
 
-      const gens = new Set(s.gen_set);
+      const gens = new Set(genSetArr);
       function buildSgGrid(offset) {
         const m = s.m, numRows = Math.ceil(s.f / m) + 3;
         let html = '<table class="sg-grid">';
@@ -60,7 +64,7 @@
           for (let col = 0; col < m; col++) {
             const residue = (offset + col) % m;
             const n = row * m + residue;
-            const apery = n === s.apery_set[residue];
+            const apery = n === aperySet[residue];
             const cls = n === s.f ? 'sg-frob' : gens.has(n) ? 'sg-gen' : apery ? 'sg-apery' : isElement(n) ? 'sg-in' : blobSet.has(n) ? 'sg-blob' : 'sg-out';
             html += `<td class="${cls}">${n}</td>`;
           }
@@ -82,8 +86,8 @@
         ['# gaps',                 tipCell(s.count_gap, gaps.join(', '))],
         ['Blobs (b)',              tipCell(blobs.length, blobs.join(', '))],
         ['Largest generator',      `<td class="value"><span class="sg-gen">${s.max_gen}</span></td>`],
-        ['Generators',             `<td class="value">${s.gen_set.map(g => `<span class="sg-gen">${g}</span>`).join(', ')}</td>`],
-        ['Apéry set',              `<td class="value apery-cell"><table class="apery-table"><tr>${s.apery_set.map((_, i) => `<th>${i}</th>`).join('')}</tr><tr>${s.apery_set.map(v => { const c = v === s.f ? 'sg-frob' : gens.has(v) ? 'sg-gen' : 'sg-apery'; return `<td class="${c}">${v}</td>`; }).join('')}</tr></table></td>`],
+        ['Generators',             `<td class="value">${Array.from(genSetArr, g => `<span class="sg-gen">${g}</span>`).join(', ')}</td>`],
+        ['Apéry set',              `<td class="value apery-cell"><table class="apery-table"><tr>${Array.from(aperySet, (_, i) => `<th>${i}</th>`).join('')}</tr><tr>${Array.from(aperySet, v => { const c = v === s.f ? 'sg-frob' : gens.has(v) ? 'sg-gen' : 'sg-apery'; return `<td class="${c}">${v}</td>`; }).join('')}</tr></table></td>`],
         ['Structure', (() => {
           const m = s.m;
           return `<td class="value sg-cell">` +

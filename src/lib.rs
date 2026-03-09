@@ -20,6 +20,7 @@ pub fn gcd_vec(numbers: &[usize]) -> usize {
 //
 // simple struct to hold the results
 //
+#[derive(Debug,Clone,PartialEq,Eq,Ord,PartialOrd)]
 pub struct Semigroup {
     // e is the embedding dimension, f is the Frobenius number, m is the multiplicity
     // gen_set is the set of minimal generators, apery_set is the Apery set with respect to m
@@ -36,12 +37,11 @@ pub struct Semigroup {
     pub gen_set:Vec<usize>,
     pub apery_set:Vec<usize>,
 }
-
 impl Semigroup {
     // check if a number is an element of the semigroup
     pub fn element(&self, x: usize) -> bool {
-        let modu = x % self.m;
-        let ap = self.apery_set[modu];
+        let modulus = x % self.m;
+        let ap = self.apery_set[modulus];
         x >= ap
     }
     // check if a number is a gap of the semigroup
@@ -158,10 +158,39 @@ pub fn compute(input: &[usize]) -> Semigroup {
     }
 }
 
+// the following is the interface to JavaScript
+#[wasm_bindgen]
+pub struct JsSemigroup (Semigroup);
 
+#[wasm_bindgen]
+impl JsSemigroup {
+    #[wasm_bindgen(getter)] pub fn e(&self)         -> usize { self.0.e }
+    #[wasm_bindgen(getter)] pub fn f(&self)         -> usize { self.0.f }
+    #[wasm_bindgen(getter)] pub fn m(&self)         -> usize { self.0.m }
+    #[wasm_bindgen(getter)] pub fn count_set(&self) -> usize { self.0.count_set }
+    #[wasm_bindgen(getter)] pub fn count_gap(&self) -> usize { self.0.count_gap }
+    #[wasm_bindgen(getter)] pub fn max_gen(&self)   -> usize { self.0.max_gen }
 
+    #[wasm_bindgen(getter)]
+    pub fn gen_set(&self)   -> Vec<u32> { self.0.gen_set.iter().map(|&x| x as u32).collect() }
+    #[wasm_bindgen(getter)]
+    pub fn apery_set(&self) -> Vec<u32> { self.0.apery_set.iter().map(|&x| x as u32).collect() }
+    #[wasm_bindgen(getter)]
+    pub fn blob(&self)      -> Vec<u32> { self.0.blob().iter().map(|&x| x as u32).collect() }
 
+    pub fn is_element(&self, x: usize) -> bool { self.0.element(x) }
+}
 
+#[wasm_bindgen]
+pub fn js_compute(input: &str) -> JsSemigroup {
+    let numbers: Vec<usize> = input
+        .split(',')
+        .filter_map(|s| s.trim().parse().ok())
+        .collect();
+    JsSemigroup(compute(&numbers))
+}
+
+// we just return a JSON string with the results
 #[wasm_bindgen]
 pub fn js_semigroup(input: &str) -> String {
     let numbers: Vec<usize> = input

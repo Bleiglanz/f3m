@@ -1,5 +1,114 @@
 /* @ts-self-types="./f3m.d.ts" */
 
+export class JsSemigroup {
+    static __wrap(ptr) {
+        ptr = ptr >>> 0;
+        const obj = Object.create(JsSemigroup.prototype);
+        obj.__wbg_ptr = ptr;
+        JsSemigroupFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        JsSemigroupFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_jssemigroup_free(ptr, 0);
+    }
+    /**
+     * @returns {Uint32Array}
+     */
+    get apery_set() {
+        const ret = wasm.jssemigroup_apery_set(this.__wbg_ptr);
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * @returns {Uint32Array}
+     */
+    get blob() {
+        const ret = wasm.jssemigroup_blob(this.__wbg_ptr);
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * @returns {number}
+     */
+    get count_gap() {
+        const ret = wasm.jssemigroup_count_gap(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @returns {number}
+     */
+    get count_set() {
+        const ret = wasm.jssemigroup_count_set(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @returns {number}
+     */
+    get e() {
+        const ret = wasm.jssemigroup_e(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @returns {number}
+     */
+    get f() {
+        const ret = wasm.jssemigroup_f(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @returns {Uint32Array}
+     */
+    get gen_set() {
+        const ret = wasm.jssemigroup_gen_set(this.__wbg_ptr);
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * @param {number} x
+     * @returns {boolean}
+     */
+    is_element(x) {
+        const ret = wasm.jssemigroup_is_element(this.__wbg_ptr, x);
+        return ret !== 0;
+    }
+    /**
+     * @returns {number}
+     */
+    get m() {
+        const ret = wasm.jssemigroup_m(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @returns {number}
+     */
+    get max_gen() {
+        const ret = wasm.jssemigroup_max_gen(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+}
+if (Symbol.dispose) JsSemigroup.prototype[Symbol.dispose] = JsSemigroup.prototype.free;
+
+/**
+ * @param {string} input
+ * @returns {JsSemigroup}
+ */
+export function js_compute(input) {
+    const ptr0 = passStringToWasm0(input, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.js_compute(ptr0, len0);
+    return JsSemigroup.__wrap(ret);
+}
+
 /**
  * @param {string} input
  * @returns {string}
@@ -22,6 +131,9 @@ export function js_semigroup(input) {
 function __wbg_get_imports() {
     const import0 = {
         __proto__: null,
+        __wbg___wbindgen_throw_6ddd609b62940d55: function(arg0, arg1) {
+            throw new Error(getStringFromWasm0(arg0, arg1));
+        },
         __wbindgen_init_externref_table: function() {
             const table = wasm.__wbindgen_externrefs;
             const offset = table.grow(4);
@@ -38,9 +150,26 @@ function __wbg_get_imports() {
     };
 }
 
+const JsSemigroupFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_jssemigroup_free(ptr >>> 0, 1));
+
+function getArrayU32FromWasm0(ptr, len) {
+    ptr = ptr >>> 0;
+    return getUint32ArrayMemory0().subarray(ptr / 4, ptr / 4 + len);
+}
+
 function getStringFromWasm0(ptr, len) {
     ptr = ptr >>> 0;
     return decodeText(ptr, len);
+}
+
+let cachedUint32ArrayMemory0 = null;
+function getUint32ArrayMemory0() {
+    if (cachedUint32ArrayMemory0 === null || cachedUint32ArrayMemory0.byteLength === 0) {
+        cachedUint32ArrayMemory0 = new Uint32Array(wasm.memory.buffer);
+    }
+    return cachedUint32ArrayMemory0;
 }
 
 let cachedUint8ArrayMemory0 = null;
@@ -121,6 +250,7 @@ let wasmModule, wasm;
 function __wbg_finalize_init(instance, module) {
     wasm = instance.exports;
     wasmModule = module;
+    cachedUint32ArrayMemory0 = null;
     cachedUint8ArrayMemory0 = null;
     wasm.__wbindgen_start();
     return wasm;

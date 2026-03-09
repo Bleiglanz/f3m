@@ -190,19 +190,6 @@ pub fn js_compute(input: &str) -> JsSemigroup {
     JsSemigroup(compute(&numbers))
 }
 
-// we just return a JSON string with the results
-#[wasm_bindgen]
-pub fn js_semigroup(input: &str) -> String {
-    let numbers: Vec<usize> = input
-        .split(',')
-        .filter_map(|s| s.trim().parse().ok())
-        .collect();
-    let s = compute(&numbers);
-    format!(
-        "{{\"e\":{},\"f\":{},\"m\":{},\"count_set\":{},\"count_gap\":{},\"max_gen\":{},\"gen_set\":{:?},\"apery_set\":{:?}}}",
-        s.e, s.f, s.m, s.count_set, s.count_gap, s.max_gen, s.gen_set, s.apery_set
-    )
-}
 
 #[cfg(test)]
 mod tests {

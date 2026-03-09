@@ -19,15 +19,12 @@ export class JsSemigroup {
 
 export function js_compute(input: string): JsSemigroup;
 
-export function js_semigroup(input: string): string;
-
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly __wbg_jssemigroup_free: (a: number, b: number) => void;
     readonly js_compute: (a: number, b: number) => number;
-    readonly js_semigroup: (a: number, b: number) => [number, number];
     readonly jssemigroup_apery_set: (a: number) => [number, number];
     readonly jssemigroup_blob: (a: number) => [number, number];
     readonly jssemigroup_count_gap: (a: number) => number;

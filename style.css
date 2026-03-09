@@ -150,6 +150,7 @@ td.value { font-family: monospace; font-size: 0.95rem; }
   padding: 0.2rem 0.3rem;
 }
 
+/* colour palette — used by spans in the property table */
 .sg-gen   { background: #7ab3e8; color: #111; }
 .sg-apery { background: #1a5fb4; color: #fff; }
 .sg-frob  { background: #ffcccc; color: #222; }
@@ -161,12 +162,20 @@ span.sg-gen, span.sg-apery, span.sg-frob, span.sg-blob {
   border-radius: 3px;
 }
 
-.sg-grid .sg-in  { background: #111; color: #fff; }
-.sg-grid .sg-out { background: #f9f9f9; color: #999; }
+/* structure grid — needs .sg-grid prefix (specificity 0-2-0) to beat
+   tr:nth-child(even) td (0-1-2) which would otherwise override colours */
+.sg-grid .sg-gen   { background: #7ab3e8; color: #111; }
+.sg-grid .sg-apery { background: #1a5fb4; color: #fff; }
+.sg-grid .sg-frob  { background: #ffcccc; color: #222; }
+.sg-grid .sg-blob  { background: #b8e6b8; color: #1a4a1a; }
+.sg-grid .sg-in    { background: #111;    color: #fff; }
+.sg-grid .sg-out   { background: #f9f9f9; color: #999; }
 
-.apery-table td.sg-gen, .apery-table td.sg-apery, .apery-table td.sg-frob {
-  border-bottom: 1px solid #eee;
-}
+/* apery table — .apery-table td sets background:#fff (0-1-1) which beats
+   the global .sg-* (0-1-0); use .apery-table td.sg-* (0-2-1) to win */
+.apery-table td.sg-gen   { background: #7ab3e8; color: #111; }
+.apery-table td.sg-apery { background: #1a5fb4; color: #fff; }
+.apery-table td.sg-frob  { background: #ffcccc; color: #222; }
 
 .has-tip {
   position: relative;

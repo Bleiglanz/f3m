@@ -14,6 +14,8 @@
     <input type="text" id="gens" placeholder="e.g. 3, 5, 7" value="3, 5, 7" />
     <button id="compute-btn">Compute</button>
     <button id="random-btn">Random</button>
+    <button id="random3f-btn">Random3f</button>
+    <button id="random-primes-btn">RandomPrimes</button>
   </div>
 
   <div id="error"></div>
@@ -61,6 +63,7 @@
 
       const rows = [
         ['Embedding&nbsp;dimension&nbsp;(e)', `<td class="value">${s.e}</td>`],
+        ['e&nbsp;-&nbsp;2m&nbsp;+&nbsp;g',   `<td class="value">${s.e - 2 * s.m + s.count_gap}</td>`],
         ['Frobenius number (f)',    `<td class="value"><span class="sg-frob">${s.f}</span></td>`],
         ['Multiplicity (m)',        `<td class="value">${s.m}</td>`],
         ['# elements ≤ f',         tipCell(s.count_set, elements.join(', '))],
@@ -71,12 +74,18 @@
         ['Apéry set',              `<td class="value apery-cell"><table class="apery-table"><tr>${Array.from(aperySet, (_, i) => `<th>${i}</th>`).join('')}</tr><tr>${Array.from(aperySet, v => { const c = v === s.f ? 'sg-frob' : gens.has(v) ? 'sg-gen' : 'sg-apery'; return `<td class="${c}">${v}</td>`; }).join('')}</tr></table></td>`],
         ['Structure', (() => {
           const m = s.m;
+          const initD = m;
+          const initI = Math.min(Math.floor((s.f + 1) / 2), initD);
           return `<td class="value sg-cell">` +
             `<div class="sg-slider-row">` +
-              `<label>Start column (i): <span id="sg-offset-val">0</span></label>` +
-              `<input type="range" id="sg-offset" min="0" max="${m - 1}" value="0"${m <= 1 ? ' disabled' : ''}>` +
+              `<label>width: <span id="sg-gen-val">${initD}</span></label>` +
+              `<input type="range" id="sg-gen-slider" min="${m}" max="${s.f + 2 * m}" value="${initD}">` +
             `</div>` +
-            `<div id="sg-grid-container">${structure_table(s, 0)}</div>` +
+            `<div class="sg-slider-row">` +
+              `<label>offset: <span id="sg-offset-val">${initI}</span></label>` +
+              `<input type="range" id="sg-offset" min="0" max="${initD}" value="${initI}">` +
+            `</div>` +
+            `<div id="sg-grid-container">${structure_table(s, initI, initD)}</div>` +
             `</td>`;
         })()],
       ];
@@ -91,11 +100,35 @@
           <tbody>${tbody}</tbody>
         </table>`;
 
+      let selectedD = s.m;
+
+      function highlightGen() {
+        document.querySelectorAll('.sg-grid td').forEach(td => {
+          td.classList.toggle('sg-selected', parseInt(td.textContent) === selectedD);
+        });
+      }
+
       const slider = document.getElementById('sg-offset');
       if (slider) {
         slider.addEventListener('input', () => {
           document.getElementById('sg-offset-val').textContent = slider.value;
-          document.getElementById('sg-grid-container').innerHTML = structure_table(s, parseInt(slider.value));
+          document.getElementById('sg-grid-container').innerHTML = structure_table(s, parseInt(slider.value), selectedD);
+          highlightGen();
+        });
+      }
+
+      const genSlider = document.getElementById('sg-gen-slider');
+      if (genSlider) {
+        highlightGen();
+        genSlider.addEventListener('input', () => {
+          selectedD = parseInt(genSlider.value);
+          document.getElementById('sg-gen-val').textContent = selectedD;
+          const newI = Math.min(Math.floor((s.f + 1) / 2), selectedD);
+          slider.max = selectedD;
+          slider.value = newI;
+          document.getElementById('sg-offset-val').textContent = newI;
+          document.getElementById('sg-grid-container').innerHTML = structure_table(s, newI, selectedD);
+          highlightGen();
         });
       }
     }
@@ -103,6 +136,29 @@
     document.getElementById('random-btn').addEventListener('click', () => {
       const nums = Array.from({length: 8}, () => Math.floor(Math.random() * 91) + 10);
       document.getElementById('gens').value = nums.join(', ');
+      compute();
+    });
+
+    document.getElementById('random3f-btn').addEventListener('click', () => {
+      const nums = Array.from({length: 8}, () => Math.floor(Math.random() * 91) + 10);
+      const tempS = js_compute(nums.join(', '));
+      const m = tempS.m;
+      const extra = Array.from({length: 3 * m + 1}, (_, i) => 3 * m + i);
+      const combined = [...nums, ...extra];
+      document.getElementById('gens').value = combined.join(', ');
+      compute();
+    });
+
+    function isPrime(n) {
+      if (n < 2) return false;
+      for (let i = 2; i * i <= n; i++) if (n % i === 0) return false;
+      return true;
+    }
+
+    document.getElementById('random-primes-btn').addEventListener('click', () => {
+      const x = Math.floor(Math.random() * 41) + 10;
+      const primes = Array.from({length: 5 * x + 1}, (_, i) => x + i).filter(isPrime);
+      document.getElementById('gens').value = primes.join(', ');
       compute();
     });
 

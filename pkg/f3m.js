@@ -110,18 +110,21 @@ export function js_compute(input) {
 }
 
 /**
- * Build the structure grid HTML table for the given semigroup and column offset.
- * The column at position `col` shows residue `(offset + col) % m`.
+ * Build the structure grid HTML table for the given semigroup.
+ * The grid has `width` columns; column `col` shows residue `(offset + col) % width`.
+ * Values increase left-to-right and bottom-to-top. When offset > 0 an extra bottom
+ * row is prepended so that 0..width-1 are always visible; negative cells are empty.
  * @param {JsSemigroup} s
  * @param {number} offset
+ * @param {number} width
  * @returns {string}
  */
-export function structure_table(s, offset) {
+export function structure_table(s, offset, width) {
     let deferred1_0;
     let deferred1_1;
     try {
         _assertClass(s, JsSemigroup);
-        const ret = wasm.structure_table(s.__wbg_ptr, offset);
+        const ret = wasm.structure_table(s.__wbg_ptr, offset, width);
         deferred1_0 = ret[0];
         deferred1_1 = ret[1];
         return getStringFromWasm0(ret[0], ret[1]);

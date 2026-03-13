@@ -170,6 +170,9 @@ span.sg-gen, span.sg-apery, span.sg-frob, span.sg-blob {
 .sg-grid .sg-blob  { background: #b8e6b8; color: #1a4a1a; }
 .sg-grid .sg-in    { background: #111;    color: #fff; }
 .sg-grid .sg-out   { background: #f9f9f9; color: #999; }
+.sg-grid .sg-large { background: #e0e0e0; color: #aaa; }
+.sg-grid .sg-empty { background: #f5f5f5; }
+.sg-grid td.sg-selected { outline: 2px solid #ff6600; outline-offset: -2px; }
 
 /* apery table — .apery-table td sets background:#fff (0-1-1) which beats
    the global .sg-* (0-1-0); use .apery-table td.sg-* (0-2-1) to win */

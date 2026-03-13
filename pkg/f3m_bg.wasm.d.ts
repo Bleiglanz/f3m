@@ -13,7 +13,7 @@ export const jssemigroup_gen_set: (a: number) => [number, number];
 export const jssemigroup_is_element: (a: number, b: number) => number;
 export const jssemigroup_m: (a: number) => number;
 export const jssemigroup_max_gen: (a: number) => number;
-export const structure_table: (a: number, b: number) => [number, number];
+export const structure_table: (a: number, b: number, c: number) => [number, number];
 export const __wbindgen_externrefs: WebAssembly.Table;
 export const __wbindgen_malloc: (a: number, b: number) => number;
 export const __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;

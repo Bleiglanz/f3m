@@ -2,35 +2,42 @@ use std::collections::HashSet;
 use wasm_bindgen::prelude::*;
 use crate::JsSemigroup;
 
-/// Build the structure grid HTML table for the given semigroup and column offset.
-/// The column at position `col` shows residue `(offset + col) % m`.
+/// Build the structure grid HTML table for the given semigroup.
+/// The grid has `width` columns; column `col` shows residue `(offset + col) % width`.
+/// Values increase left-to-right and bottom-to-top. When offset > 0 an extra bottom
+/// row is prepended so that 0..width-1 are always visible; negative cells are empty.
 #[wasm_bindgen]
-pub fn structure_table(s: &JsSemigroup, offset: usize) -> String {
+pub fn structure_table(s: &JsSemigroup, offset: usize, width: usize) -> String {
     let sg = &s.0;
-    let m = sg.m;
     let f = sg.f;
-    let num_rows = (f + m - 1) / m + 3; // ceil(f/m) + 3
 
     let gens: HashSet<usize> = sg.gen_set.iter().cloned().collect();
     let blobs: HashSet<usize> = sg.blob().into_iter().collect();
 
+    let start_row: isize = if offset == 0 { 0 } else { -1 };
+    let end_row: isize = (f / width + 3) as isize;
+
     let mut html = String::from("<table class=\"sg-grid\">");
 
-    // header row
     html.push_str("<thead><tr>");
-    for col in 0..m {
-        html.push_str(&format!("<th>{}</th>", (offset + col) % m));
+    for col in 0..width {
+        html.push_str(&format!("<th>{}</th>", (offset + col) % width));
     }
     html.push_str("</tr></thead><tbody>");
 
-    // data rows, highest row index first (top of grid = large numbers)
-    for row in (0..num_rows).rev() {
+    for row in (start_row..end_row).rev() {
         html.push_str("<tr>");
-        for col in 0..m {
-            let residue = (offset + col) % m;
-            let n = row * m + residue;
-            let apery = n == sg.apery_set[residue];
-            let cls = if n == f {
+        for col in 0..width {
+            let n_signed: isize = row * width as isize + offset as isize + col as isize;
+            if n_signed < 0 {
+                html.push_str("<td class=\"sg-empty\"></td>");
+                continue;
+            }
+            let n = n_signed as usize;
+            let apery = n == sg.apery_set[n % sg.m];
+            let cls = if n > f + sg.m {
+                "sg-large"
+            } else if n == f {
                 "sg-frob"
             } else if gens.contains(&n) {
                 "sg-gen"

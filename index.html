@@ -20,11 +20,17 @@
 
   <div id="error"></div>
   <div id="result"></div>
+  <div id="bottom-actions" style="margin-top:1.5rem;display:none;">
+    <button id="add-f1-btn">add f</button>
+  </div>
 
   <script type="module">
     import init, { js_compute, structure_table } from './pkg/f3m.js';
 
     await init();
+
+    let currentF = null;
+    let currentGenSet = null;
 
     function compute() {
       const raw = document.getElementById('gens').value.trim();
@@ -44,6 +50,10 @@
         errEl.style.display = 'block';
         return;
       }
+
+      currentF = s.f;
+      currentGenSet = Array.from(s.gen_set);
+      document.getElementById('bottom-actions').style.display = 'block';
 
       // cache Vec getters — each call allocates a new Uint32Array from WASM
       const aperySet = s.apery_set;
@@ -117,6 +127,16 @@
         });
       }
 
+      document.getElementById('sg-grid-container').addEventListener('click', e => {
+        const td = e.target.closest('td');
+        if (!td || (!td.classList.contains('sg-out') && !td.classList.contains('sg-blob'))) return;
+        const val = parseInt(td.textContent);
+        if (isNaN(val)) return;
+        document.getElementById('gens').value = document.getElementById('gens').value.trim() + ', ' + val;
+        compute();
+        document.getElementById('gens').value = currentGenSet.join(', ');
+      });
+
       const genSlider = document.getElementById('sg-gen-slider');
       if (genSlider) {
         highlightGen();
@@ -160,6 +180,14 @@
       const primes = Array.from({length: 5 * x + 1}, (_, i) => x + i).filter(isPrime);
       document.getElementById('gens').value = primes.join(', ');
       compute();
+    });
+
+    document.getElementById('add-f1-btn').addEventListener('click', () => {
+      if (currentF === null) return;
+      const raw = document.getElementById('gens').value.trim();
+      document.getElementById('gens').value = raw + ', ' + currentF;
+      compute();
+      document.getElementById('gens').value = currentGenSet.join(', ');
     });
 
     document.getElementById('compute-btn').addEventListener('click', compute);

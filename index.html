@@ -176,7 +176,7 @@
     }
 
     document.getElementById('random-primes-btn').addEventListener('click', () => {
-      const x = Math.floor(Math.random() * 41) + 10;
+      const x = Math.floor(Math.random() * 48) + 3;
       const primes = Array.from({length: 5 * x + 1}, (_, i) => x + i).filter(isPrime);
       document.getElementById('gens').value = primes.join(', ');
       compute();

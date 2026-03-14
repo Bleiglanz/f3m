@@ -82,6 +82,15 @@ export class JsSemigroup {
         return ret !== 0;
     }
     /**
+     * @param {number} i
+     * @param {number} j
+     * @returns {number}
+     */
+    kunz(i, j) {
+        const ret = wasm.jssemigroup_kunz(this.__wbg_ptr, i, j);
+        return ret >>> 0;
+    }
+    /**
      * @returns {number}
      */
     get m() {
@@ -93,6 +102,22 @@ export class JsSemigroup {
      */
     get max_gen() {
         const ret = wasm.jssemigroup_max_gen(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @returns {Uint32Array}
+     */
+    get pf() {
+        const ret = wasm.jssemigroup_pf(this.__wbg_ptr);
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * @returns {number}
+     */
+    get type_t() {
+        const ret = wasm.jssemigroup_type_t(this.__wbg_ptr);
         return ret >>> 0;
     }
 }
@@ -107,6 +132,24 @@ export function js_compute(input) {
     const len0 = WASM_VECTOR_LEN;
     const ret = wasm.js_compute(ptr0, len0);
     return JsSemigroup.__wrap(ret);
+}
+
+/**
+ * @param {JsSemigroup} s
+ * @returns {string}
+ */
+export function kunz_table(s) {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        _assertClass(s, JsSemigroup);
+        const ret = wasm.kunz_table(s.__wbg_ptr);
+        deferred1_0 = ret[0];
+        deferred1_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+    }
 }
 
 /**

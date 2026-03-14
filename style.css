@@ -27,7 +27,7 @@ p.subtitle {
   display: flex;
   gap: 0.5rem;
   width: 100%;
-  max-width: 480px;
+  max-width: 600px;
   margin-bottom: 2rem;
 }
 
@@ -155,8 +155,9 @@ td.value { font-family: monospace; font-size: 0.95rem; }
 .sg-apery { background: #1a5fb4; color: #fff; }
 .sg-frob  { background: #ffcccc; color: #222; }
 .sg-blob  { background: #b8e6b8; color: #1a4a1a; }
+.sg-pf    { background: #2d6a2d; color: #fff; }
 
-span.sg-gen, span.sg-apery, span.sg-frob, span.sg-blob {
+span.sg-gen, span.sg-apery, span.sg-frob, span.sg-blob, span.sg-pf {
   display: inline-block;
   padding: 0.05rem 0.35rem;
   border-radius: 3px;
@@ -167,6 +168,7 @@ span.sg-gen, span.sg-apery, span.sg-frob, span.sg-blob {
 .sg-grid .sg-gen   { background: #7ab3e8; color: #111; }
 .sg-grid .sg-apery { background: #1a5fb4; color: #fff; }
 .sg-grid .sg-frob  { background: #ffcccc; color: #222; }
+.sg-grid .sg-pf    { background: #2d6a2d; color: #fff; cursor: pointer; }
 .sg-grid .sg-blob  { background: #b8e6b8; color: #1a4a1a; cursor: pointer; }
 .sg-grid .sg-blob:hover { background: #a0d8a0; }
 .sg-grid .sg-in    { background: #111;    color: #fff; }
@@ -208,3 +210,23 @@ span.sg-gen, span.sg-apery, span.sg-frob, span.sg-blob {
 }
 
 .has-tip:hover .tip { display: block; }
+
+.kunz-table {
+  margin-top: 1.5rem;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  font-family: monospace;
+}
+.kunz-table th, .kunz-table td {
+  border: 1px solid #444;
+  padding: 0.2rem 0.5rem;
+  text-align: right;
+  min-width: 2rem;
+}
+.kunz-table thead th {
+  background: #1e1e2e;
+  color: #aaa;
+}
+.kunz-table td.sg-gen   { background: #7ab3e8; color: #111; font-weight: bold; }
+.kunz-table td.sg-apery { background: #1a5fb4; color: #fff; font-weight: bold; }
+.kunz-table td.kunz-zero { background: #555; color: #999; }

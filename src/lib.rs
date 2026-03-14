@@ -58,6 +58,33 @@ impl Semigroup {
     pub fn blob(&self) -> Vec<usize> {
         (0..self.f).filter(|&x| self.is_reflected_gap(x)).collect()
     }
+
+    // compute the kunz overshoot apery[i]+apery[j]-apery[i+j%m] / m
+    // when displayed, it should be a symmetric matix
+    // the i-th row sums should be the i-th aperyelement
+    pub fn kunz(&self, i: usize, j:usize) -> usize {
+        let first = i % self.m;
+        let second = j % self.m;
+        let idx = (i+j) % self.m;
+        let sum = &self.apery_set[first] + &self.apery_set[second];
+        assert!(sum >= self.apery_set[idx]);
+        let res = sum - self.apery_set[idx];
+        assert_eq!(0,res %self.m,"ai+aj-a(i+j) immer duch m teilbar!");
+        res / &self.m
+    }
+
+    //
+    // computes PF(S), the set of pseudo-frobenius numers
+    // the reflected gaps x such that x+(element of S > 0) is always in S
+    // and the type t, the number of this
+    //
+    pub fn pft(&self) -> (Vec<usize>,usize) {
+        let pf:Vec<usize> = self.blob().into_iter().filter(|&g| {
+            self.gen_set.iter().all(|&a| self.element(a + g))
+        }).collect();
+        let t = pf.len();
+        (pf,t)
+    }
 }
 
 
@@ -181,6 +208,12 @@ impl JsSemigroup {
     pub fn blob(&self)      -> Vec<u32> { self.0.blob().iter().map(|&x| x as u32).collect() }
 
     pub fn is_element(&self, x: usize) -> bool { self.0.element(x) }
+    pub fn kunz(&self, i: usize, j: usize) -> usize { self.0.kunz(i, j) }
+
+    #[wasm_bindgen(getter)]
+    pub fn pf(&self) -> Vec<u32> { let (pf, _) = self.0.pft(); pf.iter().map(|&x| x as u32).collect() }
+    #[wasm_bindgen(getter)]
+    pub fn type_t(&self) -> usize { self.0.pft().1 }
 }
 
 #[wasm_bindgen]

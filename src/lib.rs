@@ -79,9 +79,10 @@ impl Semigroup {
     // and the type t, the number of this
     //
     pub fn pft(&self) -> (Vec<usize>,usize) {
-        let pf:Vec<usize> = self.blob().into_iter().filter(|&g| {
+        let mut pf:Vec<usize> = self.blob().into_iter().filter(|&g| {
             self.gen_set.iter().all(|&a| self.element(a + g))
         }).collect();
+        pf.push(self.f);
         let t = pf.len();
         (pf,t)
     }

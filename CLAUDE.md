@@ -15,6 +15,9 @@ cargo test
 # Run a single test by name
 cargo test test_gcd
 
+# Lint (fix automatically)
+cargo clippy --fix --lib -p f3m
+
 # Build the WASM package (regenerates pkg/)
 wasm-pack build --target web
 

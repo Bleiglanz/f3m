@@ -51,7 +51,7 @@ impl Semigroup {
 
     // check if symmetric
     pub fn is_symmetric(&self) -> bool {
-        let sym = &self.count_gap==&self.count_set;
+        let sym = self.count_gap==self.count_set;
         assert!(!sym || self.f+1==2*self.count_gap);
         sym
     }
@@ -80,11 +80,11 @@ impl Semigroup {
         let first = i % self.m;
         let second = j % self.m;
         let idx = (i+j) % self.m;
-        let sum = &self.apery_set[first] + &self.apery_set[second];
+        let sum = self.apery_set[first] + self.apery_set[second];
         assert!(sum >= self.apery_set[idx]);
         let res = sum - self.apery_set[idx];
         assert_eq!(0,res %self.m,"ai+aj-a(i+j) immer duch m teilbar!");
-        res / &self.m
+        res / self.m
     }
 
     //

@@ -49,6 +49,13 @@ impl Semigroup {
         !self.element(x)
     }
 
+    // check if symmetric
+    pub fn is_symmetric(&self) -> bool {
+        let sym = &self.count_gap==&self.count_set;
+        assert!(!sym || self.f+1==2*self.count_gap);
+        sym
+    }
+
     // check if a number is a reflected gap
     pub fn is_reflected_gap(&self, x: usize) -> bool {
         self.is_gap(x) && self.is_gap(self.f - x)
@@ -210,6 +217,9 @@ impl JsSemigroup {
 
     pub fn is_element(&self, x: usize) -> bool { self.0.element(x) }
     pub fn kunz(&self, i: usize, j: usize) -> usize { self.0.kunz(i, j) }
+
+    #[wasm_bindgen(getter)]
+    pub fn is_symmetric(&self) -> bool { self.0.is_symmetric() }
 
     #[wasm_bindgen(getter)]
     pub fn pf(&self) -> Vec<u32> { let (pf, _) = self.0.pft(); pf.iter().map(|&x| x as u32).collect() }

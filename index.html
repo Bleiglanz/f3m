@@ -15,9 +15,11 @@
     <button id="compute-btn">Compute</button>
     <button id="random-btn">Random</button>
     <button id="random3f-btn">Random3f</button>
+    <button id="random-symmetric-btn">Symmetric</button>
     <button id="random-primes-btn">RandomPrimes</button>
   </div>
 
+  <div id="busy-banner">Computing…</div>
   <div id="error"></div>
   <div id="result"></div>
 
@@ -36,8 +38,22 @@
     await init();
 
     let currentGenSet = null;
+    let computing = false;
+
+    function setBusy(b) {
+      computing = b;
+      document.getElementById('busy-banner').style.display = b ? 'block' : 'none';
+    }
+
+    function guardBusy() {
+      if (!computing) return false;
+      document.getElementById('busy-banner').classList.add('busy-flash');
+      setTimeout(() => document.getElementById('busy-banner').classList.remove('busy-flash'), 300);
+      return true;
+    }
 
     function compute() {
+      if (guardBusy()) return;
       const raw = document.getElementById('gens').value.trim();
       const errEl = document.getElementById('error');
       const resultEl = document.getElementById('result');
@@ -47,10 +63,12 @@
 
       if (!raw) { return; }
 
+      setBusy(true);
       let s;
       try {
         s = js_compute(raw);
       } catch (e) {
+        setBusy(false);
         showError('Error: ' + (e.message ?? e));
         return;
       }
@@ -85,10 +103,10 @@
         ['Multiplicity (m)',        `<td class="value">${s.m}</td>`],
         ['# elements ≤ f',         tipCell(s.count_set, elements.join(', '))],
         ['# gaps',                 tipCell(s.count_gap, gaps.join(', '))],
-        ['# non-reflected&nbsp;gaps',              tipCell(blobs.length, blobs.join(', '))],
+        ['# reflected&nbsp;gaps',  tipCell(blobs.length, blobs.join(', '))],
         ['Largest generator',      `<td class="value"><span class="sg-gen">${s.max_gen}</span></td>`],
         ['Generators',             `<td class="value">${Array.from(genSetArr, g => `<span class="sg-gen" data-remove-gen="${g}">${g}</span>`).join(', ')}</td>`],
-        ['Apéry set',              `<td class="value apery-cell"><table class="apery-table"><tr>${Array.from(aperySet, (_, i) => `<th>${i}</th>`).join('')}</tr><tr>${Array.from(aperySet, v => { const c = v === s.f ? 'sg-frob' : gens.has(v) ? 'sg-gen' : 'sg-apery'; return `<td class="${c}">${v}</td>`; }).join('')}</tr></table></td>`],
+        ['Apéry set',              `<td class="value apery-cell"><div class="scroll-x"><table class="apery-table"><tr>${Array.from(aperySet, (_, i) => `<th>${i}</th>`).join('')}</tr><tr>${Array.from(aperySet, v => { const c = v === s.f ? 'sg-frob' : gens.has(v) ? 'sg-gen' : 'sg-apery'; return `<td class="${c}">${v}</td>`; }).join('')}</tr></table></div></td>`],
         ['Structure', (() => {
           const m = s.m;
           const initD = m;
@@ -107,7 +125,7 @@
         })()],
       ];
 
-      rows.push(['<span class="has-tip">c<sub>ij</sub><span class="tip">apery(i) + apery(j) − apery((i+j) mod m) / m</span></span>', `<td class="value">${kunz_table(s)}</td>`]);
+      rows.push(['<span class="has-tip">c<sub>ij</sub><span class="tip">apery(i) + apery(j) − apery((i+j) mod m) / m</span></span>', `<td class="value"><div class="scroll-x">${kunz_table(s)}</div></td>`]);
 
       const tbody = rows.map(([label, cell]) =>
         `<tr><td class="label">${label}</td>${cell}</tr>`
@@ -136,37 +154,6 @@
         });
       }
 
-      document.getElementById('result').addEventListener('click', e => {
-        const span = e.target.closest('span.sg-frob, span.sg-pf');
-        if (!span) return;
-        const val = parseInt(span.textContent);
-        if (isNaN(val)) return;
-        document.getElementById('gens').value = document.getElementById('gens').value.trim() + ', ' + val;
-        compute();
-        document.getElementById('gens').value = currentGenSet.join(', ');
-      });
-
-      document.getElementById('result').addEventListener('click', e => {
-        const span = e.target.closest('span[data-remove-gen]');
-        if (!span) return;
-        const val = parseInt(span.dataset.removeGen);
-        if (isNaN(val)) return;
-        const remaining = currentGenSet.filter(g => g !== val);
-        if (remaining.length === 0) return;
-        document.getElementById('gens').value = remaining.join(', ');
-        compute();
-      });
-
-      document.getElementById('sg-grid-container').addEventListener('click', e => {
-        const td = e.target.closest('td');
-        if (!td || (!td.classList.contains('sg-out') && !td.classList.contains('sg-blob') && !td.classList.contains('sg-pf') && !td.classList.contains('sg-frob'))) return;
-        const val = parseInt(td.textContent);
-        if (isNaN(val)) return;
-        document.getElementById('gens').value = document.getElementById('gens').value.trim() + ', ' + val;
-        compute();
-        document.getElementById('gens').value = currentGenSet.join(', ');
-      });
-
       const genSlider = document.getElementById('sg-gen-slider');
       if (genSlider) {
         highlightGen();
@@ -183,16 +170,55 @@
       }
       } catch (e) {
         showError('Error: ' + (e.message ?? e));
+      } finally {
+        setBusy(false);
       }
     }
 
+    // Registered once — no stacking on repeated compute() calls
+    document.getElementById('result').addEventListener('click', e => {
+      if (guardBusy()) return;
+      const span = e.target.closest('span.sg-frob, span.sg-pf');
+      if (!span) return;
+      const val = parseInt(span.textContent);
+      if (isNaN(val)) return;
+      document.getElementById('gens').value = document.getElementById('gens').value.trim() + ', ' + val;
+      compute();
+      document.getElementById('gens').value = currentGenSet.join(', ');
+    });
+
+    document.getElementById('result').addEventListener('click', e => {
+      if (guardBusy()) return;
+      const span = e.target.closest('span[data-remove-gen]');
+      if (!span) return;
+      const val = parseInt(span.dataset.removeGen);
+      if (isNaN(val)) return;
+      const remaining = currentGenSet.filter(g => g !== val);
+      if (remaining.length === 0) return;
+      document.getElementById('gens').value = remaining.join(', ');
+      compute();
+    });
+
+    document.getElementById('result').addEventListener('click', e => {
+      if (guardBusy()) return;
+      const td = e.target.closest('td');
+      if (!td || (!td.classList.contains('sg-out') && !td.classList.contains('sg-blob') && !td.classList.contains('sg-pf') && !td.classList.contains('sg-frob'))) return;
+      const val = parseInt(td.textContent);
+      if (isNaN(val)) return;
+      document.getElementById('gens').value = document.getElementById('gens').value.trim() + ', ' + val;
+      compute();
+      document.getElementById('gens').value = currentGenSet.join(', ');
+    });
+
     document.getElementById('random-btn').addEventListener('click', () => {
+      if (guardBusy()) return;
       const nums = Array.from({length: 8}, () => Math.floor(Math.random() * 91) + 10);
       document.getElementById('gens').value = nums.join(', ');
       compute();
     });
 
     document.getElementById('random3f-btn').addEventListener('click', () => {
+      if (guardBusy()) return;
       const nums = Array.from({length: 8}, () => Math.floor(Math.random() * 91) + 10);
       const tempS = js_compute(nums.join(', '));
       const m = tempS.m;
@@ -202,6 +228,20 @@
       compute();
     });
 
+    document.getElementById('random-symmetric-btn').addEventListener('click', () => {
+      if (guardBusy()) return;
+      for (let attempt = 0; attempt < 10000; attempt++) {
+        const nums = Array.from({length: 8}, () => Math.floor(Math.random() * 91) + 10);
+        const tempS = js_compute(nums.join(', '));
+        if (tempS.is_symmetric) {
+          document.getElementById('gens').value = nums.join(', ');
+          compute();
+          return;
+        }
+      }
+      showError('Could not find a symmetric semigroup after 10000 attempts.');
+    });
+
     function isPrime(n) {
       if (n < 2) return false;
       for (let i = 2; i * i <= n; i++) if (n % i === 0) return false;
@@ -209,16 +249,19 @@
     }
 
     document.getElementById('random-primes-btn').addEventListener('click', () => {
+      if (guardBusy()) return;
       const x = Math.floor(Math.random() * 48) + 3;
       const primes = Array.from({length: 5 * x + 1}, (_, i) => x + i).filter(isPrime);
       document.getElementById('gens').value = primes.join(', ');
       compute();
     });
 
-
-    document.getElementById('compute-btn').addEventListener('click', compute);
+    document.getElementById('compute-btn').addEventListener('click', () => {
+      if (guardBusy()) return;
+      compute();
+    });
     document.getElementById('gens').addEventListener('keydown', e => {
-      if (e.key === 'Enter') compute();
+      if (e.key === 'Enter') { if (guardBusy()) return; compute(); }
     });
 
     compute();

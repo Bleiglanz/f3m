@@ -56,6 +56,22 @@ button {
 
 button:hover { background: #444; }
 
+#busy-banner {
+  display: none;
+  background: #444;
+  color: #fff;
+  font-size: 0.88rem;
+  padding: 0.45rem 1rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  width: 100%;
+  max-width: 600px;
+  text-align: center;
+  transition: background 0.15s;
+}
+
+#busy-banner.busy-flash { background: #c00; }
+
 #error {
   color: #c00;
   font-size: 0.9rem;
@@ -236,3 +252,38 @@ span[data-remove-gen] { cursor: pointer; }
 .kunz-table td.sg-gen   { background: #7ab3e8; color: #111; font-weight: bold; }
 .kunz-table td.sg-apery { background: #1a5fb4; color: #fff; font-weight: bold; }
 .kunz-table td.kunz-zero { background: #555; color: #999; }
+
+.scroll-x { overflow-x: auto; }
+
+#sg-grid-container { overflow-x: auto; }
+
+@media (max-width: 600px) {
+  body { padding: 1.25rem 0.6rem; }
+
+  .input-row {
+    flex-wrap: wrap;
+    max-width: 100%;
+  }
+
+  .input-row input[type="text"] {
+    flex-basis: 100%;
+  }
+
+  .input-row button {
+    flex: 1;
+    padding: 0.6rem 0.5rem;
+    font-size: 0.85rem;
+  }
+
+  #result { max-width: 100%; }
+
+  th, td { padding: 0.5rem 0.6rem; }
+
+  td.label { width: auto; white-space: nowrap; font-size: 0.82rem; }
+
+  td.value { font-size: 0.88rem; }
+
+  .has-tip .tip { max-width: min(88vw, 320px); }
+
+  .sg-slider-row input[type="range"] { max-width: 120px; }
+}

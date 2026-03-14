@@ -11,6 +11,7 @@ export const jssemigroup_e: (a: number) => number;
 export const jssemigroup_f: (a: number) => number;
 export const jssemigroup_gen_set: (a: number) => [number, number];
 export const jssemigroup_is_element: (a: number, b: number) => number;
+export const jssemigroup_is_symmetric: (a: number) => number;
 export const jssemigroup_kunz: (a: number, b: number, c: number) => number;
 export const jssemigroup_m: (a: number) => number;
 export const jssemigroup_max_gen: (a: number) => number;

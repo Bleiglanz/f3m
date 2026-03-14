@@ -14,6 +14,7 @@ export class JsSemigroup {
     readonly e: number;
     readonly f: number;
     readonly gen_set: Uint32Array;
+    readonly is_symmetric: boolean;
     readonly m: number;
     readonly max_gen: number;
     readonly pf: Uint32Array;
@@ -46,6 +47,7 @@ export interface InitOutput {
     readonly jssemigroup_f: (a: number) => number;
     readonly jssemigroup_gen_set: (a: number) => [number, number];
     readonly jssemigroup_is_element: (a: number, b: number) => number;
+    readonly jssemigroup_is_symmetric: (a: number) => number;
     readonly jssemigroup_kunz: (a: number, b: number, c: number) => number;
     readonly jssemigroup_m: (a: number) => number;
     readonly jssemigroup_max_gen: (a: number) => number;

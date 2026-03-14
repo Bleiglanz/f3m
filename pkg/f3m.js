@@ -82,6 +82,13 @@ export class JsSemigroup {
         return ret !== 0;
     }
     /**
+     * @returns {boolean}
+     */
+    get is_symmetric() {
+        const ret = wasm.jssemigroup_is_symmetric(this.__wbg_ptr);
+        return ret !== 0;
+    }
+    /**
      * @param {number} i
      * @param {number} j
      * @returns {number}

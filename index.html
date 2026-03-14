@@ -73,7 +73,7 @@
 
       const rows = [
         ['Embedding&nbsp;dimension&nbsp;(e)', `<td class="value">${s.e}</td>`],
-        ['e&nbsp;-&nbsp;2m&nbsp;+&nbsp;g',   `<td class="value">${s.e - 2 * s.m + s.count_gap}</td>`],
+        ['e&nbsp;+&nbsp;g&nbsp;-&nbsp;m&nbsp;-&nbsp;a&#x2081;', `<td class="value">${s.e + s.count_gap - s.m - genSetArr[1]}</td>`],
         ['Frobenius number (f)',    `<td class="value"><span class="sg-frob">${s.f}</span></td>`],
         ['Multiplicity (m)',        `<td class="value">${s.m}</td>`],
         ['# elements ≤ f',         tipCell(s.count_set, elements.join(', '))],

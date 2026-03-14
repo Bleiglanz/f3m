@@ -287,3 +287,12 @@ span[data-remove-gen] { cursor: pointer; }
 
   .sg-slider-row input[type="range"] { max-width: 120px; }
 }
+
+footer {
+  margin-top: 2rem;
+  font-size: 0.85rem;
+  color: #888;
+}
+
+footer a { color: #888; }
+footer a:hover { color: #ccc; }

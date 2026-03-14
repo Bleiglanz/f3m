@@ -162,9 +162,15 @@ span.sg-gen, span.sg-apery, span.sg-frob, span.sg-blob, span.sg-pf {
   padding: 0.05rem 0.35rem;
   border-radius: 3px;
 }
+span.sg-frob, span.sg-pf { cursor: pointer; }
+span[data-remove-gen] { cursor: pointer; }
 
 /* structure grid — needs .sg-grid prefix (specificity 0-2-0) to beat
    tr:nth-child(even) td (0-1-2) which would otherwise override colours */
+.sg-grid .sg-in,
+.sg-grid .sg-gen,
+.sg-grid .sg-apery,
+.sg-grid .sg-large { border: 1px solid #888; font-weight: bold; }
 .sg-grid .sg-gen   { background: #7ab3e8; color: #111; }
 .sg-grid .sg-apery { background: #1a5fb4; color: #fff; }
 .sg-grid .sg-frob  { background: #ffcccc; color: #222; cursor: pointer; }

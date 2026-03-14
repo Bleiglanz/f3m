@@ -167,7 +167,7 @@ span.sg-gen, span.sg-apery, span.sg-frob, span.sg-blob, span.sg-pf {
    tr:nth-child(even) td (0-1-2) which would otherwise override colours */
 .sg-grid .sg-gen   { background: #7ab3e8; color: #111; }
 .sg-grid .sg-apery { background: #1a5fb4; color: #fff; }
-.sg-grid .sg-frob  { background: #ffcccc; color: #222; }
+.sg-grid .sg-frob  { background: #ffcccc; color: #222; cursor: pointer; }
 .sg-grid .sg-pf    { background: #2d6a2d; color: #fff; cursor: pointer; }
 .sg-grid .sg-blob  { background: #b8e6b8; color: #1a4a1a; cursor: pointer; }
 .sg-grid .sg-blob:hover { background: #a0d8a0; }

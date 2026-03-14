@@ -56,6 +56,13 @@ impl Semigroup {
         sym
     }
 
+    // compute the wilf quotient
+    pub fn wilf(&self)->f64 {
+        let c = self.f as f64 + 1.0f64;
+        let spor = self.count_set as f64;
+        spor /c
+    }
+
     // check if a number is a reflected gap
     pub fn is_reflected_gap(&self, x: usize) -> bool {
         self.is_gap(x) && self.is_gap(self.f - x)
@@ -220,6 +227,8 @@ impl JsSemigroup {
 
     #[wasm_bindgen(getter)]
     pub fn is_symmetric(&self) -> bool { self.0.is_symmetric() }
+    #[wasm_bindgen(getter)]
+    pub fn wilf(&self) -> f64 { self.0.wilf() }
 
     #[wasm_bindgen(getter)]
     pub fn pf(&self) -> Vec<u32> { let (pf, _) = self.0.pft(); pf.iter().map(|&x| x as u32).collect() }

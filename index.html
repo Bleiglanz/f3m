@@ -39,22 +39,23 @@
 
     let currentGenSet = null;
     let computing = false;
+    const busyBanner = document.getElementById('busy-banner');
 
     function setBusy(b) {
       computing = b;
-      document.getElementById('busy-banner').style.display = b ? 'block' : 'none';
+      busyBanner.style.display = b ? 'block' : 'none';
     }
 
     function guardBusy() {
       if (!computing) return false;
-      document.getElementById('busy-banner').classList.add('busy-flash');
-      setTimeout(() => document.getElementById('busy-banner').classList.remove('busy-flash'), 300);
+      busyBanner.classList.add('busy-flash');
+      setTimeout(() => busyBanner.classList.remove('busy-flash'), 300);
       return true;
     }
 
     function compute() {
       if (guardBusy()) return;
-      const raw = document.getElementById('gens').value.trim();
+      const raw = gensInput.value.trim();
       const errEl = document.getElementById('error');
       const resultEl = document.getElementById('result');
 
@@ -85,7 +86,6 @@
       const isElement = x => x >= aperySet[x % s.m];
       const elements = Array.from({length: s.f + 1}, (_, x) => x).filter(isElement);
       const gaps     = Array.from({length: s.f},     (_, x) => x + 1).filter(x => !isElement(x));
-      const blobSet  = new Set(blobs);
 
       const gens = new Set(genSetArr);
 
@@ -94,12 +94,13 @@
       }
 
       const rows = [
+        ['Wilf&nbsp;sporadic/(f+1)',                   `<td class="value">${s.wilf.toFixed(4)} &gt;= ${(1/s.e).toFixed(4)}</td>`],
         ['Embedding&nbsp;dimension&nbsp;(e)', `<td class="value">${s.e}</td>`],
         ['e&nbsp;+&nbsp;g&nbsp;-&nbsp;m&nbsp;-&nbsp;a2;', `<td class="value">${s.e + s.count_gap - s.m - genSetArr[1]}</td>`],
         ['Frobenius number (f)',    `<td class="value"><span class="sg-frob">${s.f}</span></td>`],
         ['PF(S)',                   `<td class="value">${Array.from(s.pf, x => `<span class="sg-pf">${x}</span>`).join(', ')}</td>`],
         ['Type&nbsp;t',            `<td class="value">${s.type_t}</td>`],
-        ['Symmetric?',             `<td class="value">${s.count_gap === s.count_set ? 'True' : 'False'}</td>`],
+        ['Symmetric?',             `<td class="value">${s.is_symmetric ? 'True' : 'False'}</td>`],
         ['Multiplicity (m)',        `<td class="value">${s.m}</td>`],
         ['# elements ≤ f',         tipCell(s.count_set, elements.join(', '))],
         ['# gaps',                 tipCell(s.count_gap, gaps.join(', '))],
@@ -175,6 +176,15 @@
       }
     }
 
+    const gensInput = document.getElementById('gens');
+
+    // Append val to generators, compute, then restore input to the canonical gen set
+    function appendGen(val) {
+      gensInput.value = gensInput.value.trim() + ', ' + val;
+      compute();
+      gensInput.value = currentGenSet.join(', ');
+    }
+
     // Registered once — no stacking on repeated compute() calls
     document.getElementById('result').addEventListener('click', e => {
       if (guardBusy()) return;
@@ -182,9 +192,7 @@
       if (!span) return;
       const val = parseInt(span.textContent);
       if (isNaN(val)) return;
-      document.getElementById('gens').value = document.getElementById('gens').value.trim() + ', ' + val;
-      compute();
-      document.getElementById('gens').value = currentGenSet.join(', ');
+      appendGen(val);
     });
 
     document.getElementById('result').addEventListener('click', e => {
@@ -195,7 +203,7 @@
       if (isNaN(val)) return;
       const remaining = currentGenSet.filter(g => g !== val);
       if (remaining.length === 0) return;
-      document.getElementById('gens').value = remaining.join(', ');
+      gensInput.value = remaining.join(', ');
       compute();
     });
 
@@ -205,15 +213,13 @@
       if (!td || (!td.classList.contains('sg-out') && !td.classList.contains('sg-blob') && !td.classList.contains('sg-pf') && !td.classList.contains('sg-frob'))) return;
       const val = parseInt(td.textContent);
       if (isNaN(val)) return;
-      document.getElementById('gens').value = document.getElementById('gens').value.trim() + ', ' + val;
-      compute();
-      document.getElementById('gens').value = currentGenSet.join(', ');
+      appendGen(val);
     });
 
     document.getElementById('random-btn').addEventListener('click', () => {
       if (guardBusy()) return;
       const nums = Array.from({length: 8}, () => Math.floor(Math.random() * 91) + 10);
-      document.getElementById('gens').value = nums.join(', ');
+      gensInput.value = nums.join(', ');
       compute();
     });
 
@@ -224,7 +230,7 @@
       const m = tempS.m;
       const extra = Array.from({length: 3 * m + 1}, (_, i) => 3 * m + i);
       const combined = [...nums, ...extra];
-      document.getElementById('gens').value = combined.join(', ');
+      gensInput.value = combined.join(', ');
       compute();
     });
 
@@ -234,7 +240,7 @@
         const nums = Array.from({length: 8}, () => Math.floor(Math.random() * 91) + 10);
         const tempS = js_compute(nums.join(', '));
         if (tempS.is_symmetric) {
-          document.getElementById('gens').value = nums.join(', ');
+          gensInput.value = nums.join(', ');
           compute();
           return;
         }
@@ -252,7 +258,7 @@
       if (guardBusy()) return;
       const x = Math.floor(Math.random() * 48) + 3;
       const primes = Array.from({length: 5 * x + 1}, (_, i) => x + i).filter(isPrime);
-      document.getElementById('gens').value = primes.join(', ');
+      gensInput.value = primes.join(', ');
       compute();
     });
 
@@ -260,7 +266,7 @@
       if (guardBusy()) return;
       compute();
     });
-    document.getElementById('gens').addEventListener('keydown', e => {
+    gensInput.addEventListener('keydown', e => {
       if (e.key === 'Enter') { if (guardBusy()) return; compute(); }
     });
 

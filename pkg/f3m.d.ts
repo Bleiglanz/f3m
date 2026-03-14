@@ -19,6 +19,7 @@ export class JsSemigroup {
     readonly max_gen: number;
     readonly pf: Uint32Array;
     readonly type_t: number;
+    readonly wilf: number;
 }
 
 export function js_compute(input: string): JsSemigroup;
@@ -53,6 +54,7 @@ export interface InitOutput {
     readonly jssemigroup_max_gen: (a: number) => number;
     readonly jssemigroup_pf: (a: number) => [number, number];
     readonly jssemigroup_type_t: (a: number) => number;
+    readonly jssemigroup_wilf: (a: number) => number;
     readonly kunz_table: (a: number) => [number, number];
     readonly structure_table: (a: number, b: number, c: number) => [number, number];
     readonly __wbindgen_externrefs: WebAssembly.Table;

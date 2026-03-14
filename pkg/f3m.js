@@ -127,6 +127,13 @@ export class JsSemigroup {
         const ret = wasm.jssemigroup_type_t(this.__wbg_ptr);
         return ret >>> 0;
     }
+    /**
+     * @returns {number}
+     */
+    get wilf() {
+        const ret = wasm.jssemigroup_wilf(this.__wbg_ptr);
+        return ret;
+    }
 }
 if (Symbol.dispose) JsSemigroup.prototype[Symbol.dispose] = JsSemigroup.prototype.free;
 

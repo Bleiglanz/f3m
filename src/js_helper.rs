@@ -57,9 +57,8 @@ pub fn shortprop(s: &JsSemigroup) -> String {
     let spf_html = fmt_spans(&spf,        "sg-pf");
     let f_html   = fmt_spans(&[sg.f],"sg-frob");
     format!(
-        "<tr><td colspan=\"2\" class=\"shortprop-cell\">\
-         <table class=\"shortprop-table\"><thead><tr>\
-         <th>m</th><th>f</th><th>e</th><th>g</th><th>c-g</th><th>t</th>\
+        "<table class=\"shortprop-table\"><thead><tr>\
+         <th>m</th><th>f</th><th>e</th><th>g</th><th>c-g</th><th>t</th><th>Sym</th>\
          <th>gen</th><th>PF</th><th>SPF</th>\
          </tr></thead><tbody><tr>\
          <td>{m}</td>\
@@ -68,12 +67,14 @@ pub fn shortprop(s: &JsSemigroup) -> String {
          <td>{g}</td>\
          <td>{cg}</td>\
          <td>{t}</td>\
+         <td>{sym}</td>\
          <td>{atoms}</td>\
          <td>{pf}</td>\
          <td>{spf}</td>\
-         </tr></tbody></table></td></tr>",
+         </tr></tbody></table>",
         m = sg.m, f = f_html, e = sg.e,
         g = sg.count_gap, cg = sg.count_set, t = t,
+        sym = if sg.is_symmetric() { "True" } else { "False" },
         atoms = gen_html, pf = pf_html, spf = spf_html,
     )
 }
@@ -127,15 +128,6 @@ pub fn combined_table(s: &JsSemigroup, offset: usize) -> String {
         let v = sg.apery_set[i];
         let cls = get_cls(v, false, f, m, &sg.apery_set, &gens, &pf_set, &blobs);
         html.push_str(&cell_td(cls, v));
-    }
-    html.push_str("</tr>");
-
-    // Kunz sigma header row
-    html.push_str("<tr>");
-    for &i in &perm {
-        let row_sum: usize = (0..m).map(|j| sg.kunz(i, j)).sum();
-        let cls = get_cls(i, false, f, m, &sg.apery_set, &gens, &pf_set, &blobs);
-        html.push_str(&format!("<td class=\"{}\">{}</td>", cls, row_sum));
     }
     html.push_str("</tr>");
 

@@ -131,7 +131,7 @@ impl Semigroup {
                     (x>n && self.element(x)) ||
                     (x<n && self.element(x) && !self.element(n-x))
             };
-            let newgen: Vec<usize> = self.gen_set.iter().cloned()
+            let newgen: Vec<usize> = (1..self.f+self.m+1)
                 .filter(|&x| is_newgen(x))
                 .collect();
             if newgen.is_empty() { return self.clone(); }

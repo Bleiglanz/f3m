@@ -334,6 +334,7 @@ th, td { padding: 0.5rem 0.6rem; }
 }
 .history-row { cursor: pointer; }
 .history-row:hover td { background: #f0f0f0; }
+.history-table td.left { text-align: left; }
 
 footer {
   margin-top: 2rem;

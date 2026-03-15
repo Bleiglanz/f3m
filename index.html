@@ -34,8 +34,7 @@
   <div id="tab-history" class="tab-content">
     <table class="history-table">
       <thead><tr>
-        <th>#</th><th>m</th><th>f</th><th>e</th><th>g</th><th>c-g</th><th>t</th>
-        <th>gen</th><th>PF</th><th>SPF</th>
+        <th>#</th><th>m, f, e, g, c-g, t, Sym, gen, PF, SPF</th>
       </tr></thead>
       <tbody id="history-tbody"></tbody>
     </table>
@@ -72,20 +71,9 @@
     }
 
     function historyRow(s, idx) {
-      const genArr = Array.from(s.gen_set);
-      const pfArr  = Array.from(s.pf);
-      const spfArr = Array.from(s.special_pf);
       return `<tr class="history-row" data-idx="${idx}">` +
         `<td>${idx}</td>` +
-        `<td>${s.m}</td>` +
-        `<td>${fmt([s.f], 'sg-frob')}</td>` +
-        `<td>${s.e}</td>` +
-        `<td>${s.count_gap}</td>` +
-        `<td>${s.count_set}</td>` +
-        `<td>${pfArr.length}</td>` +
-        `<td>${fmt(genArr, 'sg-gen')}</td>` +
-        `<td>${fmt(pfArr, 'sg-pf')}</td>` +
-        `<td>${fmt(spfArr, 'sg-pf')}</td>` +
+        `<td class="shortprop-cell">${shortprop(s)}</td>` +
         `</tr>`;
     }
 
@@ -133,7 +121,7 @@
       }
 
       const rows = [
-        shortprop(s),
+        `<tr><td colspan="2" class="shortprop-cell">${shortprop(s)}</td></tr>`,
         ['Wilf&nbsp;sporadic/(f+1)',                   `<td class="value">${s.wilf.toFixed(4)} &gt;= ${(1/s.e).toFixed(4)}</td>`],
         ['Embedding&nbsp;dimension&nbsp;(e)', `<td class="value">${s.e}</td>`],
          ['Frobenius number (f)',    `<td class="value"><span class="sg-frob">${s.f}</span></td>`],
@@ -215,7 +203,7 @@
     // Single toggle handler: grid cells with data-n and property spans
     document.getElementById('result').addEventListener('click', e => {
       if (guardBusy()) return;
-      const span = e.target.closest('span.sg-frob, span.sg-pf, span[data-remove-gen]');
+      const span = e.target.closest('span.sg-frob, span.sg-pf, span.sg-gen, span[data-remove-gen]');
       if (span) { doToggle(parseInt(span.textContent)); return; }
       const sgSpan = e.target.closest('.sg-grid span[data-n]');
       if (sgSpan) doToggle(parseInt(sgSpan.dataset.n));

@@ -11,7 +11,7 @@
   <p class="subtitle">Enter a comma-separated list of generators</p>
 
   <div class="input-row">
-    <input type="text" id="gens" placeholder="e.g. 3, 5, 7" value="3, 5, 7" />
+    <input type="text" id="gens" placeholder="e.g. 6,9,20" value="6, 9, 20" />
     <button id="compute-btn">Compute</button>
     <button id="random-btn">Random</button>
     <button id="random3f-btn">Random3f</button>
@@ -19,12 +19,30 @@
     <button id="random-primes-btn">RandomPrimes</button>
   </div>
 
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="s">S</button>
+    <button class="tab-btn" data-tab="history">History</button>
+  </div>
+
   <div id="busy-banner">Computing…</div>
   <div id="error"></div>
-  <div id="result"></div>
+
+  <div id="tab-s" class="tab-content active">
+    <div id="result"></div>
+  </div>
+
+  <div id="tab-history" class="tab-content">
+    <table class="history-table">
+      <thead><tr>
+        <th>#</th><th>m</th><th>f</th><th>e</th><th>g</th><th>c-g</th><th>t</th>
+        <th>gen</th><th>PF</th><th>SPF</th>
+      </tr></thead>
+      <tbody id="history-tbody"></tbody>
+    </table>
+  </div>
 
   <script type="module">
-    import init, { js_compute, structure_table, kunz_table } from './pkg/f3m.js';
+    import init, { js_compute, combined_table, shortprop } from './pkg/f3m.js';
 
     function showError(msg) {
       const errEl = document.getElementById('error');
@@ -35,11 +53,50 @@
     window.addEventListener('error', e => showError('JS error: ' + e.message));
     window.addEventListener('unhandledrejection', e => showError('Unhandled promise rejection: ' + e.reason));
 
+    function switchTab(name) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.id === 'tab-' + name));
+    }
+    document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+
     await init();
 
     let currentGenSet = null;
+    let currentS = null;
     let computing = false;
     const busyBanner = document.getElementById('busy-banner');
+    const historyList = [];
+
+    function fmt(arr, cls) {
+      return arr.map(x => `<span class="${cls}">${x}</span>`).join(', ');
+    }
+
+    function historyRow(s, idx) {
+      const genArr = Array.from(s.gen_set);
+      const pfArr  = Array.from(s.pf);
+      const spfArr = Array.from(s.special_pf);
+      return `<tr class="history-row" data-idx="${idx}">` +
+        `<td>${idx}</td>` +
+        `<td>${s.m}</td>` +
+        `<td>${fmt([s.f], 'sg-frob')}</td>` +
+        `<td>${s.e}</td>` +
+        `<td>${s.count_gap}</td>` +
+        `<td>${s.count_set}</td>` +
+        `<td>${pfArr.length}</td>` +
+        `<td>${fmt(genArr, 'sg-gen')}</td>` +
+        `<td>${fmt(pfArr, 'sg-pf')}</td>` +
+        `<td>${fmt(spfArr, 'sg-pf')}</td>` +
+        `</tr>`;
+    }
+
+    document.getElementById('history-tbody').addEventListener('click', e => {
+      const row = e.target.closest('.history-row');
+      if (!row) return;
+      const s = historyList[parseInt(row.dataset.idx)];
+      gensInput.value = Array.from(s.gen_set).join(', ');
+      switchTab('s');
+      render(s);
+    });
 
     function setBusy(b) {
       computing = b;
@@ -53,122 +110,92 @@
       return true;
     }
 
-    function compute() {
-      if (guardBusy()) return;
-      const raw = gensInput.value.trim();
-      const errEl = document.getElementById('error');
-      const resultEl = document.getElementById('result');
+    const gensInput = document.getElementById('gens');
 
-      errEl.style.display = 'none';
-      resultEl.innerHTML = '';
-
-      if (!raw) { return; }
-
-      setBusy(true);
-      let s;
-      try {
-        s = js_compute(raw);
-      } catch (e) {
-        setBusy(false);
-        showError('Error: ' + (e.message ?? e));
-        return;
-      }
-
-      try {
-
+    function render(s) {
       currentGenSet = Array.from(s.gen_set);
+      currentS = s;
+      historyList.push(s);
+      document.getElementById('history-tbody').innerHTML += historyRow(s, historyList.length - 1);
 
       // cache Vec getters — each call allocates a new Uint32Array from WASM
       const aperySet = s.apery_set;
       const genSetArr = s.gen_set;
       const blobs    = Array.from(s.blob);
+      const pfArr    = Array.from(s.pf);
 
       const isElement = x => x >= aperySet[x % s.m];
       const elements = Array.from({length: s.f + 1}, (_, x) => x).filter(isElement);
       const gaps     = Array.from({length: s.f},     (_, x) => x + 1).filter(x => !isElement(x));
-
-      const gens = new Set(genSetArr);
 
       function tipCell(value, tipText) {
         return `<td class="value has-tip">${value}<span class="tip">${tipText}</span></td>`;
       }
 
       const rows = [
+        shortprop(s),
         ['Wilf&nbsp;sporadic/(f+1)',                   `<td class="value">${s.wilf.toFixed(4)} &gt;= ${(1/s.e).toFixed(4)}</td>`],
         ['Embedding&nbsp;dimension&nbsp;(e)', `<td class="value">${s.e}</td>`],
-        ['e&nbsp;+&nbsp;g&nbsp;-&nbsp;m&nbsp;-&nbsp;a2;', `<td class="value">${s.e + s.count_gap - s.m - genSetArr[1]}</td>`],
-        ['Frobenius number (f)',    `<td class="value"><span class="sg-frob">${s.f}</span></td>`],
-        ['PF(S)',                   `<td class="value">${Array.from(s.pf, x => `<span class="sg-pf">${x}</span>`).join(', ')}</td>`],
-        ['Type&nbsp;t',            `<td class="value">${s.type_t}</td>`],
+         ['Frobenius number (f)',    `<td class="value"><span class="sg-frob">${s.f}</span></td>`],
+        ['PF(S)',                   `<td class="value">${pfArr.map(x => `<span class="sg-pf">${x}</span>`).join(', ')}</td>`],
+        ['Type&nbsp;t',            `<td class="value">${pfArr.length}</td>`],
+        ['Special&nbsp;PF',        `<td class="value">${Array.from(s.special_pf, x => `<span class="sg-pf">${x}</span>`).join(', ')}</td>`],
         ['Symmetric?',             `<td class="value">${s.is_symmetric ? 'True' : 'False'}</td>`],
-        ['Multiplicity (m)',        `<td class="value">${s.m}</td>`],
-        ['# elements ≤ f',         tipCell(s.count_set, elements.join(', '))],
-        ['# gaps',                 tipCell(s.count_gap, gaps.join(', '))],
         ['# reflected&nbsp;gaps',  tipCell(blobs.length, blobs.join(', '))],
-        ['Largest generator',      `<td class="value"><span class="sg-gen">${s.max_gen}</span></td>`],
-        ['Generators',             `<td class="value">${Array.from(genSetArr, g => `<span class="sg-gen" data-remove-gen="${g}">${g}</span>`).join(', ')}</td>`],
-        ['Apéry set',              `<td class="value apery-cell"><div class="scroll-x"><table class="apery-table"><tr>${Array.from(aperySet, (_, i) => `<th>${i}</th>`).join('')}</tr><tr>${Array.from(aperySet, v => { const c = v === s.f ? 'sg-frob' : gens.has(v) ? 'sg-gen' : 'sg-apery'; return `<td class="${c}">${v}</td>`; }).join('')}</tr></table></div></td>`],
-        ['Structure', (() => {
+        ['Largest generator (ae)',      `<td class="value"><span class="sg-gen">${s.max_gen}</span></td>`],
+        ['Structure / <span class="has-tip">c<sub>ij</sub><span class="tip">apery(i) + apery(j) − apery((i+j) mod m) / m</span></span>', (() => {
           const m = s.m;
-          const initD = m;
-          const initI = Math.min(Math.floor((s.f + 1) / 2), initD);
+          const initI = 0;
           return `<td class="value sg-cell">` +
             `<div class="sg-slider-row">` +
-              `<label>width: <span id="sg-gen-val">${initD}</span></label>` +
-              `<input type="range" id="sg-gen-slider" min="${m}" max="${s.f + 2 * m}" value="${initD}">` +
-            `</div>` +
-            `<div class="sg-slider-row">` +
               `<label>offset: <span id="sg-offset-val">${initI}</span></label>` +
-              `<input type="range" id="sg-offset" min="0" max="${initD}" value="${initI}">` +
+              `<input type="range" id="sg-offset" min="0" max="${m - 1}" value="${initI}">` +
             `</div>` +
-            `<div id="sg-grid-container">${structure_table(s, initI, initD)}</div>` +
+            `<div id="sg-grid-container"></div>` +
             `</td>`;
         })()],
       ];
 
-      rows.push(['<span class="has-tip">c<sub>ij</sub><span class="tip">apery(i) + apery(j) − apery((i+j) mod m) / m</span></span>', `<td class="value"><div class="scroll-x">${kunz_table(s)}</div></td>`]);
-
-      const tbody = rows.map(([label, cell]) =>
-        `<tr><td class="label">${label}</td>${cell}</tr>`
+      const tbody = rows.map(row =>
+        typeof row === 'string' ? row : `<tr><td class="label">${row[0]}</td>${row[1]}</tr>`
       ).join('');
 
+      const resultEl = document.getElementById('result');
       resultEl.innerHTML = `
         <table>
-          <thead><tr><th>Property</th><th>Value</th></tr></thead>
           <tbody>${tbody}</tbody>
         </table>`;
 
-      let selectedD = s.m;
-
-      function highlightGen() {
-        document.querySelectorAll('.sg-grid td').forEach(td => {
-          td.classList.toggle('sg-selected', parseInt(td.textContent) === selectedD);
-        });
-      }
-
       const slider = document.getElementById('sg-offset');
       if (slider) {
+        const renderGrid = () => {
+          document.getElementById('sg-grid-container').innerHTML = combined_table(s, parseInt(slider.value));
+        };
+        renderGrid();
         slider.addEventListener('input', () => {
           document.getElementById('sg-offset-val').textContent = slider.value;
-          document.getElementById('sg-grid-container').innerHTML = structure_table(s, parseInt(slider.value), selectedD);
-          highlightGen();
+          renderGrid();
         });
       }
+    }
 
-      const genSlider = document.getElementById('sg-gen-slider');
-      if (genSlider) {
-        highlightGen();
-        genSlider.addEventListener('input', () => {
-          selectedD = parseInt(genSlider.value);
-          document.getElementById('sg-gen-val').textContent = selectedD;
-          const newI = Math.min(Math.floor((s.f + 1) / 2), selectedD);
-          slider.max = selectedD;
-          slider.value = newI;
-          document.getElementById('sg-offset-val').textContent = newI;
-          document.getElementById('sg-grid-container').innerHTML = structure_table(s, newI, selectedD);
-          highlightGen();
-        });
-      }
+    function compute() {
+      if (guardBusy()) return;
+      const raw = gensInput.value.trim();
+      const errEl = document.getElementById('error');
+
+      errEl.style.display = 'none';
+      document.getElementById('result').innerHTML = '';
+
+      if (!raw) { return; }
+
+      // Sort and normalise the input display
+      const sorted = raw.split(',').map(t => parseInt(t.trim())).filter(n => !isNaN(n)).sort((a, b) => a - b);
+      gensInput.value = sorted.join(', ');
+
+      setBusy(true);
+      try {
+        render(js_compute(raw));
       } catch (e) {
         showError('Error: ' + (e.message ?? e));
       } finally {
@@ -176,56 +203,37 @@
       }
     }
 
-    const gensInput = document.getElementById('gens');
-
-    // Append val to generators, compute, then restore input to the canonical gen set
-    function appendGen(val) {
-      gensInput.value = gensInput.value.trim() + ', ' + val;
-      compute();
-      gensInput.value = currentGenSet.join(', ');
+    function doToggle(val) {
+      if (!currentS) return;
+      const newS = currentS.toggle(val);
+      const newGens = Array.from(newS.gen_set);
+      if (newGens.length === 0 || newGens.join(',') === currentGenSet.join(',')) return;
+      gensInput.value = newGens.join(', ');
+      render(newS);
     }
 
-    // Registered once — no stacking on repeated compute() calls
+    // Single toggle handler: grid cells with data-n and property spans
     document.getElementById('result').addEventListener('click', e => {
       if (guardBusy()) return;
-      const span = e.target.closest('span.sg-frob, span.sg-pf');
-      if (!span) return;
-      const val = parseInt(span.textContent);
-      if (isNaN(val)) return;
-      appendGen(val);
+      const span = e.target.closest('span.sg-frob, span.sg-pf, span[data-remove-gen]');
+      if (span) { doToggle(parseInt(span.textContent)); return; }
+      const sgSpan = e.target.closest('.sg-grid span[data-n]');
+      if (sgSpan) doToggle(parseInt(sgSpan.dataset.n));
     });
 
-    document.getElementById('result').addEventListener('click', e => {
-      if (guardBusy()) return;
-      const span = e.target.closest('span[data-remove-gen]');
-      if (!span) return;
-      const val = parseInt(span.dataset.removeGen);
-      if (isNaN(val)) return;
-      const remaining = currentGenSet.filter(g => g !== val);
-      if (remaining.length === 0) return;
-      gensInput.value = remaining.join(', ');
-      compute();
-    });
-
-    document.getElementById('result').addEventListener('click', e => {
-      if (guardBusy()) return;
-      const td = e.target.closest('td');
-      if (!td || (!td.classList.contains('sg-out') && !td.classList.contains('sg-blob') && !td.classList.contains('sg-pf') && !td.classList.contains('sg-frob'))) return;
-      const val = parseInt(td.textContent);
-      if (isNaN(val)) return;
-      appendGen(val);
-    });
+    function randNums() {
+      return Array.from({length: 8}, () => Math.floor(Math.random() * 91) + 10);
+    }
 
     document.getElementById('random-btn').addEventListener('click', () => {
       if (guardBusy()) return;
-      const nums = Array.from({length: 8}, () => Math.floor(Math.random() * 91) + 10);
-      gensInput.value = nums.join(', ');
+      gensInput.value = randNums().join(', ');
       compute();
     });
 
     document.getElementById('random3f-btn').addEventListener('click', () => {
       if (guardBusy()) return;
-      const nums = Array.from({length: 8}, () => Math.floor(Math.random() * 91) + 10);
+      const nums = randNums();
       const tempS = js_compute(nums.join(', '));
       const m = tempS.m;
       const extra = Array.from({length: 3 * m + 1}, (_, i) => 3 * m + i);
@@ -237,7 +245,7 @@
     document.getElementById('random-symmetric-btn').addEventListener('click', () => {
       if (guardBusy()) return;
       for (let attempt = 0; attempt < 10000; attempt++) {
-        const nums = Array.from({length: 8}, () => Math.floor(Math.random() * 91) + 10);
+        const nums = randNums();
         const tempS = js_compute(nums.join(', '));
         if (tempS.is_symmetric) {
           gensInput.value = nums.join(', ');

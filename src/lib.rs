@@ -20,7 +20,7 @@ pub fn gcd_vec(numbers: &[usize]) -> usize {
 //
 // simple struct to hold the results
 //
-#[derive(Debug,Clone,PartialEq,Eq,Ord,PartialOrd)]
+#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub struct Semigroup {
     // e is the embedding dimension, f is the Frobenius number, m is the multiplicity
     // gen_set is the set of minimal generators, apery_set is the Apery set with respect to m
@@ -28,14 +28,14 @@ pub struct Semigroup {
     // count_gap is the number of gaps
     // b is the number of reflected gaps (i.e. gaps g such that f-g is also a gap)
     // blob_set is the set of reflected gaps
-    pub e:usize,
-    pub f:usize,
-    pub m:usize,
-    pub count_set:usize,
-    pub count_gap:usize,
-    pub max_gen:usize,
-    pub gen_set:Vec<usize>,
-    pub apery_set:Vec<usize>,
+    pub e: usize,
+    pub f: usize,
+    pub m: usize,
+    pub count_set: usize,
+    pub count_gap: usize,
+    pub max_gen: usize,
+    pub gen_set: Vec<usize>,
+    pub apery_set: Vec<usize>,
 }
 impl Semigroup {
     // check if a number is an element of the semigroup
@@ -48,67 +48,104 @@ impl Semigroup {
     pub fn is_gap(&self, x: usize) -> bool {
         !self.element(x)
     }
-
     // check if symmetric
     pub fn is_symmetric(&self) -> bool {
-        let sym = self.count_gap==self.count_set;
-        assert!(!sym || self.f+1==2*self.count_gap);
+        let sym = self.count_gap == self.count_set;
+        assert!(!sym || self.f + 1 == 2 * self.count_gap);
         sym
     }
-
     // compute the wilf quotient
-    pub fn wilf(&self)->f64 {
+    pub fn wilf(&self) -> f64 {
         let c = self.f as f64 + 1.0f64;
         let spor = self.count_set as f64;
-        spor /c
+        spor / c
     }
-
     // check if a number is a reflected gap
     pub fn is_reflected_gap(&self, x: usize) -> bool {
         self.is_gap(x) && self.is_gap(self.f - x)
     }
-
     // get the blob, the number of reflected gaps
     pub fn blob(&self) -> Vec<usize> {
         (0..self.f).filter(|&x| self.is_reflected_gap(x)).collect()
     }
-
     // compute the kunz overshoot apery[i]+apery[j]-apery[i+j%m] / m
     // when displayed, it should be a symmetric matix
     // the i-th row sums should be the i-th aperyelement
-    pub fn kunz(&self, i: usize, j:usize) -> usize {
+    pub fn kunz(&self, i: usize, j: usize) -> usize {
         let first = i % self.m;
         let second = j % self.m;
-        let idx = (i+j) % self.m;
+        let idx = (i + j) % self.m;
         let sum = self.apery_set[first] + self.apery_set[second];
         assert!(sum >= self.apery_set[idx]);
         let res = sum - self.apery_set[idx];
-        assert_eq!(0,res %self.m,"ai+aj-a(i+j) immer duch m teilbar!");
+        assert_eq!(0, res % self.m, "ai+aj-a(i+j) immer duch m teilbar!");
         res / self.m
     }
-
     //
     // computes PF(S), the set of pseudo-frobenius numers
     // the reflected gaps x such that x+(element of S > 0) is always in S
     // and the type t, the number of this
     //
-    pub fn pft(&self) -> (Vec<usize>,usize) {
-        let mut pf:Vec<usize> = self.blob().into_iter().filter(|&g| {
-            self.gen_set.iter().all(|&a| self.element(a + g))
-        }).collect();
+    // special pseudo frobenius are the ones that are differences
+    // of numbers in the genset, i.e. they are in the pft set
+    // and are of the form gen[i]-gen[j] where i>j if the gen is sorted
+    // and they don't divide f
+    //
+    pub fn pft(&self) -> ((Vec<usize>, usize), (Vec<usize>, usize)) {
+        let mut pf: Vec<usize> = self
+            .blob()
+            .into_iter()
+            .filter(|&g| self.gen_set.iter().all(|&a| self.element(a + g)))
+            .collect();
         pf.push(self.f);
         let t = pf.len();
-        (pf,t)
+        let normal_pseudofrobenius = (pf, t);
+        // Special PF: elements of PF(S) that equal gen[i]-gen[j] (i>j) and don't divide f
+        let pf_set: std::collections::HashSet<usize> =
+            normal_pseudofrobenius.0.iter().cloned().collect();
+        let mut special_set = std::collections::HashSet::new();
+        for i in 1..self.gen_set.len() {
+            for j in 0..i {
+                let diff = self.gen_set[i] - self.gen_set[j];
+                if pf_set.contains(&diff) && self.f % diff != 0 {
+                    special_set.insert(diff);
+                }
+            }
+        }
+        let mut special: Vec<usize> = special_set.into_iter().collect();
+        special.sort();
+        let st = special.len();
+        (normal_pseudofrobenius, (special, st))
+    }
+
+    // toggle(self,n): if n is a gap, add it as a generator;
+    // if n is a minimal generator, remove it - by removing
+    // all n-s for elements of the semigroup from 1..n
+    pub fn toggle(&self, n: usize) -> Semigroup {
+        if self.is_gap(n) {
+            let mut newgen = self.gen_set.clone();
+            newgen.push(n);
+            compute(&newgen)
+        } else {
+            let is_newgen = |x:usize|{
+                    (x>n && self.element(x)) ||
+                    (x<n && self.element(x) && !self.element(n-x))
+            };
+            let newgen: Vec<usize> = self.gen_set.iter().cloned()
+                .filter(|&x| is_newgen(x))
+                .collect();
+            if newgen.is_empty() { return self.clone(); }
+            compute(&newgen)
+        }
     }
 }
-
 
 //
 // compute the numerical semigroup generated by the numbers in the slice "input"
 //
 // the algorithm is very simple, inspired by wilf ("the circle of lights")
 // we just move a window of width 2*(maximal input) along the natural numbers
-//
+// Claude: don't touch this function
 //
 //
 pub fn compute(input: &[usize]) -> Semigroup {
@@ -117,7 +154,7 @@ pub fn compute(input: &[usize]) -> Semigroup {
     inputnumbers.sort();
 
     let maximal_input: usize = *inputnumbers.last().unwrap();
-    let width=2*maximal_input;
+    let width = 2 * maximal_input;
     let m: usize = *inputnumbers.first().unwrap();
 
     let mut aperyset: Vec<usize> = vec![0; m];
@@ -126,12 +163,12 @@ pub fn compute(input: &[usize]) -> Semigroup {
     let mut windowindex = m; // this is the running index
     let mut runlength = 0usize; // number of consecutive hits
     let mut hit: bool = false; // true if the number windowindex is in S
-    let mut max_apery:usize = m;
-    let mut sum_apery:usize = 0;
-    let mut minimal_generators:usize = 1;
+    let mut max_apery: usize = m;
+    let mut sum_apery: usize = 0;
+    let mut minimal_generators: usize = 1;
     let mut max_atom = m;
-    let mut genset:Vec<usize> = Vec::new();
-    window[0]=0;
+    let mut genset: Vec<usize> = Vec::new();
+    window[0] = 0;
     let mut i: usize = m; // startindex
     while runlength < m {
         let residue = i % m;
@@ -141,14 +178,13 @@ pub fn compute(input: &[usize]) -> Semigroup {
             runlength += 1;
             hit = true;
             window[windowindex] = i as isize;
-        } else if aperyset[residue]>0 && i > aperyset[residue] {
+        } else if aperyset[residue] > 0 && i > aperyset[residue] {
             // case: we already have found an element in this residue class
             count_set += 1;
             runlength += 1;
             hit = true;
             window[windowindex] = i as isize;
-        }
-        else {
+        } else {
             // ok, we must ckeck this number by going back to windowindex-generator for all generators
             for k in inputnumbers[1..].iter() {
                 if windowindex >= *k && window[windowindex - k] >= 0 {
@@ -158,18 +194,24 @@ pub fn compute(input: &[usize]) -> Semigroup {
                     hit = true;
                     window[windowindex] = i as isize;
                     aperyset[residue] = i;
-                    sum_apery+=i;
-                    if i>max_apery { max_apery = i}
-                    if 0==window[windowindex - *k] {
-                        minimal_generators+=1;
+                    sum_apery += i;
+                    if i > max_apery {
+                        max_apery = i
+                    }
+                    if 0 == window[windowindex - *k] {
+                        minimal_generators += 1;
                         genset.push(i);
-                        if max_atom < i {max_atom=i};
+                        if max_atom < i {
+                            max_atom = i
+                        };
                     }
                     break;
                 }
             }
         }
-        if !hit { runlength = 0 };
+        if !hit {
+            runlength = 0
+        };
         hit = false;
         i += 1;
         //
@@ -184,19 +226,19 @@ pub fn compute(input: &[usize]) -> Semigroup {
         }
     }
     genset.push(m);
-    assert_eq!(genset.len(),minimal_generators);
+    assert_eq!(genset.len(), minimal_generators);
     genset.sort();
-    assert_eq!(aperyset.len(),m);
+    assert_eq!(aperyset.len(), m);
 
-    Semigroup{
-        e:minimal_generators,
-        f:max_apery-m,
+    Semigroup {
+        e: minimal_generators,
+        f: max_apery - m,
         m,
-        count_set:count_set-m,
-        count_gap:(sum_apery - ((m - 1) * m) / 2) / m,
-        max_gen:*genset.iter().max().unwrap(),
-        gen_set:genset,
-        apery_set:aperyset,
+        count_set: count_set - m,
+        count_gap: (sum_apery - ((m - 1) * m) / 2) / m,
+        max_gen: *genset.iter().max().unwrap(),
+        gen_set: genset,
+        apery_set: aperyset,
     }
 }
 
@@ -204,36 +246,82 @@ pub mod js_helper;
 
 // the following is the interface to JavaScript
 #[wasm_bindgen]
-pub struct JsSemigroup (pub(crate) Semigroup);
+pub struct JsSemigroup(pub(crate) Semigroup);
 
 #[wasm_bindgen]
 impl JsSemigroup {
-    #[wasm_bindgen(getter)] pub fn e(&self)         -> usize { self.0.e }
-    #[wasm_bindgen(getter)] pub fn f(&self)         -> usize { self.0.f }
-    #[wasm_bindgen(getter)] pub fn m(&self)         -> usize { self.0.m }
-    #[wasm_bindgen(getter)] pub fn count_set(&self) -> usize { self.0.count_set }
-    #[wasm_bindgen(getter)] pub fn count_gap(&self) -> usize { self.0.count_gap }
-    #[wasm_bindgen(getter)] pub fn max_gen(&self)   -> usize { self.0.max_gen }
+    #[wasm_bindgen(getter)]
+    pub fn e(&self) -> usize {
+        self.0.e
+    }
+    #[wasm_bindgen(getter)]
+    pub fn f(&self) -> usize {
+        self.0.f
+    }
+    #[wasm_bindgen(getter)]
+    pub fn m(&self) -> usize {
+        self.0.m
+    }
+    #[wasm_bindgen(getter)]
+    pub fn count_set(&self) -> usize {
+        self.0.count_set
+    }
+    #[wasm_bindgen(getter)]
+    pub fn count_gap(&self) -> usize {
+        self.0.count_gap
+    }
+    #[wasm_bindgen(getter)]
+    pub fn max_gen(&self) -> usize {
+        self.0.max_gen
+    }
 
     #[wasm_bindgen(getter)]
-    pub fn gen_set(&self)   -> Vec<u32> { self.0.gen_set.iter().map(|&x| x as u32).collect() }
+    pub fn gen_set(&self) -> Vec<u32> {
+        self.0.gen_set.iter().map(|&x| x as u32).collect()
+    }
     #[wasm_bindgen(getter)]
-    pub fn apery_set(&self) -> Vec<u32> { self.0.apery_set.iter().map(|&x| x as u32).collect() }
+    pub fn apery_set(&self) -> Vec<u32> {
+        self.0.apery_set.iter().map(|&x| x as u32).collect()
+    }
     #[wasm_bindgen(getter)]
-    pub fn blob(&self)      -> Vec<u32> { self.0.blob().iter().map(|&x| x as u32).collect() }
+    pub fn blob(&self) -> Vec<u32> {
+        self.0.blob().iter().map(|&x| x as u32).collect()
+    }
 
-    pub fn is_element(&self, x: usize) -> bool { self.0.element(x) }
-    pub fn kunz(&self, i: usize, j: usize) -> usize { self.0.kunz(i, j) }
+    pub fn is_element(&self, x: usize) -> bool {
+        self.0.element(x)
+    }
+    pub fn kunz(&self, i: usize, j: usize) -> usize {
+        self.0.kunz(i, j)
+    }
 
     #[wasm_bindgen(getter)]
-    pub fn is_symmetric(&self) -> bool { self.0.is_symmetric() }
+    pub fn is_symmetric(&self) -> bool {
+        self.0.is_symmetric()
+    }
     #[wasm_bindgen(getter)]
-    pub fn wilf(&self) -> f64 { self.0.wilf() }
+    pub fn wilf(&self) -> f64 {
+        self.0.wilf()
+    }
 
     #[wasm_bindgen(getter)]
-    pub fn pf(&self) -> Vec<u32> { let (pf, _) = self.0.pft(); pf.iter().map(|&x| x as u32).collect() }
+    pub fn pf(&self) -> Vec<u32> {
+        let ((pf, _), _) = self.0.pft();
+        pf.iter().map(|&x| x as u32).collect()
+    }
     #[wasm_bindgen(getter)]
-    pub fn type_t(&self) -> usize { self.0.pft().1 }
+    pub fn type_t(&self) -> usize {
+        self.0.pft().0.1
+    }
+    #[wasm_bindgen(getter)]
+    pub fn special_pf(&self) -> Vec<u32> {
+        let (_, (spf, _)) = self.0.pft();
+        spf.iter().map(|&x| x as u32).collect()
+    }
+
+    pub fn toggle(&self, n: usize) -> JsSemigroup {
+        JsSemigroup(self.0.toggle(n))
+    }
 }
 
 #[wasm_bindgen]
@@ -244,7 +332,6 @@ pub fn js_compute(input: &str) -> JsSemigroup {
         .collect();
     JsSemigroup(compute(&numbers))
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -263,7 +350,7 @@ mod tests {
         let s = compute(&[2, 3]);
         assert_eq!(s.e, 2);
         assert_eq!(s.f, 1);
-        let s = compute(&[21,23,27,29,30]);
-        assert_eq!(s.blob().len()+s.count_set,s.count_gap);
+        let s = compute(&[21, 23, 27, 29, 30]);
+        assert_eq!(s.blob().len() + s.count_set, s.count_gap);
     }
 }

@@ -7,6 +7,7 @@ export class JsSemigroup {
     [Symbol.dispose](): void;
     is_element(x: number): boolean;
     kunz(i: number, j: number): number;
+    toggle(n: number): JsSemigroup;
     readonly apery_set: Uint32Array;
     readonly blob: Uint32Array;
     readonly count_gap: number;
@@ -18,21 +19,25 @@ export class JsSemigroup {
     readonly m: number;
     readonly max_gen: number;
     readonly pf: Uint32Array;
+    readonly special_pf: Uint32Array;
     readonly type_t: number;
     readonly wilf: number;
 }
 
+/**
+ * Build the full combined table: structure grid + repeated header + Apéry row + Kunz matrix.
+ * All sections share `m` columns, permuted by `offset` so column `col` shows residue
+ * `(offset + col) % m`.
+ */
+export function combined_table(s: JsSemigroup, offset: number): string;
+
 export function js_compute(input: string): JsSemigroup;
 
-export function kunz_table(s: JsSemigroup): string;
-
 /**
- * Build the structure grid HTML table for the given semigroup.
- * The grid has `width` columns; column `col` shows residue `(offset + col) % width`.
- * Values increase left-to-right and bottom-to-top. When offset > 0 an extra bottom
- * row is prepended so that 0..width-1 are always visible; negative cells are empty.
+ * Compact summary row: colspan=2 nested table with key properties on one line.
+ * Returns a full `<tr>` string to be spliced directly into the properties tbody.
  */
-export function structure_table(s: JsSemigroup, offset: number, width: number): string;
+export function shortprop(s: JsSemigroup): string;
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
@@ -53,14 +58,16 @@ export interface InitOutput {
     readonly jssemigroup_m: (a: number) => number;
     readonly jssemigroup_max_gen: (a: number) => number;
     readonly jssemigroup_pf: (a: number) => [number, number];
+    readonly jssemigroup_special_pf: (a: number) => [number, number];
+    readonly jssemigroup_toggle: (a: number, b: number) => number;
     readonly jssemigroup_type_t: (a: number) => number;
     readonly jssemigroup_wilf: (a: number) => number;
-    readonly kunz_table: (a: number) => [number, number];
-    readonly structure_table: (a: number, b: number, c: number) => [number, number];
+    readonly combined_table: (a: number, b: number) => [number, number];
+    readonly shortprop: (a: number) => [number, number];
     readonly __wbindgen_externrefs: WebAssembly.Table;
+    readonly __wbindgen_free: (a: number, b: number, c: number) => void;
     readonly __wbindgen_malloc: (a: number, b: number) => number;
     readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
-    readonly __wbindgen_free: (a: number, b: number, c: number) => void;
     readonly __wbindgen_start: () => void;
 }
 

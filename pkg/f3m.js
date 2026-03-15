@@ -121,6 +121,23 @@ export class JsSemigroup {
         return v1;
     }
     /**
+     * @returns {Uint32Array}
+     */
+    get special_pf() {
+        const ret = wasm.jssemigroup_special_pf(this.__wbg_ptr);
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * @param {number} n
+     * @returns {JsSemigroup}
+     */
+    toggle(n) {
+        const ret = wasm.jssemigroup_toggle(this.__wbg_ptr, n);
+        return JsSemigroup.__wrap(ret);
+    }
+    /**
      * @returns {number}
      */
     get type_t() {
@@ -138,6 +155,28 @@ export class JsSemigroup {
 if (Symbol.dispose) JsSemigroup.prototype[Symbol.dispose] = JsSemigroup.prototype.free;
 
 /**
+ * Build the full combined table: structure grid + repeated header + Apéry row + Kunz matrix.
+ * All sections share `m` columns, permuted by `offset` so column `col` shows residue
+ * `(offset + col) % m`.
+ * @param {JsSemigroup} s
+ * @param {number} offset
+ * @returns {string}
+ */
+export function combined_table(s, offset) {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        _assertClass(s, JsSemigroup);
+        const ret = wasm.combined_table(s.__wbg_ptr, offset);
+        deferred1_0 = ret[0];
+        deferred1_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+    }
+}
+
+/**
  * @param {string} input
  * @returns {JsSemigroup}
  */
@@ -149,39 +188,17 @@ export function js_compute(input) {
 }
 
 /**
+ * Compact summary row: colspan=2 nested table with key properties on one line.
+ * Returns a full `<tr>` string to be spliced directly into the properties tbody.
  * @param {JsSemigroup} s
  * @returns {string}
  */
-export function kunz_table(s) {
+export function shortprop(s) {
     let deferred1_0;
     let deferred1_1;
     try {
         _assertClass(s, JsSemigroup);
-        const ret = wasm.kunz_table(s.__wbg_ptr);
-        deferred1_0 = ret[0];
-        deferred1_1 = ret[1];
-        return getStringFromWasm0(ret[0], ret[1]);
-    } finally {
-        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
-    }
-}
-
-/**
- * Build the structure grid HTML table for the given semigroup.
- * The grid has `width` columns; column `col` shows residue `(offset + col) % width`.
- * Values increase left-to-right and bottom-to-top. When offset > 0 an extra bottom
- * row is prepended so that 0..width-1 are always visible; negative cells are empty.
- * @param {JsSemigroup} s
- * @param {number} offset
- * @param {number} width
- * @returns {string}
- */
-export function structure_table(s, offset, width) {
-    let deferred1_0;
-    let deferred1_1;
-    try {
-        _assertClass(s, JsSemigroup);
-        const ret = wasm.structure_table(s.__wbg_ptr, offset, width);
+        const ret = wasm.shortprop(s.__wbg_ptr);
         deferred1_0 = ret[0];
         deferred1_1 = ret[1];
         return getStringFromWasm0(ret[0], ret[1]);

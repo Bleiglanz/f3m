@@ -6,20 +6,22 @@ A browser-based tool for computing properties of numerical semigroups from a lis
 
 | Property | Description |
 |---|---|
+| Summary row | Compact m, f, e, g, c-g, t with generators, PF, SPF |
 | Wilf | Sporadic count / (f+1) vs 1/e (Wilf conjecture) |
 | Embedding dimension (e) | Number of minimal generators |
 | Frobenius number (f) | Largest integer not in the semigroup |
 | PF(S) | Pseudo-Frobenius numbers |
+| Special PF | PF elements of the form gen[i] − gen[j] not dividing f |
 | Type t | Cardinality of PF(S) |
 | Symmetric | Whether the semigroup is symmetric (t = 1) |
 | Multiplicity (m) | Smallest positive element |
-| Apéry set | One representative per residue class mod m |
-| Structure grid | Color-coded element/gap layout |
-| Kunz coordinates | c_ij table derived from the Apéry set |
+| Structure grid | Color-coded element/gap layout with Apéry row and Kunz c_ij matrix; offset slider permutes columns |
 
 ## Usage
 
-Enter a comma-separated list of generators, e.g. `3, 5, 7`. The GCD is normalized automatically. Click any gap, Frobenius number, or pseudo-Frobenius element to add it as a generator. Click a generator to remove it.
+Enter a comma-separated list of generators, e.g. `6, 9, 20`. The GCD is normalized automatically. Click any element in the structure grid, or any Frobenius/PF span in the properties table, to toggle it as a generator.
+
+The **S** tab shows the current semigroup. The **History** tab lists every computation in a summary table; click a row to restore it.
 
 The random buttons generate:
 - **Random** — 8 random generators in [10, 100]
@@ -48,10 +50,11 @@ The `pkg/` directory contains committed build artifacts. Rebuild after changing 
 ## Architecture
 
 ```
-src/lib.rs   — Rust: all semigroup math + wasm-bindgen exports
-pkg/         — wasm-pack output (committed): f3m.js, f3m_bg.wasm, *.d.ts
-index.html   — Single-page frontend
-style.css    — Styles
+src/lib.rs        — Rust: all semigroup math + wasm-bindgen exports
+src/js_helper.rs  — Rust: HTML rendering helpers (combined_table, shortprop)
+pkg/              — wasm-pack output (committed): f3m.js, f3m_bg.wasm, *.d.ts
+index.html        — Single-page frontend
+style.css         — Styles
 ```
 
 Membership testing uses the Apéry set for O(1) lookup. The sliding-window algorithm in `compute()` finds the minimal generating set and Apéry set without enumerating all elements.

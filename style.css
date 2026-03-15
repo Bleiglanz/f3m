@@ -26,8 +26,6 @@ p.subtitle {
 .input-row {
   display: flex;
   gap: 0.5rem;
-  width: 100%;
-  max-width: 600px;
   margin-bottom: 2rem;
 }
 
@@ -64,8 +62,6 @@ button:hover { background: #444; }
   padding: 0.45rem 1rem;
   border-radius: 6px;
   margin-bottom: 1rem;
-  width: 100%;
-  max-width: 600px;
   text-align: center;
   transition: background 0.15s;
 }
@@ -79,7 +75,7 @@ button:hover { background: #444; }
   display: none;
 }
 
-#result { width: 100%; max-width: 600px; }
+#result { }
 
 table {
   width: 100%;
@@ -163,8 +159,16 @@ td.value { font-family: monospace; font-size: 0.95rem; }
   height: 2em;
   text-align: center;
   border: 1px solid #ccc;
-  padding: 0.2rem 0.3rem;
+  padding: 0;
 }
+
+.sg-grid span[data-n] {
+  display: block;
+  padding: 0.2rem 0.3rem;
+  cursor: pointer;
+}
+
+.sg-grid span[data-n]:hover { filter: brightness(1.15); }
 
 /* colour palette — used by spans in the property table */
 .sg-gen   { background: #7ab3e8; color: #111; }
@@ -181,21 +185,24 @@ span.sg-gen, span.sg-apery, span.sg-frob, span.sg-blob, span.sg-pf {
 span.sg-frob, span.sg-pf { cursor: pointer; }
 span[data-remove-gen] { cursor: pointer; }
 
-/* structure grid — needs .sg-grid prefix (specificity 0-2-0) to beat
-   tr:nth-child(even) td (0-1-2) which would otherwise override colours */
-.sg-grid .sg-in,
-.sg-grid .sg-gen,
-.sg-grid .sg-apery,
-.sg-grid .sg-large { border: 1px solid #888; font-weight: bold; }
+/* structure grid — colour + font-weight live on the span[data-n] inside each td.
+   tr:nth-child(even) td (0-1-2) no longer fights span backgrounds.
+   Bold border goes on the td via :has() to avoid a double-border from the span. */
+.sg-grid td:has(span.sg-in),
+.sg-grid td:has(span.sg-gen),
+.sg-grid td:has(span.sg-apery),
+.sg-grid td:has(span.sg-large) { border-color: #888; }
+.sg-grid span.sg-in,
+.sg-grid span.sg-gen,
+.sg-grid span.sg-apery,
+.sg-grid span.sg-large { font-weight: bold; }
 .sg-grid .sg-gen   { background: #7ab3e8; color: #111; }
 .sg-grid .sg-apery { background: #1a5fb4; color: #fff; }
-.sg-grid .sg-frob  { background: #ffcccc; color: #222; cursor: pointer; }
-.sg-grid .sg-pf    { background: #2d6a2d; color: #fff; cursor: pointer; }
-.sg-grid .sg-blob  { background: #b8e6b8; color: #1a4a1a; cursor: pointer; }
-.sg-grid .sg-blob:hover { background: #a0d8a0; }
+.sg-grid .sg-frob  { background: #ffcccc; color: #222; }
+.sg-grid .sg-pf    { background: #2d6a2d; color: #fff; }
+.sg-grid .sg-blob  { background: #b8e6b8; color: #1a4a1a; }
 .sg-grid .sg-in    { background: #111;    color: #fff; }
-.sg-grid .sg-out   { background: #f9f9f9; color: #999; cursor: pointer; }
-.sg-grid .sg-out:hover { background: #e8e8e8; }
+.sg-grid .sg-out   { background: #f9f9f9; color: #999; }
 .sg-grid .sg-large { background: #e0e0e0; color: #aaa; }
 .sg-grid .sg-empty { background: #f5f5f5; }
 .sg-grid td.sg-selected { outline: 2px solid #ff6600; outline-offset: -2px; }
@@ -262,7 +269,6 @@ span[data-remove-gen] { cursor: pointer; }
 
   .input-row {
     flex-wrap: wrap;
-    max-width: 100%;
   }
 
   .input-row input[type="text"] {
@@ -275,9 +281,7 @@ span[data-remove-gen] { cursor: pointer; }
     font-size: 0.85rem;
   }
 
-  #result { max-width: 100%; }
-
-  th, td { padding: 0.5rem 0.6rem; }
+th, td { padding: 0.5rem 0.6rem; }
 
   td.label { width: auto; white-space: nowrap; font-size: 0.82rem; }
 
@@ -287,6 +291,49 @@ span[data-remove-gen] { cursor: pointer; }
 
   .sg-slider-row input[type="range"] { max-width: 120px; }
 }
+
+.tab-bar {
+  display: flex;
+  border-bottom: 2px solid #ddd;
+  margin-bottom: 1.5rem;
+}
+
+.tab-btn {
+  background: none;
+  color: #777;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  padding: 0.45rem 1.2rem;
+  margin-bottom: -2px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.tab-btn:hover { background: none; color: #222; }
+.tab-btn.active { color: #222; border-bottom-color: #222; }
+
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+.history-table {
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  font-family: monospace;
+}
+.history-table th, .history-table td {
+  border: 1px solid #ddd;
+  padding: 0.25rem 0.6rem;
+  text-align: center;
+}
+.history-table thead th {
+  background: #222;
+  color: #fff;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+}
+.history-row { cursor: pointer; }
+.history-row:hover td { background: #f0f0f0; }
 
 footer {
   margin-top: 2rem;

@@ -2,93 +2,150 @@ use std::collections::HashSet;
 use wasm_bindgen::prelude::*;
 use crate::JsSemigroup;
 
-#[wasm_bindgen]
-pub fn kunz_table(s: &JsSemigroup) -> String {
-    let sg = &s.0;
-    let m = sg.m;
-    let gens: HashSet<usize> = sg.gen_set.iter().cloned().collect();
-
-    let mut html = String::from("<table class=\"kunz-table\">");
-
-    // header row
-    html.push_str("<thead><tr><th>&#x3A3;</th>");
-    for j in 0..m {
-        html.push_str(&format!("<th>{}</th>", j));
-    }
-    html.push_str("</tr></thead><tbody>");
-
-    for i in 0..m {
-        let row_sum: usize = (0..m).map(|j| sg.kunz(i, j)).sum();
-        let sum_class = if gens.contains(&sg.apery_set[i]) {
-            "sg-gen"
-        } else {
-            "sg-apery"
-        };
-        html.push_str(&format!("<tr><td class=\"{}\">{}</td>", sum_class, row_sum));
-        for j in 0..m {
-            let v = sg.kunz(i, j);
-            let cls = if i > 0 && j > 0 && v == 0 { " class=\"kunz-zero\"" } else { "" };
-            html.push_str(&format!("<td{}>{}</td>", cls, v));
-        }
-        html.push_str("</tr>");
-    }
-
-    html.push_str("</tbody></table>");
-    html
+fn span_n(cls: &str, n: usize) -> String {
+    format!("<span class=\"{}\" data-n=\"{}\">{}</span>", cls, n, n)
 }
 
-/// Build the structure grid HTML table for the given semigroup.
-/// The grid has `width` columns; column `col` shows residue `(offset + col) % width`.
-/// Values increase left-to-right and bottom-to-top. When offset > 0 an extra bottom
-/// row is prepended so that 0..width-1 are always visible; negative cells are empty.
+fn cell_td(cls: &str, n: usize) -> String {
+    format!("<td>{}</td>", span_n(cls, n))
+}
+
+// Determine the CSS class of a cell.
+// `kunz = true`: n is a kunz coefficient — mark non-trivial zeros.
+// `kunz = false`: n is a natural number — classify by semigroup role.
+fn get_cls(
+    n: usize,
+    kunz: bool,
+    f: usize,
+    m: usize,
+    apery_set: &[usize],
+    gens: &HashSet<usize>,
+    pf_set: &HashSet<usize>,
+    blobs: &HashSet<usize>,
+) -> &'static str {
+    if kunz {
+        if n == 0 { "kunz-zero" } else { "" }
+    } else {
+        let apery_val = apery_set[n % m];
+        if n > f + m          { "sg-large" }
+        else if n == f        { "sg-frob"  }
+        else if gens.contains(&n) { "sg-gen" }
+        else if n == apery_val    { "sg-apery" }
+        else if n >= apery_val    { "sg-in"    }
+        else if pf_set.contains(&n) { "sg-pf"  }
+        else if blobs.contains(&n)  { "sg-blob" }
+        else                        { "sg-out"  }
+    }
+}
+
+/// Compact summary row: colspan=2 nested table with key properties on one line.
+/// Returns a full `<tr>` string to be spliced directly into the properties tbody.
 #[wasm_bindgen]
-pub fn structure_table(s: &JsSemigroup, offset: usize, width: usize) -> String {
+pub fn shortprop(s: &JsSemigroup) -> String {
     let sg = &s.0;
+    let ((pf, t), (spf, _)) = sg.pft();
+
+    let fmt_spans = |items: &[usize], cls: &str| -> String {
+        items.iter()
+            .map(|&x| format!("<span class=\"{}\">{}</span>", cls, x))
+            .collect::<Vec<_>>()
+            .join(", ")
+    };
+
+    let gen_html = fmt_spans(&sg.gen_set, "sg-gen");
+    let pf_html  = fmt_spans(&pf,         "sg-pf");
+    let spf_html = fmt_spans(&spf,        "sg-pf");
+    let f_html   = fmt_spans(&[sg.f],"sg-frob");
+    format!(
+        "<tr><td colspan=\"2\" class=\"shortprop-cell\">\
+         <table class=\"shortprop-table\"><thead><tr>\
+         <th>m</th><th>f</th><th>e</th><th>g</th><th>c-g</th><th>t</th>\
+         <th>gen</th><th>PF</th><th>SPF</th>\
+         </tr></thead><tbody><tr>\
+         <td>{m}</td>\
+         <td>{f}</td>\
+         <td>{e}</td>\
+         <td>{g}</td>\
+         <td>{cg}</td>\
+         <td>{t}</td>\
+         <td>{atoms}</td>\
+         <td>{pf}</td>\
+         <td>{spf}</td>\
+         </tr></tbody></table></td></tr>",
+        m = sg.m, f = f_html, e = sg.e,
+        g = sg.count_gap, cg = sg.count_set, t = t,
+        atoms = gen_html, pf = pf_html, spf = spf_html,
+    )
+}
+
+/// Build the full combined table: structure grid + repeated header + Apéry row + Kunz matrix.
+/// All sections share `m` columns, permuted by `offset` so column `col` shows residue
+/// `(offset + col) % m`.
+#[wasm_bindgen]
+pub fn combined_table(s: &JsSemigroup, offset: usize) -> String {
+    let sg = &s.0;
+    let m = sg.m;
     let f = sg.f;
+    let perm: Vec<usize> = (0..m).map(|k| (offset + k) % m).collect();
 
     let gens: HashSet<usize> = sg.gen_set.iter().cloned().collect();
     let blobs: HashSet<usize> = sg.blob().into_iter().collect();
-    let pf_set: HashSet<usize> = sg.pft().0.into_iter().collect();
+    let pf_set: HashSet<usize> = sg.pft().0.0.into_iter().collect();
 
-    let start_row: isize = if offset == 0 { 0 } else { -1 };
-    let end_row: isize = (f / width + 3) as isize;
+    let header_cells: String = perm.iter()
+        .map(|&r| format!("<th>{}</th>", r))
+        .collect();
+    let header_row = format!("<tr>{}</tr>", header_cells);
 
     let mut html = String::from("<table class=\"sg-grid\">");
+    html.push_str(&format!("<thead>{}</thead><tbody>", header_row));
 
-    html.push_str("<thead><tr>");
-    for col in 0..width {
-        html.push_str(&format!("<th>{}</th>", (offset + col) % width));
-    }
-    html.push_str("</tr></thead><tbody>");
-
+    // Structure rows (bottom-to-top)
+    let start_row: isize = if offset == 0 { 0 } else { -1 };
+    let end_row: isize = (f / m + 3) as isize;
     for row in (start_row..end_row).rev() {
         html.push_str("<tr>");
-        for col in 0..width {
-            let n_signed: isize = row * width as isize + offset as isize + col as isize;
+        for col in 0..m {
+            let n_signed: isize = row * m as isize + offset as isize + col as isize;
             if n_signed < 0 {
                 html.push_str("<td class=\"sg-empty\"></td>");
                 continue;
             }
             let n = n_signed as usize;
-            let apery = n == sg.apery_set[n % sg.m];
-            let cls = if n > f + sg.m {
-                "sg-large"
-            } else if n == f {
-                "sg-frob"
-            } else if gens.contains(&n) {
-                "sg-gen"
-            } else if apery {
-                "sg-apery"
-            } else if sg.element(n) {
-                "sg-in"
-            } else if pf_set.contains(&n) {
-                "sg-pf"
-            } else if blobs.contains(&n) {
-                "sg-blob"
-            } else {
-                "sg-out"
-            };
-            html.push_str(&format!("<td class=\"{}\">{}</td>", cls, n));
+            let cls = get_cls(n, false, f, m, &sg.apery_set, &gens, &pf_set, &blobs);
+            html.push_str(&cell_td(cls, n));
+        }
+        html.push_str("</tr>");
+    }
+
+    // Repeated header row as separator
+    html.push_str(&header_row);
+
+    // Apéry row
+    html.push_str("<tr>");
+    for &i in &perm {
+        let v = sg.apery_set[i];
+        let cls = get_cls(v, false, f, m, &sg.apery_set, &gens, &pf_set, &blobs);
+        html.push_str(&cell_td(cls, v));
+    }
+    html.push_str("</tr>");
+
+    // Kunz sigma header row
+    html.push_str("<tr>");
+    for &i in &perm {
+        let row_sum: usize = (0..m).map(|j| sg.kunz(i, j)).sum();
+        let cls = get_cls(i, false, f, m, &sg.apery_set, &gens, &pf_set, &blobs);
+        html.push_str(&format!("<td class=\"{}\">{}</td>", cls, row_sum));
+    }
+    html.push_str("</tr>");
+
+    // Kunz matrix rows
+    for &i in &perm {
+        html.push_str("<tr>");
+        for &j in &perm {
+            let v = sg.kunz(i, j);
+            let cls = get_cls(v, true, f, m, &sg.apery_set, &gens, &pf_set, &blobs);
+            html.push_str(&format!("<td class=\"{}\">{}</td>", cls, v));
         }
         html.push_str("</tr>");
     }

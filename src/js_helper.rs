@@ -38,45 +38,45 @@ fn get_cls(
     }
 }
 
-/// Compact summary row: colspan=2 nested table with key properties on one line.
-/// Returns a full `<tr>` string to be spliced directly into the properties tbody.
-#[wasm_bindgen]
-pub fn shortprop(s: &JsSemigroup) -> String {
-    let sg = &s.0;
+/// The shared `<td>` cells for the shortprop columns (m, f, e, g, c-g, t, Sym, gen, PF, SPF).
+fn shortprop_cells(sg: &crate::Semigroup) -> String {
     let ((pf, t), (spf, _)) = sg.pft();
-
     let fmt_spans = |items: &[usize], cls: &str| -> String {
         items.iter()
             .map(|&x| format!("<span class=\"{}\">{}</span>", cls, x))
             .collect::<Vec<_>>()
             .join(", ")
     };
+    format!(
+        "<td>{m}</td><td>{f}</td><td>{e}</td><td>{g}</td><td>{cg}</td>\
+         <td>{t}</td><td>{sym}</td><td>{atoms}</td><td>{pf}</td><td>{spf}</td>",
+        m = sg.m,
+        f = fmt_spans(&[sg.f], "sg-frob"),
+        e = sg.e,
+        g = sg.count_gap, cg = sg.count_set, t = t,
+        sym = if sg.is_symmetric() { "True" } else { "False" },
+        atoms = fmt_spans(&sg.gen_set, "sg-gen"),
+        pf = fmt_spans(&pf, "sg-pf"),
+        spf = fmt_spans(&spf, "sg-pf"),
+    )
+}
 
-    let gen_html = fmt_spans(&sg.gen_set, "sg-gen");
-    let pf_html  = fmt_spans(&pf,         "sg-pf");
-    let spf_html = fmt_spans(&spf,        "sg-pf");
-    let f_html   = fmt_spans(&[sg.f],"sg-frob");
+/// Compact summary row for the properties table: nested table with header + one data row.
+#[wasm_bindgen]
+pub fn shortprop(s: &JsSemigroup) -> String {
     format!(
         "<table class=\"shortprop-table\"><thead><tr>\
          <th>m</th><th>f</th><th>e</th><th>g</th><th>c-g</th><th>t</th><th>Sym</th>\
          <th>gen</th><th>PF</th><th>SPF</th>\
-         </tr></thead><tbody><tr>\
-         <td>{m}</td>\
-         <td>{f}</td>\
-         <td>{e}</td>\
-         <td>{g}</td>\
-         <td>{cg}</td>\
-         <td>{t}</td>\
-         <td>{sym}</td>\
-         <td>{atoms}</td>\
-         <td>{pf}</td>\
-         <td>{spf}</td>\
-         </tr></tbody></table>",
-        m = sg.m, f = f_html, e = sg.e,
-        g = sg.count_gap, cg = sg.count_set, t = t,
-        sym = if sg.is_symmetric() { "True" } else { "False" },
-        atoms = gen_html, pf = pf_html, spf = spf_html,
+         </tr></thead><tbody><tr>{}</tr></tbody></table>",
+        shortprop_cells(&s.0)
     )
+}
+
+/// Flat `<td>` cells for use in the history table row (no nested table, no header).
+#[wasm_bindgen]
+pub fn shortprop_tds(s: &JsSemigroup) -> String {
+    shortprop_cells(&s.0)
 }
 
 /// Build the full combined table: structure grid + repeated header + Apéry row + Kunz matrix.

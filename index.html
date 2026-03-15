@@ -34,14 +34,15 @@
   <div id="tab-history" class="tab-content">
     <table class="history-table">
       <thead><tr>
-        <th>#</th><th>m, f, e, g, c-g, t, Sym, gen, PF, SPF</th>
+        <th>#</th><th>m</th><th>f</th><th>e</th><th>g</th><th>c-g</th><th>t</th><th>Sym</th>
+        <th>gen</th><th>PF</th><th>SPF</th>
       </tr></thead>
       <tbody id="history-tbody"></tbody>
     </table>
   </div>
 
   <script type="module">
-    import init, { js_compute, combined_table, shortprop } from './pkg/f3m.js';
+    import init, { js_compute, combined_table, shortprop, shortprop_tds } from './pkg/f3m.js';
 
     function showError(msg) {
       const errEl = document.getElementById('error');
@@ -71,10 +72,7 @@
     }
 
     function historyRow(s, idx) {
-      return `<tr class="history-row" data-idx="${idx}">` +
-        `<td>${idx}</td>` +
-        `<td class="shortprop-cell">${shortprop(s)}</td>` +
-        `</tr>`;
+      return `<tr class="history-row" data-idx="${idx}"><td>${idx}</td>${shortprop_tds(s)}</tr>`;
     }
 
     document.getElementById('history-tbody').addEventListener('click', e => {

@@ -22,6 +22,7 @@ export const jssemigroup_type_t: (a: number) => number;
 export const jssemigroup_wilf: (a: number) => number;
 export const combined_table: (a: number, b: number) => [number, number];
 export const shortprop: (a: number) => [number, number];
+export const shortprop_tds: (a: number) => [number, number];
 export const __wbindgen_externrefs: WebAssembly.Table;
 export const __wbindgen_free: (a: number, b: number, c: number) => void;
 export const __wbindgen_malloc: (a: number, b: number) => number;

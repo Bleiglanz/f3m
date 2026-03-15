@@ -34,10 +34,14 @@ export function combined_table(s: JsSemigroup, offset: number): string;
 export function js_compute(input: string): JsSemigroup;
 
 /**
- * Compact summary row: colspan=2 nested table with key properties on one line.
- * Returns a full `<tr>` string to be spliced directly into the properties tbody.
+ * Compact summary row for the properties table: nested table with header + one data row.
  */
 export function shortprop(s: JsSemigroup): string;
+
+/**
+ * Flat `<td>` cells for use in the history table row (no nested table, no header).
+ */
+export function shortprop_tds(s: JsSemigroup): string;
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
@@ -64,6 +68,7 @@ export interface InitOutput {
     readonly jssemigroup_wilf: (a: number) => number;
     readonly combined_table: (a: number, b: number) => [number, number];
     readonly shortprop: (a: number) => [number, number];
+    readonly shortprop_tds: (a: number) => [number, number];
     readonly __wbindgen_externrefs: WebAssembly.Table;
     readonly __wbindgen_free: (a: number, b: number, c: number) => void;
     readonly __wbindgen_malloc: (a: number, b: number) => number;

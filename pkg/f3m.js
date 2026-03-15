@@ -188,8 +188,7 @@ export function js_compute(input) {
 }
 
 /**
- * Compact summary row: colspan=2 nested table with key properties on one line.
- * Returns a full `<tr>` string to be spliced directly into the properties tbody.
+ * Compact summary row for the properties table: nested table with header + one data row.
  * @param {JsSemigroup} s
  * @returns {string}
  */
@@ -199,6 +198,25 @@ export function shortprop(s) {
     try {
         _assertClass(s, JsSemigroup);
         const ret = wasm.shortprop(s.__wbg_ptr);
+        deferred1_0 = ret[0];
+        deferred1_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+    }
+}
+
+/**
+ * Flat `<td>` cells for use in the history table row (no nested table, no header).
+ * @param {JsSemigroup} s
+ * @returns {string}
+ */
+export function shortprop_tds(s) {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        _assertClass(s, JsSemigroup);
+        const ret = wasm.shortprop_tds(s.__wbg_ptr);
         deferred1_0 = ret[0];
         deferred1_1 = ret[1];
         return getStringFromWasm0(ret[0], ret[1]);

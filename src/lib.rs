@@ -107,7 +107,7 @@ impl Semigroup {
         for i in 1..self.gen_set.len() {
             for j in 0..i {
                 let diff = self.gen_set[i] - self.gen_set[j];
-                if pf_set.contains(&diff) && self.f % diff != 0 {
+                if pf_set.contains(&diff) && !self.f.is_multiple_of(diff) {
                     special_set.insert(diff);
                 }
             }

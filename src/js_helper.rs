@@ -13,6 +13,7 @@ fn cell_td(cls: &str, n: usize) -> String {
 // Determine the CSS class of a cell.
 // `kunz = true`: n is a kunz coefficient — mark non-trivial zeros.
 // `kunz = false`: n is a natural number — classify by semigroup role.
+#[allow(clippy::too_many_arguments)]
 fn get_cls(
     n: usize,
     kunz: bool,

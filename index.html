@@ -67,10 +67,6 @@
     const busyBanner = document.getElementById('busy-banner');
     const historyList = [];
 
-    function fmt(arr, cls) {
-      return arr.map(x => `<span class="${cls}">${x}</span>`).join(', ');
-    }
-
     function historyRow(s, idx) {
       return `<tr class="history-row" data-idx="${idx}"><td>${idx}</td>${shortprop_tds(s)}</tr>`;
     }

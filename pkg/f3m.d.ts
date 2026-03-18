@@ -32,16 +32,20 @@ export class JsSemigroup {
 export function combined_table(s: JsSemigroup, offset: number): string;
 
 /**
- * Replace a[i], q[i] and the letters e, g, f, t, m, E in `expr` with semigroup values:
- *   a[i] → i-th Apéry number (0 if i≥m)
- *   q[i] → i-th minimal generator (0 if i≥e)
- *   e=embedding dim, g=gaps, f=Frobenius, t=type, m=multiplicity, E=largest generator
- * Then evaluate as an integer arithmetic expression (+ - * /, integer division).
- * Returns None on any error.
+ * Replace a[expr], q[expr] and scalars in `expr` with semigroup values:
+ *   a[i] → i-th Apéry number (0 if i≥m),  q[i] → i-th generator (0 if i≥e)
+ *   e=embedding dim, g=gaps, f=Frobenius, t=type, m=multiplicity,
+ *   Q=largest generator (max gen), A=max Apéry element (= f+m)
+ * Index expressions are evaluated recursively. Returns None on any error.
  */
 export function eval_expr(expr: string, s: JsSemigroup): number | undefined;
 
 export function js_compute(input: string): JsSemigroup;
+
+/**
+ * Return the GAP assertion block for a single semigroup, numbered `idx`.
+ */
+export function js_gap_block(s: JsSemigroup, idx: number): string;
 
 /**
  * Compact summary row for the properties table: nested table with header + one data row.
@@ -61,6 +65,7 @@ export interface InitOutput {
     readonly combined_table: (a: number, b: number) => [number, number];
     readonly eval_expr: (a: number, b: number, c: number) => number;
     readonly js_compute: (a: number, b: number) => number;
+    readonly js_gap_block: (a: number, b: number) => [number, number];
     readonly jssemigroup_apery_set: (a: number) => [number, number];
     readonly jssemigroup_blob: (a: number) => [number, number];
     readonly jssemigroup_count_gap: (a: number) => number;

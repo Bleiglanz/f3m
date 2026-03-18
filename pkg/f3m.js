@@ -177,12 +177,11 @@ export function combined_table(s, offset) {
 }
 
 /**
- * Replace a[i], q[i] and the letters e, g, f, t, m, E in `expr` with semigroup values:
- *   a[i] → i-th Apéry number (0 if i≥m)
- *   q[i] → i-th minimal generator (0 if i≥e)
- *   e=embedding dim, g=gaps, f=Frobenius, t=type, m=multiplicity, E=largest generator
- * Then evaluate as an integer arithmetic expression (+ - * /, integer division).
- * Returns None on any error.
+ * Replace a[expr], q[expr] and scalars in `expr` with semigroup values:
+ *   a[i] → i-th Apéry number (0 if i≥m),  q[i] → i-th generator (0 if i≥e)
+ *   e=embedding dim, g=gaps, f=Frobenius, t=type, m=multiplicity,
+ *   Q=largest generator (max gen), A=max Apéry element (= f+m)
+ * Index expressions are evaluated recursively. Returns None on any error.
  * @param {string} expr
  * @param {JsSemigroup} s
  * @returns {number | undefined}
@@ -204,6 +203,26 @@ export function js_compute(input) {
     const len0 = WASM_VECTOR_LEN;
     const ret = wasm.js_compute(ptr0, len0);
     return JsSemigroup.__wrap(ret);
+}
+
+/**
+ * Return the GAP assertion block for a single semigroup, numbered `idx`.
+ * @param {JsSemigroup} s
+ * @param {number} idx
+ * @returns {string}
+ */
+export function js_gap_block(s, idx) {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        _assertClass(s, JsSemigroup);
+        const ret = wasm.js_gap_block(s.__wbg_ptr, idx);
+        deferred1_0 = ret[0];
+        deferred1_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+    }
 }
 
 /**

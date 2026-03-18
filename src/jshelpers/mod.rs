@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 use wasm_bindgen::prelude::*;
-use crate::math::{Semigroup, compute};
+use crate::math::{Semigroup, compute, gap_block};
 use crate::eva;
 
 fn span_n(cls: &str, n: usize) -> String {
@@ -82,48 +82,76 @@ pub fn shortprop_tds(s: &JsSemigroup) -> String {
     shortprop_cells(&s.0)
 }
 
-// Replace x[i] substrings (for a given prefix byte) with the i-th element of `set`, or 0.
-fn substitute_indexed(expr: &str, prefix: u8, set: &[usize]) -> String {
-    let mut result = String::new();
-    let bytes = expr.as_bytes();
-    let mut i = 0;
-    while i < bytes.len() {
-        if bytes[i] == prefix && i + 1 < bytes.len() && bytes[i + 1] == b'[' {
-            let start = i + 2;
-            let mut j = start;
-            while j < bytes.len() && bytes[j].is_ascii_digit() { j += 1; }
-            if j < bytes.len() && bytes[j] == b']' && j > start {
-                let idx: usize = expr[start..j].parse().unwrap_or(usize::MAX);
-                result.push_str(&set.get(idx).copied().unwrap_or(0).to_string());
-                i = j + 1;
-                continue;
-            }
-        }
-        result.push(bytes[i] as char);
-        i += 1;
-    }
-    result
+// Holds the scalar context needed to evaluate index expressions inside a[..] / q[..].
+struct EvalCtx<'a> {
+    apery:   &'a [usize],
+    gen_set: &'a [usize],
+    e: usize, g: usize, f: usize, t: usize, m: usize, max_gen: usize,
 }
 
-/// Replace a[i], q[i] and the letters e, g, f, t, m, E in `expr` with semigroup values:
-///   a[i] → i-th Apéry number (0 if i≥m)
-///   q[i] → i-th minimal generator (0 if i≥e)
-///   e=embedding dim, g=gaps, f=Frobenius, t=type, m=multiplicity, E=largest generator
-/// Then evaluate as an integer arithmetic expression (+ - * /, integer division).
-/// Returns None on any error.
+impl EvalCtx<'_> {
+    // Find the index of the matching ']', handling nested brackets.
+    fn matching_bracket(bytes: &[u8], open: usize) -> Option<usize> {
+        let mut depth = 0usize;
+        for (i, &byte) in bytes.iter().enumerate().skip(open) {
+            match byte {
+                b'[' => depth += 1,
+                b']' => { depth -= 1; if depth == 0 { return Some(i); } }
+                _ => {}
+            }
+        }
+        None
+    }
+
+    // Replace prefix[<expr>] with the element at the evaluated index, or 0 if out of range.
+    fn substitute_indexed(&self, expr: &str, prefix: u8, set: &[usize]) -> String {
+        let mut result = String::new();
+        let bytes = expr.as_bytes();
+        let mut i = 0;
+        while i < bytes.len() {
+            if bytes[i] == prefix && i + 1 < bytes.len() && bytes[i + 1] == b'['
+                && let Some(close) = Self::matching_bracket(bytes, i + 1) {
+                    let inner = &expr[i + 2..close];
+                    let idx = self.eval(inner).unwrap_or(usize::MAX);
+                    result.push_str(&set.get(idx).copied().unwrap_or(0).to_string());
+                    i = close + 1;
+                    continue;
+                }
+            result.push(bytes[i] as char);
+            i += 1;
+        }
+        result
+    }
+
+    fn eval(&self, expr: &str) -> Option<usize> {
+        let s = self.substitute_indexed(expr,  b'a', self.apery);
+        let s = self.substitute_indexed(&s,    b'q', self.gen_set);
+        let s = s
+            .replace('e', &self.e.to_string())
+            .replace('g', &self.g.to_string())
+            .replace('f', &self.f.to_string())
+            .replace('t', &self.t.to_string())
+            .replace('Q', &self.max_gen.to_string())
+            .replace('A', &(self.f + self.m).to_string())
+            .replace('m', &self.m.to_string());
+        eva::eval(&s).ok()
+    }
+}
+
+/// Replace a[expr], q[expr] and scalars in `expr` with semigroup values:
+///   a[i] → i-th Apéry number (0 if i≥m),  q[i] → i-th generator (0 if i≥e)
+///   e=embedding dim, g=gaps, f=Frobenius, t=type, m=multiplicity,
+///   Q=largest generator (max gen), A=max Apéry element (= f+m)
+/// Index expressions are evaluated recursively. Returns None on any error.
 #[wasm_bindgen]
 pub fn eval_expr(expr: &str, s: &JsSemigroup) -> Option<usize> {
     let sg = &s.0;
     let ((_, t), _) = sg.pft();
-    let after_a = substitute_indexed(expr, b'a', &sg.apery_set);
-    let substituted = substitute_indexed(&after_a, b'q', &sg.gen_set)
-        .replace('e', &sg.e.to_string())
-        .replace('g', &sg.count_gap.to_string())
-        .replace('f', &sg.f.to_string())
-        .replace('t', &t.to_string())
-        .replace('E', &sg.max_gen.to_string())
-        .replace('m', &sg.m.to_string());
-    eva::eval(&substituted).ok()
+    let ctx = EvalCtx {
+        apery: &sg.apery_set, gen_set: &sg.gen_set,
+        e: sg.e, g: sg.count_gap, f: sg.f, t, m: sg.m, max_gen: sg.max_gen,
+    };
+    ctx.eval(expr)
 }
 
 /// Build the full combined table: structure grid + repeated header + Apéry row + Kunz matrix.
@@ -250,6 +278,12 @@ impl JsSemigroup {
     pub fn toggle(&self, n: usize) -> JsSemigroup {
         JsSemigroup(self.0.toggle(n))
     }
+}
+
+/// Return the GAP assertion block for a single semigroup, numbered `idx`.
+#[wasm_bindgen]
+pub fn js_gap_block(s: &JsSemigroup, idx: usize) -> String {
+    gap_block(&s.0, idx)
 }
 
 #[wasm_bindgen]

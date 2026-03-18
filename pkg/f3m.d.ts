@@ -31,6 +31,16 @@ export class JsSemigroup {
  */
 export function combined_table(s: JsSemigroup, offset: number): string;
 
+/**
+ * Replace a[i], q[i] and the letters e, g, f, t, m, E in `expr` with semigroup values:
+ *   a[i] → i-th Apéry number (0 if i≥m)
+ *   q[i] → i-th minimal generator (0 if i≥e)
+ *   e=embedding dim, g=gaps, f=Frobenius, t=type, m=multiplicity, E=largest generator
+ * Then evaluate as an integer arithmetic expression (+ - * /, integer division).
+ * Returns None on any error.
+ */
+export function eval_expr(expr: string, s: JsSemigroup): number | undefined;
+
 export function js_compute(input: string): JsSemigroup;
 
 /**
@@ -48,6 +58,8 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly __wbg_jssemigroup_free: (a: number, b: number) => void;
+    readonly combined_table: (a: number, b: number) => [number, number];
+    readonly eval_expr: (a: number, b: number, c: number) => number;
     readonly js_compute: (a: number, b: number) => number;
     readonly jssemigroup_apery_set: (a: number) => [number, number];
     readonly jssemigroup_blob: (a: number) => [number, number];
@@ -66,7 +78,6 @@ export interface InitOutput {
     readonly jssemigroup_toggle: (a: number, b: number) => number;
     readonly jssemigroup_type_t: (a: number) => number;
     readonly jssemigroup_wilf: (a: number) => number;
-    readonly combined_table: (a: number, b: number) => [number, number];
     readonly shortprop: (a: number) => [number, number];
     readonly shortprop_tds: (a: number) => [number, number];
     readonly __wbindgen_externrefs: WebAssembly.Table;

@@ -177,6 +177,25 @@ export function combined_table(s, offset) {
 }
 
 /**
+ * Replace a[i], q[i] and the letters e, g, f, t, m, E in `expr` with semigroup values:
+ *   a[i] → i-th Apéry number (0 if i≥m)
+ *   q[i] → i-th minimal generator (0 if i≥e)
+ *   e=embedding dim, g=gaps, f=Frobenius, t=type, m=multiplicity, E=largest generator
+ * Then evaluate as an integer arithmetic expression (+ - * /, integer division).
+ * Returns None on any error.
+ * @param {string} expr
+ * @param {JsSemigroup} s
+ * @returns {number | undefined}
+ */
+export function eval_expr(expr, s) {
+    const ptr0 = passStringToWasm0(expr, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    _assertClass(s, JsSemigroup);
+    const ret = wasm.eval_expr(ptr0, len0, s.__wbg_ptr);
+    return ret === 0x100000001 ? undefined : ret;
+}
+
+/**
  * @param {string} input
  * @returns {JsSemigroup}
  */

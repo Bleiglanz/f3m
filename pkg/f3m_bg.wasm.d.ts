@@ -2,6 +2,8 @@
 /* eslint-disable */
 export const memory: WebAssembly.Memory;
 export const __wbg_jssemigroup_free: (a: number, b: number) => void;
+export const combined_table: (a: number, b: number) => [number, number];
+export const eval_expr: (a: number, b: number, c: number) => number;
 export const js_compute: (a: number, b: number) => number;
 export const jssemigroup_apery_set: (a: number) => [number, number];
 export const jssemigroup_blob: (a: number) => [number, number];
@@ -20,7 +22,6 @@ export const jssemigroup_special_pf: (a: number) => [number, number];
 export const jssemigroup_toggle: (a: number, b: number) => number;
 export const jssemigroup_type_t: (a: number) => number;
 export const jssemigroup_wilf: (a: number) => number;
-export const combined_table: (a: number, b: number) => [number, number];
 export const shortprop: (a: number) => [number, number];
 export const shortprop_tds: (a: number) => [number, number];
 export const __wbindgen_externrefs: WebAssembly.Table;

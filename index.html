@@ -42,7 +42,7 @@
   </div>
 
   <script type="module">
-    import init, { js_compute, combined_table, shortprop, shortprop_tds } from './pkg/f3m.js';
+    import init, { js_compute, combined_table, shortprop, shortprop_tds, eval_expr } from './pkg/f3m.js';
 
     function showError(msg) {
       const errEl = document.getElementById('error');
@@ -63,6 +63,7 @@
 
     let currentGenSet = null;
     let currentS = null;
+    let evaExpr = 'f+1';
     let computing = false;
     const busyBanner = document.getElementById('busy-banner');
     const historyList = [];
@@ -120,9 +121,9 @@
         ['Embedding&nbsp;dimension&nbsp;(e)', `<td class="value">${s.e}</td>`],
          ['Frobenius number (f)',    `<td class="value"><span class="sg-frob">${s.f}</span></td>`],
         ['PF(S)',                   `<td class="value">${pfArr.map(x => `<span class="sg-pf">${x}</span>`).join(', ')}</td>`],
-        ['Type&nbsp;t',            `<td class="value">${pfArr.length}</td>`],
         ['Special&nbsp;PF',        `<td class="value">${Array.from(s.special_pf, x => `<span class="sg-pf">${x}</span>`).join(', ')}</td>`],
-        ['Symmetric?',             `<td class="value">${s.is_symmetric ? 'True' : 'False'}</td>`],
+        [`<input type="text" id="eva-input" value="${evaExpr}" style="width:100%" title="Ops: + - * /  (integer)&#10;e=emb.dim  g=gaps  f=Frobenius  t=type  m=mult  E=largest gen&#10;a[i]=Apéry[i]  q[i]=generator[i]">`,
+         `<td class="value" id="eva-result">${eval_expr(evaExpr, s) ?? '—'}</td>`],
         ['# reflected&nbsp;gaps',  tipCell(blobs.length, blobs.join(', '))],
         ['Largest generator (ae)',      `<td class="value"><span class="sg-gen">${s.max_gen}</span></td>`],
         ['Structure / <span class="has-tip">c<sub>ij</sub><span class="tip">apery(i) + apery(j) − apery((i+j) mod m) / m</span></span>', (() => {
@@ -147,6 +148,12 @@
         <table>
           <tbody>${tbody}</tbody>
         </table>`;
+
+      document.getElementById('eva-input').addEventListener('input', e => {
+        evaExpr = e.target.value;
+        const result = eval_expr(evaExpr, s);
+        document.getElementById('eva-result').textContent = result ?? '—';
+      });
 
       const slider = document.getElementById('sg-offset');
       if (slider) {

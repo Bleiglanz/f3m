@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 use wasm_bindgen::prelude::*;
-use crate::JsSemigroup;
+use crate::math::{Semigroup, compute};
+use crate::eva;
 
 fn span_n(cls: &str, n: usize) -> String {
     format!("<span class=\"{}\" data-n=\"{}\">{}</span>", cls, n, n)
@@ -28,11 +29,11 @@ fn get_cls(
         if n == 0 { "kunz-zero" } else { "" }
     } else {
         let apery_val = apery_set[n % m];
-        if n > f + m          { "sg-large" }
-        else if n == f        { "sg-frob"  }
-        else if gens.contains(&n) { "sg-gen" }
-        else if n == apery_val    { "sg-apery" }
-        else if n >= apery_val    { "sg-in"    }
+        if n > f + m               { "sg-large" }
+        else if n == f             { "sg-frob"  }
+        else if gens.contains(&n)  { "sg-gen"   }
+        else if n == apery_val     { "sg-apery" }
+        else if n >= apery_val     { "sg-in"    }
         else if pf_set.contains(&n) { "sg-pf"  }
         else if blobs.contains(&n)  { "sg-blob" }
         else                        { "sg-out"  }
@@ -40,7 +41,7 @@ fn get_cls(
 }
 
 /// The shared `<td>` cells for the shortprop columns (m, f, e, g, c-g, t, Sym, gen, PF, SPF).
-fn shortprop_cells(sg: &crate::Semigroup) -> String {
+fn shortprop_cells(sg: &Semigroup) -> String {
     let ((pf, t), (spf, _)) = sg.pft();
     let fmt_spans = |items: &[usize], cls: &str| -> String {
         items.iter()
@@ -50,12 +51,13 @@ fn shortprop_cells(sg: &crate::Semigroup) -> String {
     };
     format!(
         "<td>{m}</td><td>{f}</td><td>{e}</td><td>{g}</td><td>{cg}</td>\
-         <td>{t}</td><td>{sym}</td><td>{atoms}</td><td>{pf}</td><td>{spf}</td>",
+         <td>{t}</td><td>{sym}</td>\
+         <td class=\"left\">{atoms}</td><td class=\"left\">{pf}</td><td class=\"left\">{spf}</td>",
         m = sg.m,
         f = fmt_spans(&[sg.f], "sg-frob"),
         e = sg.e,
         g = sg.count_gap, cg = sg.count_set, t = t,
-        sym = if sg.is_symmetric() { "True" } else { "False" },
+        sym = if sg.is_symmetric() { "\u{2705}" } else { "\u{1F6AB}" },
         atoms = fmt_spans(&sg.gen_set, "sg-gen"),
         pf = fmt_spans(&pf, "sg-pf"),
         spf = fmt_spans(&spf, "sg-pf"),
@@ -78,6 +80,50 @@ pub fn shortprop(s: &JsSemigroup) -> String {
 #[wasm_bindgen]
 pub fn shortprop_tds(s: &JsSemigroup) -> String {
     shortprop_cells(&s.0)
+}
+
+// Replace x[i] substrings (for a given prefix byte) with the i-th element of `set`, or 0.
+fn substitute_indexed(expr: &str, prefix: u8, set: &[usize]) -> String {
+    let mut result = String::new();
+    let bytes = expr.as_bytes();
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == prefix && i + 1 < bytes.len() && bytes[i + 1] == b'[' {
+            let start = i + 2;
+            let mut j = start;
+            while j < bytes.len() && bytes[j].is_ascii_digit() { j += 1; }
+            if j < bytes.len() && bytes[j] == b']' && j > start {
+                let idx: usize = expr[start..j].parse().unwrap_or(usize::MAX);
+                result.push_str(&set.get(idx).copied().unwrap_or(0).to_string());
+                i = j + 1;
+                continue;
+            }
+        }
+        result.push(bytes[i] as char);
+        i += 1;
+    }
+    result
+}
+
+/// Replace a[i], q[i] and the letters e, g, f, t, m, E in `expr` with semigroup values:
+///   a[i] → i-th Apéry number (0 if i≥m)
+///   q[i] → i-th minimal generator (0 if i≥e)
+///   e=embedding dim, g=gaps, f=Frobenius, t=type, m=multiplicity, E=largest generator
+/// Then evaluate as an integer arithmetic expression (+ - * /, integer division).
+/// Returns None on any error.
+#[wasm_bindgen]
+pub fn eval_expr(expr: &str, s: &JsSemigroup) -> Option<usize> {
+    let sg = &s.0;
+    let ((_, t), _) = sg.pft();
+    let after_a = substitute_indexed(expr, b'a', &sg.apery_set);
+    let substituted = substitute_indexed(&after_a, b'q', &sg.gen_set)
+        .replace('e', &sg.e.to_string())
+        .replace('g', &sg.count_gap.to_string())
+        .replace('f', &sg.f.to_string())
+        .replace('t', &t.to_string())
+        .replace('E', &sg.max_gen.to_string())
+        .replace('m', &sg.m.to_string());
+    eva::eval(&substituted).ok()
 }
 
 /// Build the full combined table: structure grid + repeated header + Apéry row + Kunz matrix.
@@ -145,4 +191,72 @@ pub fn combined_table(s: &JsSemigroup, offset: usize) -> String {
 
     html.push_str("</tbody></table>");
     html
+}
+
+// ── JsSemigroup ──────────────────────────────────────────────────────────────
+
+#[wasm_bindgen]
+pub struct JsSemigroup(pub(crate) Semigroup);
+
+#[wasm_bindgen]
+impl JsSemigroup {
+    #[wasm_bindgen(getter)]
+    pub fn e(&self) -> usize { self.0.e }
+    #[wasm_bindgen(getter)]
+    pub fn f(&self) -> usize { self.0.f }
+    #[wasm_bindgen(getter)]
+    pub fn m(&self) -> usize { self.0.m }
+    #[wasm_bindgen(getter)]
+    pub fn count_set(&self) -> usize { self.0.count_set }
+    #[wasm_bindgen(getter)]
+    pub fn count_gap(&self) -> usize { self.0.count_gap }
+    #[wasm_bindgen(getter)]
+    pub fn max_gen(&self) -> usize { self.0.max_gen }
+
+    #[wasm_bindgen(getter)]
+    pub fn gen_set(&self) -> Vec<u32> {
+        self.0.gen_set.iter().map(|&x| x as u32).collect()
+    }
+    #[wasm_bindgen(getter)]
+    pub fn apery_set(&self) -> Vec<u32> {
+        self.0.apery_set.iter().map(|&x| x as u32).collect()
+    }
+    #[wasm_bindgen(getter)]
+    pub fn blob(&self) -> Vec<u32> {
+        self.0.blob().iter().map(|&x| x as u32).collect()
+    }
+
+    pub fn is_element(&self, x: usize) -> bool { self.0.element(x) }
+    pub fn kunz(&self, i: usize, j: usize) -> usize { self.0.kunz(i, j) }
+
+    #[wasm_bindgen(getter)]
+    pub fn is_symmetric(&self) -> bool { self.0.is_symmetric() }
+    #[wasm_bindgen(getter)]
+    pub fn wilf(&self) -> f64 { self.0.wilf() }
+
+    #[wasm_bindgen(getter)]
+    pub fn pf(&self) -> Vec<u32> {
+        let ((pf, _), _) = self.0.pft();
+        pf.iter().map(|&x| x as u32).collect()
+    }
+    #[wasm_bindgen(getter)]
+    pub fn type_t(&self) -> usize { self.0.pft().0.1 }
+    #[wasm_bindgen(getter)]
+    pub fn special_pf(&self) -> Vec<u32> {
+        let (_, (spf, _)) = self.0.pft();
+        spf.iter().map(|&x| x as u32).collect()
+    }
+
+    pub fn toggle(&self, n: usize) -> JsSemigroup {
+        JsSemigroup(self.0.toggle(n))
+    }
+}
+
+#[wasm_bindgen]
+pub fn js_compute(input: &str) -> JsSemigroup {
+    let numbers: Vec<usize> = input
+        .split(',')
+        .filter_map(|s| s.trim().parse().ok())
+        .collect();
+    JsSemigroup(compute(&numbers))
 }

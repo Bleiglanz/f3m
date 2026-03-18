@@ -1,3 +1,4 @@
+#![warn(clippy::pedantic)]
 pub mod eva;
 pub mod math;
 pub mod jshelpers;

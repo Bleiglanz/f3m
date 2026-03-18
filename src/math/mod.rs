@@ -1,4 +1,8 @@
+#![warn(clippy::pedantic)]
+
+
 // compute the greatest common divisor of two numbers
+#[must_use] 
 pub fn gcd(mut a: usize, mut b: usize) -> usize {
     while b != 0 {
         (a, b) = (b, a % b);
@@ -7,6 +11,7 @@ pub fn gcd(mut a: usize, mut b: usize) -> usize {
 }
 
 // compute the greatest common divisor of a vector of numbers
+#[must_use] 
 pub fn gcd_vec(numbers: &[usize]) -> usize {
     let mut d = numbers[0];
     for m in &numbers[1..] {
@@ -38,38 +43,50 @@ pub struct Semigroup {
 
 impl Semigroup {
     // check if a number is an element of the semigroup
+    #[must_use] 
     pub fn element(&self, x: usize) -> bool {
         let modulus = x % self.m;
         let ap = self.apery_set[modulus];
         x >= ap
     }
     // check if a number is a gap of the semigroup
+    #[must_use] 
     pub fn is_gap(&self, x: usize) -> bool {
         !self.element(x)
     }
     // check if symmetric
+    /// # Panics
+    /// Panics if the symmetric invariant `f + 1 == 2 * g` is violated (internal consistency check).
+    #[must_use]
     pub fn is_symmetric(&self) -> bool {
         let sym = self.count_gap == self.count_set;
         assert!(!sym || self.f + 1 == 2 * self.count_gap);
         sym
     }
     // compute the wilf quotient
+    #[must_use]
+    #[allow(clippy::cast_precision_loss)]
     pub fn wilf(&self) -> f64 {
         let c = self.f as f64 + 1.0f64;
         let spor = self.count_set as f64;
         spor / c
     }
     // check if a number is a reflected gap
+    #[must_use] 
     pub fn is_reflected_gap(&self, x: usize) -> bool {
         self.is_gap(x) && self.is_gap(self.f - x)
     }
     // get the blob, the number of reflected gaps
+    #[must_use] 
     pub fn blob(&self) -> Vec<usize> {
         (0..self.f).filter(|&x| self.is_reflected_gap(x)).collect()
     }
     // compute the kunz overshoot apery[i]+apery[j]-apery[i+j%m] / m
     // when displayed, it should be a symmetric matix
     // the i-th row sums should be the i-th aperyelement
+    /// # Panics
+    /// Panics if the Kunz divisibility invariant is violated (internal consistency check).
+    #[must_use]
     pub fn kunz(&self, i: usize, j: usize) -> usize {
         let first = i % self.m;
         let second = j % self.m;
@@ -90,6 +107,7 @@ impl Semigroup {
     // and are of the form gen[i]-gen[j] where i>j if the gen is sorted
     // and they don't divide f
     //
+    #[must_use] 
     pub fn pft(&self) -> ((Vec<usize>, usize), (Vec<usize>, usize)) {
         let mut pf: Vec<usize> = self
             .blob()
@@ -101,7 +119,7 @@ impl Semigroup {
         let normal_pseudofrobenius = (pf, t);
         // Special PF: elements of PF(S) that equal gen[i]-gen[j] (i>j) and don't divide f
         let pf_set: std::collections::HashSet<usize> =
-            normal_pseudofrobenius.0.iter().cloned().collect();
+            normal_pseudofrobenius.0.iter().copied().collect();
         let mut special_set = std::collections::HashSet::new();
         for i in 1..self.gen_set.len() {
             for j in 0..i {
@@ -112,7 +130,7 @@ impl Semigroup {
             }
         }
         let mut special: Vec<usize> = special_set.into_iter().collect();
-        special.sort();
+        special.sort_unstable();
         let st = special.len();
         (normal_pseudofrobenius, (special, st))
     }
@@ -120,6 +138,7 @@ impl Semigroup {
     // toggle(self,n): if n is a gap, add it as a generator;
     // if n is a minimal generator, remove it - by removing
     // all n-s for elements of the semigroup from 1..n
+    #[must_use] 
     pub fn toggle(&self, n: usize) -> Semigroup {
         if self.is_gap(n) {
             let mut newgen = self.gen_set.clone();
@@ -130,7 +149,7 @@ impl Semigroup {
                 (x > n && self.element(x))
                     || (x < n && self.element(x) && !self.element(n - x))
             };
-            let newgen: Vec<usize> = (1..self.f + self.m + 1)
+            let newgen: Vec<usize> = (1..=(self.f + self.m))
                 .filter(|&x| is_newgen(x))
                 .collect();
             if newgen.is_empty() { return self.clone(); }
@@ -147,10 +166,14 @@ impl Semigroup {
 // Claude: don't touch this function
 //
 //
+/// # Panics
+/// Panics if `input` is empty or all-zero (no valid multiplicity).
+#[must_use]
+#[allow(clippy::cast_possible_wrap)] // window stores usize values as isize sentinels
 pub fn compute(input: &[usize]) -> Semigroup {
     let d = gcd_vec(input);
     let mut inputnumbers: Vec<usize> = input.iter().map(|x| x / d).collect();
-    inputnumbers.sort();
+    inputnumbers.sort_unstable();
 
     let maximal_input: usize = *inputnumbers.last().unwrap();
     let width = 2 * maximal_input;
@@ -185,7 +208,7 @@ pub fn compute(input: &[usize]) -> Semigroup {
             window[windowindex] = i as isize;
         } else {
             // ok, we must ckeck this number by going back to windowindex-generator for all generators
-            for k in inputnumbers[1..].iter() {
+            for k in &inputnumbers[1..] {
                 if windowindex >= *k && window[windowindex - k] >= 0 {
                     // case window[windowindex - k] is already an element of S
                     count_set += 1;
@@ -195,22 +218,22 @@ pub fn compute(input: &[usize]) -> Semigroup {
                     aperyset[residue] = i;
                     sum_apery += i;
                     if i > max_apery {
-                        max_apery = i
+                        max_apery = i;
                     }
                     if 0 == window[windowindex - *k] {
                         minimal_generators += 1;
                         genset.push(i);
                         if max_atom < i {
-                            max_atom = i
-                        };
+                            max_atom = i;
+                        }
                     }
                     break;
                 }
             }
         }
         if !hit {
-            runlength = 0
-        };
+            runlength = 0;
+        }
         hit = false;
         i += 1;
         //
@@ -226,7 +249,7 @@ pub fn compute(input: &[usize]) -> Semigroup {
     }
     genset.push(m);
     assert_eq!(genset.len(), minimal_generators);
-    genset.sort();
+    genset.sort_unstable();
     assert_eq!(aperyset.len(), m);
 
     Semigroup {
@@ -243,9 +266,10 @@ pub fn compute(input: &[usize]) -> Semigroup {
 
 // ── GAP code generation ──────────────────────────────────────────────────────
 
-/// Emit a GAP script (NumericalSgps package) that reconstructs each semigroup
+/// Emit a GAP script (`NumericalSgps` package) that reconstructs each semigroup
 /// and asserts all properties computed by this library, so the results can be
 /// verified interactively in GAP.
+#[must_use] 
 pub fn to_gap(semigroups: &[Semigroup]) -> String {
     let mut out = String::new();
 
@@ -261,29 +285,26 @@ pub fn to_gap(semigroups: &[Semigroup]) -> String {
 }
 
 /// Emit the GAP assertions for a single semigroup, using `ng{idx}` as the variable name.
+#[must_use]
 pub fn gap_block(sg: &Semigroup, idx: usize) -> String {
-    let gens: Vec<String> = sg.gen_set.iter().map(|x| x.to_string()).collect();
-    let apery: Vec<String> = sg.apery_set.iter().map(|x| x.to_string()).collect();
+    use std::fmt::Write as _;
+    let gens  = sg.gen_set  .iter().map(usize::to_string).collect::<Vec<_>>();
+    let apery = sg.apery_set.iter().map(usize::to_string).collect::<Vec<_>>();
     let ((pf, t), _) = sg.pft();
-    let pf_strs: Vec<String> = pf.iter().map(|x| x.to_string()).collect();
+    let pf_strs = pf.iter().map(usize::to_string).collect::<Vec<_>>();
+    let sym = if sg.is_symmetric() { "true" } else { "false" };
     let mut out = String::new();
-    out.push_str(&format!("# ── Semigroup {idx}: <{}> ──\n", gens.join(", ")));
-    out.push_str(&format!("ng{idx} := NumericalSemigroup({});\n", gens.join(",")));
-    out.push_str(&format!("Assert(0, Multiplicity(ng{idx}) = {});\n", sg.m));
-    out.push_str(&format!("Assert(0, FrobeniusNumber(ng{idx}) = {});\n", sg.f));
-    out.push_str(&format!("Assert(0, EmbeddingDimension(ng{idx}) = {});\n", sg.e));
-    out.push_str(&format!("Assert(0, GenusOfNumericalSemigroup(ng{idx}) = {});\n", sg.count_gap));
-    out.push_str(&format!(
-        "Assert(0, 1 + FrobeniusNumber(ng{idx}) - GenusOfNumericalSemigroup(ng{idx}) = {});\n",
-        sg.count_set));
-    out.push_str(&format!("Assert(0, IsSymmetric(ng{idx}) = {});\n",
-        if sg.is_symmetric() { "true" } else { "false" }));
-    out.push_str(&format!("Assert(0, AperyList(ng{idx}, {}) = [{}]);\n",
-        sg.m, apery.join(",")));
-    out.push_str(&format!(
-        "Assert(0, Set(PseudoFrobeniusOfNumericalSemigroup(ng{idx})) = Set([{}]));\n",
-        pf_strs.join(",")));
-    out.push_str(&format!("Assert(0, TypeOfNumericalSemigroup(ng{idx}) = {t});\n"));
+    writeln!(out, "# ── Semigroup {idx}: <{}> ──", gens.join(", ")).unwrap();
+    writeln!(out, "ng{idx} := NumericalSemigroup({});", gens.join(",")).unwrap();
+    writeln!(out, "Assert(0, Multiplicity(ng{idx}) = {});", sg.m).unwrap();
+    writeln!(out, "Assert(0, FrobeniusNumber(ng{idx}) = {});", sg.f).unwrap();
+    writeln!(out, "Assert(0, EmbeddingDimension(ng{idx}) = {});", sg.e).unwrap();
+    writeln!(out, "Assert(0, GenusOfNumericalSemigroup(ng{idx}) = {});", sg.count_gap).unwrap();
+    writeln!(out, "Assert(0, 1 + FrobeniusNumber(ng{idx}) - GenusOfNumericalSemigroup(ng{idx}) = {});", sg.count_set).unwrap();
+    writeln!(out, "Assert(0, IsSymmetric(ng{idx}) = {sym});").unwrap();
+    writeln!(out, "Assert(0, AperyList(ng{idx}, {}) = [{}]);", sg.m, apery.join(",")).unwrap();
+    writeln!(out, "Assert(0, Set(PseudoFrobeniusOfNumericalSemigroup(ng{idx})) = Set([{}]));", pf_strs.join(",")).unwrap();
+    writeln!(out, "Assert(0, TypeOfNumericalSemigroup(ng{idx}) = {t});").unwrap();
     out.push('\n');
     out
 }

@@ -26,29 +26,35 @@ python3 -m http.server 8080
 # then open http://localhost:8080
 ```
 
-The `pkg/` directory contains committed WASM build artifacts. Rebuild it with `wasm-pack build --target web` after changing `src/lib.rs`.
+The `pkg/` directory contains committed WASM build artifacts. Rebuild it with `wasm-pack build --target web` after changing any `src/` file.
 
 ## Architecture
 
 ```
-src/lib.rs      — Rust library: all math + wasm-bindgen export
-src/main.rs     — Unused binary stub
-pkg/            — wasm-pack output: f3m.js, f3m_bg.wasm, f3m.d.ts, package.json
-index.html      — Single-page frontend; imports pkg/f3m.js as an ES module
-style.css       — Styles for the web UI
+src/
+  lib.rs            — crate root: module declarations + tests
+  math/mod.rs       — Semigroup struct, compute(), gcd, GAP code generation
+  eva/mod.rs        — arithmetic expression evaluator (usize, recursive indexing)
+  jshelpers/mod.rs  — WASM exports: JsSemigroup, HTML rendering, eval_expr
+  main.rs           — unused binary stub
+pkg/                — wasm-pack output: f3m.js, f3m_bg.wasm, f3m.d.ts, package.json
+gap/                — example GAP scripts for manual verification
+index.html          — Single-page frontend; imports pkg/f3m.js as an ES module
+style.css           — Styles for the web UI
 ```
 
 ### Data flow
 
-1. User types generators (comma-separated) → `js_semigroup(input: &str) -> String` (WASM, `src/lib.rs:166`)
-2. Returns a JSON string with fields: `e`, `f`, `m`, `count_set`, `count_gap`, `max_gen`, `gen_set`, `apery_set`
-3. `index.html` parses the JSON and builds the result table (elements, gaps, Apéry table, color-coded structure grid) entirely in JS
+1. User types generators (comma-separated) → `js_compute(input: &str) -> JsSemigroup` (WASM)
+2. JS reads properties directly from the `JsSemigroup` object (getters, no JSON)
+3. `shortprop`, `combined_table`, `eval_expr` (all WASM) produce HTML strings injected into the page
 
-### Core Rust types (`src/lib.rs`)
+### Key Rust types
 
-- `Semigroup` struct — holds all computed properties; `element(x)` and `is_gap(x)` use the Apéry set for O(1) membership test
-- `compute(input: &[usize])` — sliding-window algorithm; normalizes by GCD first, then tracks residue classes to find generators and Apéry set without enumerating all elements
-- `gcd` / `gcd_vec` — helpers used for normalization
+- `math::Semigroup` — holds all computed properties; `element(x)` / `is_gap(x)` use the Apéry set for O(1) membership
+- `math::compute(input)` — sliding-window algorithm; normalizes by GCD, tracks residue classes mod m
+- `eva::eval(expr)` — recursive-descent parser/evaluator for arithmetic over `usize`
+- `jshelpers::EvalCtx` — substitutes semigroup variables and `a[i]`/`q[i]` before calling `eva::eval`
 
 ### Grid color legend (index.html + style.css)
 
@@ -59,3 +65,4 @@ style.css       — Styles for the web UI
 | `sg-gen`   | Minimal generator                  |
 | `sg-apery` | Apéry set element (non-generator)  |
 | `sg-frob`  | Frobenius number                   |
+| `sg-pf`    | Pseudo-Frobenius number            |

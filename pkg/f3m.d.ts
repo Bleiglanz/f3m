@@ -48,6 +48,26 @@ export function js_compute(input: string): JsSemigroup;
 export function js_gap_block(s: JsSemigroup, idx: number): string;
 
 /**
+ * Edges as a flat [from, to, from, to, ...] u32 array for 0..=upto.
+ */
+export function js_graph_edge_pairs(s: JsSemigroup, upto: number): Uint32Array;
+
+/**
+ * Graph edges up to `upto` as plain text pairs, one per line.
+ */
+export function js_graph_edges_text(s: JsSemigroup, upto: number): string;
+
+/**
+ * Node IDs (as u32) that appear in the graph for 0..=upto.
+ */
+export function js_graph_node_ids(s: JsSemigroup, upto: number): Uint32Array;
+
+/**
+ * CSS class name for node `n` using the same classification as the combined table.
+ */
+export function js_node_class(s: JsSemigroup, n: number): string;
+
+/**
  * Compact summary row for the properties table: nested table with header + one data row.
  */
 export function shortprop(s: JsSemigroup): string;
@@ -61,9 +81,9 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
-    readonly __wbg_jssemigroup_free: (a: number, b: number) => void;
-    readonly combined_table: (a: number, b: number) => [number, number];
     readonly eval_expr: (a: number, b: number, c: number) => number;
+    readonly combined_table: (a: number, b: number) => [number, number];
+    readonly __wbg_jssemigroup_free: (a: number, b: number) => void;
     readonly js_compute: (a: number, b: number) => number;
     readonly js_gap_block: (a: number, b: number) => [number, number];
     readonly jssemigroup_apery_set: (a: number) => [number, number];
@@ -85,6 +105,10 @@ export interface InitOutput {
     readonly jssemigroup_wilf: (a: number) => number;
     readonly shortprop: (a: number) => [number, number];
     readonly shortprop_tds: (a: number) => [number, number];
+    readonly js_graph_edge_pairs: (a: number, b: number) => [number, number];
+    readonly js_graph_edges_text: (a: number, b: number) => [number, number];
+    readonly js_graph_node_ids: (a: number, b: number) => [number, number];
+    readonly js_node_class: (a: number, b: number) => [number, number];
     readonly __wbindgen_externrefs: WebAssembly.Table;
     readonly __wbindgen_free: (a: number, b: number, c: number) => void;
     readonly __wbindgen_malloc: (a: number, b: number) => number;

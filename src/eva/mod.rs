@@ -1,3 +1,4 @@
+#![warn(clippy::pedantic)]
 // Evaluation of easy arithmetical expressions over usize integers.
 //
 // Supports: non-negative integers, +, -, *, /, parentheses.
@@ -15,6 +16,10 @@
 //   let result = eval("3 + 4 * 2");   // Ok(11)
 //   let result = eval("(1 + 2) * 3"); // Ok(9)
 
+/// # Errors
+///
+/// Returns `Err` if the expression contains unknown characters, mismatched
+/// parentheses, division by zero, or subtraction that would underflow.
 pub fn eval(input: &str) -> Result<usize, String> {
     let tokens = tokenize(input)?;
     let mut p = Parser { tokens, pos: 0 };

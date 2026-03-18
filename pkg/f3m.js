@@ -226,6 +226,74 @@ export function js_gap_block(s, idx) {
 }
 
 /**
+ * Edges as a flat [from, to, from, to, ...] u32 array for 0..=upto.
+ * @param {JsSemigroup} s
+ * @param {number} upto
+ * @returns {Uint32Array}
+ */
+export function js_graph_edge_pairs(s, upto) {
+    _assertClass(s, JsSemigroup);
+    const ret = wasm.js_graph_edge_pairs(s.__wbg_ptr, upto);
+    var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+    return v1;
+}
+
+/**
+ * Graph edges up to `upto` as plain text pairs, one per line.
+ * @param {JsSemigroup} s
+ * @param {number} upto
+ * @returns {string}
+ */
+export function js_graph_edges_text(s, upto) {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        _assertClass(s, JsSemigroup);
+        const ret = wasm.js_graph_edges_text(s.__wbg_ptr, upto);
+        deferred1_0 = ret[0];
+        deferred1_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+    }
+}
+
+/**
+ * Node IDs (as u32) that appear in the graph for 0..=upto.
+ * @param {JsSemigroup} s
+ * @param {number} upto
+ * @returns {Uint32Array}
+ */
+export function js_graph_node_ids(s, upto) {
+    _assertClass(s, JsSemigroup);
+    const ret = wasm.js_graph_node_ids(s.__wbg_ptr, upto);
+    var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+    return v1;
+}
+
+/**
+ * CSS class name for node `n` using the same classification as the combined table.
+ * @param {JsSemigroup} s
+ * @param {number} n
+ * @returns {string}
+ */
+export function js_node_class(s, n) {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        _assertClass(s, JsSemigroup);
+        const ret = wasm.js_node_class(s.__wbg_ptr, n);
+        deferred1_0 = ret[0];
+        deferred1_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+    }
+}
+
+/**
  * Compact summary row for the properties table: nested table with header + one data row.
  * @param {JsSemigroup} s
  * @returns {string}

@@ -1,10 +1,10 @@
 use std::collections::HashSet;
 use wasm_bindgen::prelude::*;
 use crate::math::Semigroup;
-use super::JsSemigroup;
+use super::{JsSemigroup, class_sets};
 use super::combined_table::get_cls;
 
-// a partial order on usize: a <=_S b iff b - a is in S
+/// Hasse-diagram covering relation: a <_S b iff b - a is a minimal generator of S.
 fn leq(a: usize, b: usize, ng: &Semigroup) -> bool {
     if a >= b { false } else {
         let delta = b-a;
@@ -44,7 +44,7 @@ pub fn js_graph_edges_text(s: &JsSemigroup, upto: usize) -> String {
         .iter()
         .map(|(a, b)| format!("({a},{b})"))
         .collect::<Vec<_>>()
-        .join("\n")
+        .join(", ")
 }
 
 /// Node IDs (as u32) that appear in the graph for 0..=upto.
@@ -74,8 +74,6 @@ pub fn js_graph_edge_pairs(s: &JsSemigroup, upto: usize) -> Vec<u32> {
 #[must_use]
 pub fn js_node_class(s: &JsSemigroup, n: usize) -> String {
     let sg = &s.0;
-    let gens: HashSet<usize> = sg.gen_set.iter().copied().collect();
-    let pf_set: HashSet<usize> = sg.pft().0.0.into_iter().collect();
-    let blobs: HashSet<usize> = sg.blob().into_iter().collect();
-    get_cls(n, false, sg.f, sg.m, &sg.apery_set, &gens, &pf_set, &blobs).to_string()
+    let sets = class_sets(sg);
+    get_cls(n, false, sg.f, sg.m, &sg.apery_set, &sets.gens, &sets.pf_set, &sets.blobs).to_string()
 }

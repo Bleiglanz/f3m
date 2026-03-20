@@ -2,10 +2,12 @@ use wasm_bindgen::prelude::*;
 use crate::eva;
 use super::JsSemigroup;
 
-// Holds the scalar context needed to evaluate index expressions inside a[..] / q[..].
+/// Evaluation context: all semigroup scalars and slices needed to substitute
+/// named variables (`e`, `f`, `g`, `m`, `t`, `Q`, `A`) and indexed references
+/// (`a[i]` for Apéry, `q[i]` for generators) before passing to `eva::eval`.
 pub(super) struct EvalCtx<'a> {
-    apery:   &'a [usize],
-    gen_set: &'a [usize],
+    apery:   &'a [usize], // Apéry set (a[i])
+    gen_set: &'a [usize], // minimal generators (q[i])
     e: usize, g: usize, f: usize, t: usize, m: usize, max_gen: usize,
 }
 
@@ -43,6 +45,8 @@ impl EvalCtx<'_> {
         result
     }
 
+    /// Substitute all variables/indices in `expr` and evaluate as a `usize` arithmetic expression.
+    /// Returns `None` if substitution or evaluation fails (unknown variable, overflow, etc.).
     pub(super) fn eval(&self, expr: &str) -> Option<usize> {
         let s = self.substitute_indexed(expr, b'a', self.apery);
         let s = self.substitute_indexed(&s,   b'q', self.gen_set);
@@ -67,7 +71,7 @@ impl EvalCtx<'_> {
 #[must_use]
 pub fn eval_expr(expr: &str, s: &JsSemigroup) -> Option<usize> {
     let sg = &s.0;
-    let ((_, t), _) = sg.pft();
+    let ((_, t), _) = sg.pseudo_and_special();
     let ctx = EvalCtx {
         apery: &sg.apery_set, gen_set: &sg.gen_set,
         e: sg.e, g: sg.count_gap, f: sg.f, t, m: sg.m, max_gen: sg.max_gen,

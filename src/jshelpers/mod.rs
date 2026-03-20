@@ -1,4 +1,5 @@
 #![warn(clippy::pedantic)]
+use std::collections::HashSet;
 use wasm_bindgen::prelude::*;
 use crate::math::{Semigroup, compute, gap_block};
 pub mod combined_table;
@@ -6,6 +7,40 @@ pub mod js_eval;
 pub mod jsgraph;
 pub mod shortprops_table;
 pub use shortprops_table::{shortprop, shortprop_tds};
+
+// ── shared helpers ────────────────────────────────────────────────────────────
+
+/// Pre-built HashSets used for O(1) CSS-class lookups across rendering functions.
+pub(super) struct ClassSets {
+    pub gens:   HashSet<usize>, // minimal generators
+    pub pf_set: HashSet<usize>, // pseudo-Frobenius numbers
+    pub blobs:  HashSet<usize>, // reflected gaps (blob)
+}
+
+/// Build the three classification sets from a semigroup.
+/// Call once per render and pass the result to `get_cls` / `span`.
+pub(super) fn class_sets(sg: &Semigroup) -> ClassSets {
+    ClassSets {
+        gens:   sg.gen_set.iter().copied().collect(),
+        pf_set: sg.pseudo_and_special().0.0.into_iter().collect(),
+        blobs:  sg.blob().into_iter().collect(),
+    }
+}
+
+/// Render `n` as an HTML `<span>` with the given CSS class.
+/// If `data_n` is true, also adds a `data-n` attribute (used for click-to-toggle in the grid).
+pub(super) fn span(cls: &str, n: usize, data_n: bool) -> String {
+    if data_n {
+        format!("<span class=\"{cls}\" data-n=\"{n}\">{n}</span>")
+    } else {
+        format!("<span class=\"{cls}\">{n}</span>")
+    }
+}
+
+/// Cast a `usize` slice to `Vec<u32>` for WASM transfer (values are always small in practice).
+fn to_u32(v: &[usize]) -> Vec<u32> {
+    v.iter().map(|&x| x as u32).collect()
+}
 
 // ── JsSemigroup ──────────────────────────────────────────────────────────────
 
@@ -36,20 +71,14 @@ impl JsSemigroup {
     pub fn max_gen(&self) -> usize { self.0.max_gen }
 
     #[wasm_bindgen(getter)]
-    #[must_use] 
-    pub fn gen_set(&self) -> Vec<u32> {
-        self.0.gen_set.iter().map(|&x| x as u32).collect()
-    }
+    #[must_use]
+    pub fn gen_set(&self) -> Vec<u32> { to_u32(&self.0.gen_set) }
     #[wasm_bindgen(getter)]
-    #[must_use] 
-    pub fn apery_set(&self) -> Vec<u32> {
-        self.0.apery_set.iter().map(|&x| x as u32).collect()
-    }
+    #[must_use]
+    pub fn apery_set(&self) -> Vec<u32> { to_u32(&self.0.apery_set) }
     #[wasm_bindgen(getter)]
-    #[must_use] 
-    pub fn blob(&self) -> Vec<u32> {
-        self.0.blob().iter().map(|&x| x as u32).collect()
-    }
+    #[must_use]
+    pub fn blob(&self) -> Vec<u32> { to_u32(&self.0.blob()) }
 
     #[must_use] 
     pub fn is_element(&self, x: usize) -> bool { self.0.element(x) }
@@ -64,19 +93,26 @@ impl JsSemigroup {
     pub fn wilf(&self) -> f64 { self.0.wilf() }
 
     #[wasm_bindgen(getter)]
-    #[must_use] 
+    #[must_use]
     pub fn pf(&self) -> Vec<u32> {
-        let ((pf, _), _): ((Vec<usize>, usize), (Vec<usize>, usize)) = self.0.pft();
-        pf.iter().map(|&x| x as u32).collect()
+        let ((pf, _), _) = self.0.pseudo_and_special();
+        to_u32(&pf)
     }
     #[wasm_bindgen(getter)]
-    #[must_use] 
-    pub fn type_t(&self) -> usize { self.0.pft().0.1 }
+    #[must_use]
+    pub fn type_t(&self) -> usize { self.0.pseudo_and_special().0.1 }
     #[wasm_bindgen(getter)]
-    #[must_use] 
+    #[must_use]
     pub fn special_pf(&self) -> Vec<u32> {
-        let (_, (spf, _)): ((Vec<usize>, usize), (Vec<usize>, usize)) = self.0.pft();
-        spf.iter().map(|&x| x as u32).collect()
+        let (_, (spf, _)) = self.0.pseudo_and_special();
+        to_u32(&spf.iter().map(|&(diff, _)| diff).collect::<Vec<_>>())
+    }
+
+    #[wasm_bindgen(getter)]
+    #[must_use]
+    pub fn special_pf_str(&self) -> Vec<String> {
+        let (_, (spf, _)) = self.0.pseudo_and_special();
+        shortprops_table::spf_grouped(&spf, &self.0.gen_set)
     }
 
     #[must_use] 
@@ -93,7 +129,15 @@ pub fn js_gap_block(s: &JsSemigroup, idx: usize) -> String {
 }
 
 #[wasm_bindgen]
-#[must_use] 
+#[must_use]
+pub fn gap_header() -> String { crate::math::GAP_HEADER.to_string() }
+
+#[wasm_bindgen]
+#[must_use]
+pub fn gap_footer() -> String { crate::math::GAP_FOOTER.to_string() }
+
+#[wasm_bindgen]
+#[must_use]
 pub fn js_compute(input: &str) -> JsSemigroup {
     let numbers: Vec<usize> = input
         .split(',')

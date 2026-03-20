@@ -1,13 +1,10 @@
 use std::collections::HashSet;
 use wasm_bindgen::prelude::*;
-use super::JsSemigroup;
+use super::{JsSemigroup, class_sets};
 
-fn span_n(cls: &str, n: usize) -> String {
-    format!("<span class=\"{cls}\" data-n=\"{n}\">{n}</span>")
-}
-
+/// Wrap a classified number in a `<td>` containing a clickable `<span data-n>`.
 fn cell_td(cls: &str, n: usize) -> String {
-    format!("<td>{}</td>", span_n(cls, n))
+    format!("<td>{}</td>", super::span(cls, n, true))
 }
 
 // Determine the CSS class of a cell.
@@ -50,9 +47,8 @@ pub fn combined_table(s: &JsSemigroup, offset: usize) -> String {
     let f = sg.f;
     let perm: Vec<usize> = (0..m).map(|k| (offset + k) % m).collect();
 
-    let gens: HashSet<usize> = sg.gen_set.iter().copied().collect();
-    let blobs: HashSet<usize> = sg.blob().into_iter().collect();
-    let pf_set: HashSet<usize> = sg.pft().0.0.into_iter().collect();
+    let sets = class_sets(sg);
+    let cls_of = |n, kunz| get_cls(n, kunz, f, m, &sg.apery_set, &sets.gens, &sets.pf_set, &sets.blobs);
 
     #[allow(clippy::format_collect)]
     let header_cells: String = perm.iter()
@@ -80,8 +76,7 @@ pub fn combined_table(s: &JsSemigroup, offset: usize) -> String {
             }
             #[allow(clippy::cast_sign_loss)]
             let n = n_signed as usize;
-            let cls = get_cls(n, false, f, m, &sg.apery_set, &gens, &pf_set, &blobs);
-            html.push_str(&cell_td(cls, n));
+            html.push_str(&cell_td(cls_of(n, false), n));
         }
         html.push_str("</tr>");
     }
@@ -93,8 +88,7 @@ pub fn combined_table(s: &JsSemigroup, offset: usize) -> String {
     html.push_str("<tr>");
     for &i in &perm {
         let v = sg.apery_set[i];
-        let cls = get_cls(v, false, f, m, &sg.apery_set, &gens, &pf_set, &blobs);
-        html.push_str(&cell_td(cls, v));
+        html.push_str(&cell_td(cls_of(v, false), v));
     }
     html.push_str("</tr>");
 
@@ -103,9 +97,8 @@ pub fn combined_table(s: &JsSemigroup, offset: usize) -> String {
         html.push_str("<tr>");
         for &j in &perm {
             let v = sg.kunz(i, j);
-            let cls = get_cls(v, true, f, m, &sg.apery_set, &gens, &pf_set, &blobs);
             html.push_str("<td class=\"");
-            html.push_str(cls);
+            html.push_str(cls_of(v, true));
             html.push_str("\">");
             html.push_str(&v.to_string());
             html.push_str("</td>");

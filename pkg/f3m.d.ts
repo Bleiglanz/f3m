@@ -20,6 +20,7 @@ export class JsSemigroup {
     readonly max_gen: number;
     readonly pf: Uint32Array;
     readonly special_pf: Uint32Array;
+    readonly special_pf_str: string[];
     readonly type_t: number;
     readonly wilf: number;
 }
@@ -39,6 +40,10 @@ export function combined_table(s: JsSemigroup, offset: number): string;
  * Index expressions are evaluated recursively. Returns None on any error.
  */
 export function eval_expr(expr: string, s: JsSemigroup): number | undefined;
+
+export function gap_footer(): string;
+
+export function gap_header(): string;
 
 export function js_compute(input: string): JsSemigroup;
 
@@ -82,8 +87,9 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly eval_expr: (a: number, b: number, c: number) => number;
-    readonly combined_table: (a: number, b: number) => [number, number];
     readonly __wbg_jssemigroup_free: (a: number, b: number) => void;
+    readonly gap_footer: () => [number, number];
+    readonly gap_header: () => [number, number];
     readonly js_compute: (a: number, b: number) => number;
     readonly js_gap_block: (a: number, b: number) => [number, number];
     readonly jssemigroup_apery_set: (a: number) => [number, number];
@@ -100,6 +106,7 @@ export interface InitOutput {
     readonly jssemigroup_max_gen: (a: number) => number;
     readonly jssemigroup_pf: (a: number) => [number, number];
     readonly jssemigroup_special_pf: (a: number) => [number, number];
+    readonly jssemigroup_special_pf_str: (a: number) => [number, number];
     readonly jssemigroup_toggle: (a: number, b: number) => number;
     readonly jssemigroup_type_t: (a: number) => number;
     readonly jssemigroup_wilf: (a: number) => number;
@@ -109,10 +116,12 @@ export interface InitOutput {
     readonly js_graph_edges_text: (a: number, b: number) => [number, number];
     readonly js_graph_node_ids: (a: number, b: number) => [number, number];
     readonly js_node_class: (a: number, b: number) => [number, number];
+    readonly combined_table: (a: number, b: number) => [number, number];
     readonly __wbindgen_externrefs: WebAssembly.Table;
     readonly __wbindgen_free: (a: number, b: number, c: number) => void;
     readonly __wbindgen_malloc: (a: number, b: number) => number;
     readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
+    readonly __externref_drop_slice: (a: number, b: number) => void;
     readonly __wbindgen_start: () => void;
 }
 

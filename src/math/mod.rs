@@ -1,8 +1,10 @@
 #![warn(clippy::pedantic)]
 
+pub mod semigroup;
+pub use semigroup::Semigroup;
 
-// compute the greatest common divisor of two numbers
-#[must_use] 
+/// Greatest common divisor of two numbers (Euclidean algorithm).
+#[must_use]
 pub fn gcd(mut a: usize, mut b: usize) -> usize {
     while b != 0 {
         (a, b) = (b, a % b);
@@ -10,152 +12,14 @@ pub fn gcd(mut a: usize, mut b: usize) -> usize {
     a
 }
 
-// compute the greatest common divisor of a vector of numbers
-#[must_use] 
+/// Greatest common divisor of a non-empty slice of numbers.
+#[must_use]
 pub fn gcd_vec(numbers: &[usize]) -> usize {
     let mut d = numbers[0];
     for m in &numbers[1..] {
         d = gcd(d, *m);
     }
     d
-}
-
-//
-// simple struct to hold the results
-//
-#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
-pub struct Semigroup {
-    // e is the embedding dimension, f is the Frobenius number, m is the multiplicity
-    // gen_set is the set of minimal generators, apery_set is the Apery set with respect to m
-    // count_set is the number of elements in the semigroup <f - the sporadic elements
-    // count_gap is the number of gaps
-    // b is the number of reflected gaps (i.e. gaps g such that f-g is also a gap)
-    // blob_set is the set of reflected gaps
-    pub e: usize,
-    pub f: usize,
-    pub m: usize,
-    pub count_set: usize,
-    pub count_gap: usize,
-    pub max_gen: usize,
-    pub gen_set: Vec<usize>,
-    pub apery_set: Vec<usize>,
-}
-
-impl Semigroup {
-    // check if a number is an element of the semigroup
-    #[must_use] 
-    pub fn element(&self, x: usize) -> bool {
-        let modulus = x % self.m;
-        let ap = self.apery_set[modulus];
-        x >= ap
-    }
-    // check if a number is a gap of the semigroup
-    #[must_use] 
-    pub fn is_gap(&self, x: usize) -> bool {
-        !self.element(x)
-    }
-    // check if symmetric
-    /// # Panics
-    /// Panics if the symmetric invariant `f + 1 == 2 * g` is violated (internal consistency check).
-    #[must_use]
-    pub fn is_symmetric(&self) -> bool {
-        let sym = self.count_gap == self.count_set;
-        assert!(!sym || self.f + 1 == 2 * self.count_gap);
-        sym
-    }
-    // compute the wilf quotient
-    #[must_use]
-    #[allow(clippy::cast_precision_loss)]
-    pub fn wilf(&self) -> f64 {
-        let c = self.f as f64 + 1.0f64;
-        let spor = self.count_set as f64;
-        spor / c
-    }
-    // check if a number is a reflected gap
-    #[must_use] 
-    pub fn is_reflected_gap(&self, x: usize) -> bool {
-        self.is_gap(x) && self.is_gap(self.f - x)
-    }
-    // get the blob, the number of reflected gaps
-    #[must_use] 
-    pub fn blob(&self) -> Vec<usize> {
-        (0..self.f).filter(|&x| self.is_reflected_gap(x)).collect()
-    }
-    // compute the kunz overshoot apery[i]+apery[j]-apery[i+j%m] / m
-    // when displayed, it should be a symmetric matix
-    // the i-th row sums should be the i-th aperyelement
-    /// # Panics
-    /// Panics if the Kunz divisibility invariant is violated (internal consistency check).
-    #[must_use]
-    pub fn kunz(&self, i: usize, j: usize) -> usize {
-        let first = i % self.m;
-        let second = j % self.m;
-        let idx = (i + j) % self.m;
-        let sum = self.apery_set[first] + self.apery_set[second];
-        assert!(sum >= self.apery_set[idx]);
-        let res = sum - self.apery_set[idx];
-        assert_eq!(0, res % self.m, "ai+aj-a(i+j) immer duch m teilbar!");
-        res / self.m
-    }
-    //
-    // computes PF(S), the set of pseudo-frobenius numers
-    // the reflected gaps x such that x+(element of S > 0) is always in S
-    // and the type t, the number of this
-    //
-    // special pseudo frobenius are the ones that are differences
-    // of numbers in the genset, i.e. they are in the pft set
-    // and are of the form gen[i]-gen[j] where i>j if the gen is sorted
-    // and they don't divide f
-    //
-    #[must_use] 
-    pub fn pft(&self) -> ((Vec<usize>, usize), (Vec<usize>, usize)) {
-        let mut pf: Vec<usize> = self
-            .blob()
-            .into_iter()
-            .filter(|&g| self.gen_set.iter().all(|&a| self.element(a + g)))
-            .collect();
-        pf.push(self.f);
-        let t = pf.len();
-        let normal_pseudofrobenius = (pf, t);
-        // Special PF: elements of PF(S) that equal gen[i]-gen[j] (i>j) and don't divide f
-        let pf_set: std::collections::HashSet<usize> =
-            normal_pseudofrobenius.0.iter().copied().collect();
-        let mut special_set = std::collections::HashSet::new();
-        for i in 1..self.gen_set.len() {
-            for j in 0..i {
-                let diff = self.gen_set[i] - self.gen_set[j];
-                if pf_set.contains(&diff) && !self.f.is_multiple_of(diff) {
-                    special_set.insert(diff);
-                }
-            }
-        }
-        let mut special: Vec<usize> = special_set.into_iter().collect();
-        special.sort_unstable();
-        let st = special.len();
-        (normal_pseudofrobenius, (special, st))
-    }
-
-    // toggle(self,n): if n is a gap, add it as a generator;
-    // if n is a minimal generator, remove it - by removing
-    // all n-s for elements of the semigroup from 1..n
-    #[must_use] 
-    pub fn toggle(&self, n: usize) -> Semigroup {
-        if self.is_gap(n) {
-            let mut newgen = self.gen_set.clone();
-            newgen.push(n);
-            compute(&newgen)
-        } else {
-            let is_newgen = |x: usize| {
-                (x > n && self.element(x))
-                    || (x < n && self.element(x) && !self.element(n - x))
-            };
-            let newgen: Vec<usize> = (1..=(self.f + self.m))
-                .filter(|&x| is_newgen(x))
-                .collect();
-            if newgen.is_empty() { return self.clone(); }
-            compute(&newgen)
-        }
-    }
 }
 
 //
@@ -266,21 +130,21 @@ pub fn compute(input: &[usize]) -> Semigroup {
 
 // ── GAP code generation ──────────────────────────────────────────────────────
 
+pub const GAP_HEADER: &str = "# Generated by f3m — paste into GAP or run with 'gap <file>'\n\
+    # Requires: LoadPackage(\"NumericalSgps\");\n\n\
+    LoadPackage(\"NumericalSgps\");;\n\n";
+pub const GAP_FOOTER: &str = "Print(\"All assertions passed.\\n\");\n";
+
 /// Emit a GAP script (`NumericalSgps` package) that reconstructs each semigroup
 /// and asserts all properties computed by this library, so the results can be
 /// verified interactively in GAP.
-#[must_use] 
+#[must_use]
 pub fn to_gap(semigroups: &[Semigroup]) -> String {
-    let mut out = String::new();
-
-    out.push_str("# Generated by f3m — paste into GAP or run with 'gap <file>'\n");
-    out.push_str("# Requires: LoadPackage(\"NumericalSgps\");\n\n");
-    out.push_str("LoadPackage(\"NumericalSgps\");;\n\n");
-
+    let mut out = GAP_HEADER.to_string();
     for (i, sg) in semigroups.iter().enumerate() {
         out.push_str(&gap_block(sg, i + 1));
     }
-    out.push_str("Print(\"All assertions passed.\\n\");\n");
+    out.push_str(GAP_FOOTER);
     out
 }
 
@@ -290,7 +154,7 @@ pub fn gap_block(sg: &Semigroup, idx: usize) -> String {
     use std::fmt::Write as _;
     let gens  = sg.gen_set  .iter().map(usize::to_string).collect::<Vec<_>>();
     let apery = sg.apery_set.iter().map(usize::to_string).collect::<Vec<_>>();
-    let ((pf, t), _) = sg.pft();
+    let ((pf, t), _) = sg.pseudo_and_special();
     let pf_strs = pf.iter().map(usize::to_string).collect::<Vec<_>>();
     let sym = if sg.is_symmetric() { "true" } else { "false" };
     let mut out = String::new();

@@ -1,4 +1,4 @@
-import init, { js_compute, combined_table, shortprop, shortprop_tds, eval_expr, js_gap_block, js_graph_edges_text, gap_header, gap_footer } from '../pkg/f3m.js';
+import init, { js_compute, combined_table, shortprop, shortprop_tds, eval_expr, js_gap_block, js_graph_edges_text, gap_header, gap_footer, js_node_class } from '../pkg/f3m.js';
 import { render3d } from './view3d.js';
 import { rebuildGraph, setupGraphUpto, setupShowGaps } from './graph.js';
 
@@ -42,11 +42,15 @@ let evaExpr = 'f+1';      // expression shown in the evaluator input
 let computing = false;    // true while a computation is running (guards re-entry)
 const busyBanner = document.getElementById('busy-banner');
 const historyList = []; // all JsSemigroup objects computed this session
+let pendingToggle = null; // {sign, cls, n} describing the last toggle action, consumed by render()
 
 // Build a history table row for semigroup `s` at index `idx`.
-function historyRow(s, idx, expr, value) {
+function historyRow(s, idx, toggle, expr, value) {
   const valStr = value ?? '—';
-  return `<tr class="history-row" data-idx="${idx}"><td>${idx}</td>${shortprop_tds(s)}<td class="left">${expr}</td><td>${valStr}</td></tr>`;
+  const toggleStr = toggle
+    ? `${toggle.sign}<span class="${toggle.cls}">${toggle.n}</span>`
+    : '—';
+  return `<tr class="history-row" data-idx="${idx}"><td>${idx}</td><td>${toggleStr}</td>${shortprop_tds(s)}<td class="left">${expr}</td><td>${valStr}</td></tr>`;
 }
 
 // Clicking a history row re-renders that semigroup in the main tab.
@@ -85,7 +89,9 @@ function render(s) {
   historyList.push(s);
 
   // History tab
-  document.getElementById('history-tbody').innerHTML += historyRow(s, historyList.length - 1, evaExpr, eval_expr(evaExpr, s));
+  const toggle = pendingToggle;
+  pendingToggle = null;
+  document.getElementById('history-tbody').innerHTML += historyRow(s, historyList.length - 1, toggle, evaExpr, eval_expr(evaExpr, s));
   document.getElementById('history-gap').textContent = gap_header() + historyList.map((s, i) => js_gap_block(s, i + 1)).join('') + gap_footer();
 
   // Graph tab
@@ -198,6 +204,9 @@ function doToggle(val) {
   const newS = currentS.toggle(val);
   const newGens = Array.from(newS.gen_set);
   if (newGens.length === 0 || newGens.join(',') === currentGenSet.join(',')) return;
+  // Record the sign and CSS class of val in the pre-toggle semigroup.
+  const sign = currentS.is_element(val) ? '-' : '+';
+  pendingToggle = { sign, cls: js_node_class(currentS, val), n: val };
   gensInput.value = newGens.join(', ');
   render(newS);
 }

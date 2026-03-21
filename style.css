@@ -346,9 +346,8 @@ th, td { padding: 0.5rem 0.6rem; }
   overflow-x: auto;
 }
 #gap-copy-btn {
-  position: absolute;
-  top: 0.4rem;
-  right: 0.6rem;
+  display: block;
+  margin: 0.5rem auto;
   padding: 0.15rem 0.5rem;
   font-size: 0.8rem;
   cursor: pointer;

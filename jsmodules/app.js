@@ -1,4 +1,4 @@
-import init, { js_compute, combined_table, shortprop_tds, eval_expr, js_gap_block, js_graph_edges_text, gap_header, gap_footer, js_node_class, js_classify_table, js_cmp_semigroups } from '../pkg/f3m.js';
+import init, { js_compute, combined_table, tilt_table, shortprop_tds, eval_expr, js_gap_block, js_graph_edges_text, gap_header, gap_footer, js_node_class, js_classify_table, js_cmp_semigroups } from '../pkg/f3m.js';
 import { render3d } from './view3d.js';
 import { rebuildGraph, setupGraphUpto, setupShowGaps } from './graph.js';
 
@@ -36,7 +36,7 @@ document.getElementById('gap-copy-btn').addEventListener('click', e => {
 
 await init();
 
-document.querySelector('#tab-graph .history-table thead').innerHTML = PROP_THEAD_TR;
+document.getElementById('current-prop-thead').innerHTML = PROP_THEAD_TR;
 document.querySelector('#tab-history .history-table thead').innerHTML = PROP_THEAD_TR;
 
 setupGraphUpto(() => currentS);
@@ -45,6 +45,7 @@ setupShowGaps(() => currentS, () => Number(document.getElementById('graph-upto')
 // ── App state ─────────────────────────────────────────────────────────────────
 let currentGenSet = null; // generator array of the most recently rendered semigroup
 let currentS = null;      // JsSemigroup WASM object currently displayed
+let currentIdx = -1;      // index of currentS in historyList
 let evaExpr = 'f+1';      // expression shown in the evaluator input
 let computing = false;    // true while a computation is running (guards re-entry)
 const busyBanner = document.getElementById('busy-banner');
@@ -55,21 +56,21 @@ let gapBlocks = '';    // accumulated js_gap_block output, without header/footer
 function historyRow(s, idx, toggle, expr, value, cmp) {
   const valStr = value ?? '—';
   const toggleStr = toggle
-    ? `${toggle.sign}<span class="${toggle.cls}">${toggle.n}</span>`
+    ? `${toggle.sign}#${toggle.from}<span class="${toggle.cls}">${toggle.n}</span>`
     : '—';
   return `<tr class="history-row" data-idx="${idx}"><td>${idx}</td><td>${toggleStr}</td>${shortprop_tds(s)}<td class="left">${expr}</td><td>${valStr}</td><td>${cmp}</td></tr>`;
 }
 
-// Clicking a span in the graph tab's shortprop row toggles without switching tabs.
-document.getElementById('graph-prop-tbody').addEventListener('click', e => {
+// Clicking a span in the shared shortprop row toggles without switching tabs.
+document.getElementById('current-prop-tbody').addEventListener('click', e => {
   if (guardBusy()) return;
   const span = e.target.closest('span.sg-gen, span.sg-frob, span.sg-pf');
   if (!span) return;
   const row = e.target.closest('.history-row');
   if (!row) return;
-  const s = historyList[parseInt(row.dataset.idx)];
-  currentS = s;
-  currentGenSet = Array.from(s.gen_set);
+  currentIdx = parseInt(row.dataset.idx);
+  currentS = historyList[currentIdx];
+  currentGenSet = Array.from(currentS.gen_set);
   doToggle(parseInt(span.textContent));
 });
 
@@ -88,6 +89,7 @@ document.getElementById('history-tbody').addEventListener('click', e => {
   const span = e.target.closest('span.sg-gen, span.sg-frob, span.sg-pf');
   if (!span) return;
   currentS = s;
+  currentIdx = parseInt(row.dataset.idx);
   currentGenSet = Array.from(s.gen_set);
   doToggle(parseInt(span.textContent));
 });
@@ -116,9 +118,13 @@ function render(s, toggle = null) {
   currentGenSet = Array.from(s.gen_set);
   currentS = s;
   historyList.push(s);
-  const idx = historyList.length - 1;
+  currentIdx = historyList.length - 1;
+  const idx = currentIdx;
   const exprVal = eval_expr(evaExpr, s);
-  const cmp = idx > 0 ? js_cmp_semigroups(s, historyList[idx - 1]) : '—';
+  const cmpSourceIdx = toggle ? toggle.from : (idx > 0 ? idx - 1 : null);
+  const cmp = cmpSourceIdx != null
+    ? `#${idx}&nbsp;${js_cmp_semigroups(s, historyList[cmpSourceIdx])}&nbsp;#${cmpSourceIdx}`
+    : '—';
   const rowHtml = historyRow(s, idx, toggle, evaExpr, exprVal, cmp);
 
   // History tab
@@ -127,7 +133,7 @@ function render(s, toggle = null) {
   document.getElementById('history-gap').textContent = gap_header() + gapBlocks + gap_footer();
 
   // Graph tab
-  document.getElementById('graph-prop-tbody').innerHTML = rowHtml;
+  document.getElementById('current-prop-tbody').innerHTML = rowHtml;
   const graphUpto = document.getElementById('graph-upto');
   graphUpto.min = s.m;
   graphUpto.max = s.f + s.m;
@@ -152,21 +158,14 @@ function render(s, toggle = null) {
     ['# reflected&nbsp;gaps',  tipCell(blobs.length, blobs.join(', '))],
     ['Largest generator (ae)',      `<td class="value"><span class="sg-gen">${s.max_gen}</span></td>`],
     ['Structure / <span class="has-tip">c<sub>ij</sub><span class="tip">apery(i) + apery(j) − apery((i+j) mod m) / m</span></span>',
-      `<td class="value sg-cell"><div class="sg-slider-row"><label>offset: <span id="sg-offset-val">0</span></label><input type="range" id="sg-offset" min="0" max="${s.m - 1}" value="0">${s.m <= 15 ? `&nbsp;&nbsp;<label>tilt: <span id="sg-tilt-val">0</span></label><input type="range" id="sg-tilt" min="${-s.m}" max="${s.m}" value="0">` : ''}</div><div id="sg-grid-container"></div></td>`],
+      `<td class="value sg-cell"><div class="sg-slider-row"><label>offset: <span id="sg-offset-val">0</span></label><input type="range" id="sg-offset" min="0" max="${s.m - 1}" value="0"></div><div id="sg-grid-container"></div></td>`],
     ['Classification (0…f+m)',      `<td class="value"><div id="classify">${js_classify_table(s)}</div></td>`],
   ];
 
   const tbody = rows.map(([label, td]) => `<tr><td class="label">${label}</td>${td}</tr>`).join('');
 
   const resultEl = document.getElementById('result');
-  resultEl.innerHTML = `
-    <table class="history-table">
-      <thead>${PROP_THEAD_TR}</thead>
-      <tbody>${rowHtml}</tbody>
-    </table>
-    <table>
-      <tbody>${tbody}</tbody>
-    </table>`;
+  resultEl.innerHTML = `<table><tbody>${tbody}</tbody></table>`;
 
   // Live expression evaluator
   document.getElementById('eva-input').addEventListener('input', e => {
@@ -175,24 +174,33 @@ function render(s, toggle = null) {
     document.getElementById('eva-result').textContent = result ?? '—';
   });
 
-  // Structure/Kunz grid with offset and tilt sliders
   const slider = document.getElementById('sg-offset');
-  const tiltSlider = document.getElementById('sg-tilt');
   const renderGrid = () => {
-    const tilt = tiltSlider ? parseInt(tiltSlider.value) : 0;
-    document.getElementById('sg-grid-container').innerHTML = combined_table(s, parseInt(slider.value), tilt);
+    document.getElementById('sg-grid-container').innerHTML = combined_table(s, parseInt(slider.value), 0);
   };
   renderGrid();
   slider.addEventListener('input', () => {
     document.getElementById('sg-offset-val').textContent = slider.value;
     renderGrid();
   });
-  if (tiltSlider) {
-    tiltSlider.addEventListener('input', () => {
-      document.getElementById('sg-tilt-val').textContent = tiltSlider.value;
-      renderGrid();
-    });
-  }
+
+  document.getElementById('tilt-controls').innerHTML =
+    `<div class="sg-slider-row"><label>tilt: <span id="tilt-tilt-val">0</span></label><input type="range" id="tilt-tilt" min="${-s.m}" max="${s.m}" value="0"></div>`;
+  const tiltInput = document.getElementById('tilt-tilt');
+  const renderTiltGrid = () => {
+    document.getElementById('tilt-grid-container').innerHTML = tilt_table(s, parseInt(tiltInput.value));
+  };
+  renderTiltGrid();
+  tiltInput.addEventListener('input', e => {
+    document.getElementById('tilt-tilt-val').textContent = e.target.value;
+    renderTiltGrid();
+  });
+
+  requestAnimationFrame(() => {
+    const w = document.getElementById('current-prop-tbody').closest('table').offsetWidth;
+    const histTable = document.querySelector('#tab-history .history-table');
+    if (w > (parseFloat(histTable.style.minWidth) || 0)) histTable.style.minWidth = w + 'px';
+  });
 
   // Trigger 3D view re-render if that tab is currently active
   if (document.getElementById('tab-gapgraph').classList.contains('active')) render3d(s);
@@ -230,10 +238,18 @@ function doToggle(val) {
   const newGens = Array.from(newS.gen_set);
   if (newGens.length === 0 || newGens.join(',') === currentGenSet.join(',')) return;
   const sign = currentS.is_element(val) ? '-' : '+';
-  const toggle = { sign, cls: js_node_class(currentS, val), n: val };
+  const from = currentIdx;
+  const toggle = { sign, cls: js_node_class(currentS, val), n: val, from };
   gensInput.value = newGens.join(', ');
   render(newS, toggle);
 }
+
+// Tilt tab: click-to-toggle, stays on tilt tab.
+document.getElementById('tilt-grid-container').addEventListener('click', e => {
+  if (guardBusy()) return;
+  const sgSpan = e.target.closest('.sg-grid span[data-n]');
+  if (sgSpan) doToggle(parseInt(sgSpan.dataset.n));
+});
 
 // Delegate click-to-toggle from property spans and grid cells.
 document.getElementById('result').addEventListener('click', e => {

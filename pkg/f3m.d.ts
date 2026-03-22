@@ -94,6 +94,14 @@ export function shortprop(s: JsSemigroup): string;
  */
 export function shortprop_tds(s: JsSemigroup): string;
 
+/**
+ * Pure x-y grid for the Tilt tab: no Apéry row, no Kunz matrix.
+ * x (columns) and y (rows) both run from -3m to 3m.
+ * y increases upward (highest y at top). x increases left to right.
+ * Element at (x, y) = y*m + x - tilt*y.
+ */
+export function tilt_table(s: JsSemigroup, tilt: number): string;
+
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
@@ -124,13 +132,14 @@ export interface InitOutput {
     readonly jssemigroup_type_t: (a: number) => number;
     readonly jssemigroup_wilf: (a: number) => number;
     readonly eval_expr: (a: number, b: number, c: number) => number;
-    readonly shortprop: (a: number) => [number, number];
-    readonly shortprop_tds: (a: number) => [number, number];
+    readonly tilt_table: (a: number, b: number) => [number, number];
+    readonly combined_table: (a: number, b: number, c: number) => [number, number];
     readonly js_graph_edge_pairs: (a: number, b: number) => [number, number];
     readonly js_graph_edges_text: (a: number, b: number) => [number, number];
     readonly js_graph_node_ids: (a: number, b: number) => [number, number];
     readonly js_node_class: (a: number, b: number) => [number, number];
-    readonly combined_table: (a: number, b: number, c: number) => [number, number];
+    readonly shortprop: (a: number) => [number, number];
+    readonly shortprop_tds: (a: number) => [number, number];
     readonly __wbindgen_externrefs: WebAssembly.Table;
     readonly __wbindgen_free: (a: number, b: number, c: number) => void;
     readonly __wbindgen_malloc: (a: number, b: number) => number;

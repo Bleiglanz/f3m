@@ -6,6 +6,7 @@ pub mod combined_table;
 pub mod js_eval;
 pub mod jsgraph;
 pub mod shortprops_table;
+pub mod tilt;
 pub use shortprops_table::{shortprop, shortprop_tds};
 
 // ── shared helpers ────────────────────────────────────────────────────────────

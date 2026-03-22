@@ -335,6 +335,9 @@ span[data-remove-gen]     { cursor: pointer; }
 .sg-grid .sg-large { background: #e8eaed; color: #aaa; }
 .sg-grid .sg-empty { background: #f7f8fa; }
 .sg-grid td.sg-selected { outline: 2px solid var(--orange); outline-offset: -2px; }
+.tilt-grid .tilt-axis { background-color: #fffde7; }
+.tilt-grid td, .tilt-grid th { width: 2.5em; min-width: 2.5em; max-width: 2.5em; height: 2.5em; padding: 0; text-align: center; }
+.tilt-grid span[data-n] { display: inline; padding: 0.15rem; }
 
 /* ─── Kunz Table ────────────────────────────────────────────────── */
 .kunz-table {

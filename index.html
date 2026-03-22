@@ -27,12 +27,18 @@
     <button id="random-primes-btn">RandomPrimes</button>
   </div>
 
+  <table class="history-table" style="width:fit-content;max-width:80%">
+    <thead id="current-prop-thead"></thead>
+    <tbody id="current-prop-tbody"></tbody>
+  </table>
+
   <div class="tab-bar">
     <button class="tab-btn active" data-tab="s">S</button>
     <button class="tab-btn" data-tab="history">History</button>
     <button class="tab-btn" data-tab="graph">Graph</button>
     <button class="tab-btn" data-tab="gapgraph">3dview</button>
     <button class="tab-btn" data-tab="gap">Gap</button>
+    <button class="tab-btn" data-tab="tilt">Tilt</button>
   </div>
 
   <div id="busy-banner">Computing…</div>
@@ -44,8 +50,6 @@
 
   <div id="tab-graph" class="tab-content">
     <table class="history-table" style="width:100%">
-      <thead></thead>
-      <tbody id="graph-prop-tbody"></tbody>
       <tbody>
         <tr><td colspan="15">
           <label>Upto <input type="range" id="graph-upto" min="0" max="0" value="0"> <span id="graph-upto-val"></span></label>
@@ -69,7 +73,7 @@
   </div>
 
   <div id="tab-history" class="tab-content">
-    <table class="history-table">
+    <table class="history-table" style="width:fit-content;max-width:80%">
       <thead></thead>
       <tbody id="history-tbody"></tbody>
     </table>
@@ -78,6 +82,11 @@
   <div id="tab-gap" class="tab-content">
     <button id="gap-copy-btn">Copy</button>
     <pre id="history-gap"></pre>
+  </div>
+
+  <div id="tab-tilt" class="tab-content">
+    <div id="tilt-controls" style="margin-bottom:0.5em"></div>
+    <div id="tilt-grid-container"></div>
   </div>
 
   <script type="module" src="jsmodules/app.js"></script>

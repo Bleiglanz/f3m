@@ -47,10 +47,10 @@ pub fn combined_table(s: &JsSemigroup, offset: usize, tilt: i32) -> String {
     let m = sg.m;
     let f = sg.f;
 
-    // Wide table (-2m…3m-1) only for small multiplicity; narrow (0…m-1) otherwise.
-    // Tilt is only active when m <= 15.
+    // Wide table (-2m…3m-1) only when tilt is active (m <= 15 and tilt != 0);
+    // otherwise narrow (0…m-1).
     #[allow(clippy::cast_possible_wrap)]
-    let (col_start, col_end): (isize, isize) = if m <= 15 {
+    let (col_start, col_end): (isize, isize) = if m <= 15 && tilt != 0 {
         (-(2 * m as isize), 3 * m as isize)
     } else {
         (0, m as isize)
@@ -81,7 +81,7 @@ pub fn combined_table(s: &JsSemigroup, offset: usize, tilt: i32) -> String {
 
     // Structure rows (bottom-to-top)
     #[allow(clippy::cast_possible_wrap)]
-    let start_row: isize = if m <= 15 || offset != 0 { -1 } else { 0 };
+    let start_row: isize = if (m <= 15 && tilt != 0) || offset != 0 { -1 } else { 0 };
     #[allow(clippy::cast_possible_wrap)]
     let end_row: isize = (f / m + 3) as isize;
     for row in (start_row..end_row).rev() {
@@ -129,3 +129,4 @@ pub fn combined_table(s: &JsSemigroup, offset: usize, tilt: i32) -> String {
     html.push_str("</tbody></table>");
     html
 }
+

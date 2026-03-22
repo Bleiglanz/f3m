@@ -415,6 +415,29 @@ export function shortprop_tds(s) {
     }
 }
 
+/**
+ * Pure x-y grid for the Tilt tab: no Apéry row, no Kunz matrix.
+ * x (columns) and y (rows) both run from -3m to 3m.
+ * y increases upward (highest y at top). x increases left to right.
+ * Element at (x, y) = y*m + x - tilt*y.
+ * @param {JsSemigroup} s
+ * @param {number} tilt
+ * @returns {string}
+ */
+export function tilt_table(s, tilt) {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        _assertClass(s, JsSemigroup);
+        const ret = wasm.tilt_table(s.__wbg_ptr, tilt);
+        deferred1_0 = ret[0];
+        deferred1_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+    }
+}
+
 function __wbg_get_imports() {
     const import0 = {
         __proto__: null,

@@ -152,7 +152,7 @@ function render(s, toggle = null) {
     ['# reflected&nbsp;gaps',  tipCell(blobs.length, blobs.join(', '))],
     ['Largest generator (ae)',      `<td class="value"><span class="sg-gen">${s.max_gen}</span></td>`],
     ['Structure / <span class="has-tip">c<sub>ij</sub><span class="tip">apery(i) + apery(j) − apery((i+j) mod m) / m</span></span>',
-      `<td class="value sg-cell"><div class="sg-slider-row"><label>offset: <span id="sg-offset-val">0</span></label><input type="range" id="sg-offset" min="0" max="${s.m - 1}" value="0">&nbsp;&nbsp;<label>tilt: <span id="sg-tilt-val">0</span></label><input type="range" id="sg-tilt" min="-3" max="3" value="0"></div><div id="sg-grid-container"></div></td>`],
+      `<td class="value sg-cell"><div class="sg-slider-row"><label>offset: <span id="sg-offset-val">0</span></label><input type="range" id="sg-offset" min="0" max="${s.m - 1}" value="0">${s.m <= 15 ? `&nbsp;&nbsp;<label>tilt: <span id="sg-tilt-val">0</span></label><input type="range" id="sg-tilt" min="${-s.m}" max="${s.m}" value="0">` : ''}</div><div id="sg-grid-container"></div></td>`],
     ['Classification (0…f+m)',      `<td class="value"><div id="classify">${js_classify_table(s)}</div></td>`],
   ];
 
@@ -179,16 +179,20 @@ function render(s, toggle = null) {
   const slider = document.getElementById('sg-offset');
   const tiltSlider = document.getElementById('sg-tilt');
   const renderGrid = () => {
-    document.getElementById('sg-grid-container').innerHTML = combined_table(s, parseInt(slider.value));
+    const tilt = tiltSlider ? parseInt(tiltSlider.value) : 0;
+    document.getElementById('sg-grid-container').innerHTML = combined_table(s, parseInt(slider.value), tilt);
   };
   renderGrid();
   slider.addEventListener('input', () => {
     document.getElementById('sg-offset-val').textContent = slider.value;
     renderGrid();
   });
-  tiltSlider.addEventListener('input', () => {
-    document.getElementById('sg-tilt-val').textContent = tiltSlider.value;
-  });
+  if (tiltSlider) {
+    tiltSlider.addEventListener('input', () => {
+      document.getElementById('sg-tilt-val').textContent = tiltSlider.value;
+      renderGrid();
+    });
+  }
 
   // Trigger 3D view re-render if that tab is currently active
   if (document.getElementById('tab-gapgraph').classList.contains('active')) render3d(s);

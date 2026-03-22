@@ -38,21 +38,39 @@ pub(crate) fn get_cls(
 }
 
 /// Build the full combined table: structure grid + repeated header + Apéry row + Kunz matrix.
-/// All sections share `m` columns, permuted by `offset` so column `col` shows residue
-/// `(offset + col) % m`.
+/// When `tilt == 0` columns span `[0, m)`; when `tilt != 0` they span `[-2m, 2m)` so
+/// the wider neighbourhood is visible for a tilted view.
 #[wasm_bindgen]
 #[must_use]
-pub fn combined_table(s: &JsSemigroup, offset: usize) -> String {
+pub fn combined_table(s: &JsSemigroup, offset: usize, tilt: i32) -> String {
     let sg = &s.0;
     let m = sg.m;
     let f = sg.f;
+
+    // Wide table (-2m…3m-1) only for small multiplicity; narrow (0…m-1) otherwise.
+    // Tilt is only active when m <= 15.
+    #[allow(clippy::cast_possible_wrap)]
+    let (col_start, col_end): (isize, isize) = if m <= 15 {
+        (-(2 * m as isize), 3 * m as isize)
+    } else {
+        (0, m as isize)
+    };
+    let num_cols = (col_end - col_start).cast_unsigned();
+
+    // Residue for each column (Euclidean mod, always in 0..m).
+    #[allow(clippy::cast_possible_wrap)]
+    let residues: Vec<usize> = (col_start..col_end)
+        .map(|c| (offset as isize + c).rem_euclid(m as isize) as usize)
+        .collect();
+
+    // Standard m-wide permutation used for the Apéry and Kunz sections.
     let perm: Vec<usize> = (0..m).map(|k| (offset + k) % m).collect();
 
     let sets = class_sets(sg);
     let cls_of = |n, kunz| get_cls(n, kunz, f, m, &sg.apery_set, &sets.gens, &sets.pf_set, &sets.blobs);
 
     #[allow(clippy::format_collect)]
-    let header_cells: String = perm.iter()
+    let header_cells: String = residues.iter()
         .map(|&r| format!("<th>{r}</th>"))
         .collect();
     let header_row = format!("<tr>{header_cells}</tr>");
@@ -63,14 +81,15 @@ pub fn combined_table(s: &JsSemigroup, offset: usize) -> String {
 
     // Structure rows (bottom-to-top)
     #[allow(clippy::cast_possible_wrap)]
-    let start_row: isize = if offset == 0 { 0 } else { -1 };
+    let start_row: isize = if m <= 15 || offset != 0 { -1 } else { 0 };
     #[allow(clippy::cast_possible_wrap)]
     let end_row: isize = (f / m + 3) as isize;
     for row in (start_row..end_row).rev() {
         html.push_str("<tr>");
-        for col in 0..m {
+        for col_idx in 0..num_cols {
+            let col = col_start + col_idx.cast_signed();
             #[allow(clippy::cast_possible_wrap)]
-            let n_signed: isize = row * m as isize + offset as isize + col as isize;
+            let n_signed: isize = row * m as isize + offset as isize + col - tilt as isize * row;
             if n_signed < 0 {
                 html.push_str("<td class=\"sg-empty\"></td>");
                 continue;

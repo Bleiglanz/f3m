@@ -165,9 +165,8 @@ if (Symbol.dispose) JsSemigroup.prototype[Symbol.dispose] = JsSemigroup.prototyp
 
 /**
  * Build the full combined table: structure grid + repeated header + Apéry row + Kunz matrix.
- * All sections share `m` columns, permuted by `offset` so column `col` shows residue
- * `(offset + col) % m`. `tilt` shifts column `col` vertically by `tilt * col` rows,
- * giving the grid a diagonal lean (range −3..=3).
+ * When `tilt == 0` columns span `[0, m)`; when `tilt != 0` they span `[-2m, 2m)` so
+ * the wider neighbourhood is visible for a tilted view.
  * @param {JsSemigroup} s
  * @param {number} offset
  * @param {number} tilt

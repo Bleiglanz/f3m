@@ -33,7 +33,7 @@ export const js_graph_edge_pairs: (a: number, b: number) => [number, number];
 export const js_graph_edges_text: (a: number, b: number) => [number, number];
 export const js_graph_node_ids: (a: number, b: number) => [number, number];
 export const js_node_class: (a: number, b: number) => [number, number];
-export const combined_table: (a: number, b: number) => [number, number];
+export const combined_table: (a: number, b: number, c: number) => [number, number];
 export const __wbindgen_externrefs: WebAssembly.Table;
 export const __wbindgen_free: (a: number, b: number, c: number) => void;
 export const __wbindgen_malloc: (a: number, b: number) => number;

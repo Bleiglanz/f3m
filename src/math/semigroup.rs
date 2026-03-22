@@ -183,7 +183,7 @@ impl Semigroup {
             n if n == self.f + 1 => "c=c(S)=f+1 Conductor",
             n if self.gen_set.contains(&n) => "minimal Generator",
             n if self.apery_set[n % self.m] == n => "in S, Apery",
-            n if self.element(n) => "in S",
+            n if self.element(n) => "S",
             n if n < self.f && !self.element(self.f - n) => "reflected gap",
             n if !self.element(n) => "gap",
             _ => "unknown"

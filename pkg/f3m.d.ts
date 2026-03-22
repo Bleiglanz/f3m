@@ -28,9 +28,10 @@ export class JsSemigroup {
 /**
  * Build the full combined table: structure grid + repeated header + Apéry row + Kunz matrix.
  * All sections share `m` columns, permuted by `offset` so column `col` shows residue
- * `(offset + col) % m`.
+ * `(offset + col) % m`. `tilt` shifts column `col` vertically by `tilt * col` rows,
+ * giving the grid a diagonal lean (range −3..=3).
  */
-export function combined_table(s: JsSemigroup, offset: number): string;
+export function combined_table(s: JsSemigroup, offset: number, tilt: number): string;
 
 /**
  * Replace a[expr], q[expr] and scalars in `expr` with semigroup values:
@@ -130,7 +131,7 @@ export interface InitOutput {
     readonly js_graph_edges_text: (a: number, b: number) => [number, number];
     readonly js_graph_node_ids: (a: number, b: number) => [number, number];
     readonly js_node_class: (a: number, b: number) => [number, number];
-    readonly combined_table: (a: number, b: number) => [number, number];
+    readonly combined_table: (a: number, b: number, c: number) => [number, number];
     readonly __wbindgen_externrefs: WebAssembly.Table;
     readonly __wbindgen_free: (a: number, b: number, c: number) => void;
     readonly __wbindgen_malloc: (a: number, b: number) => number;

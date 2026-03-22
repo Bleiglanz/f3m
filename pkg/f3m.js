@@ -166,17 +166,19 @@ if (Symbol.dispose) JsSemigroup.prototype[Symbol.dispose] = JsSemigroup.prototyp
 /**
  * Build the full combined table: structure grid + repeated header + Apéry row + Kunz matrix.
  * All sections share `m` columns, permuted by `offset` so column `col` shows residue
- * `(offset + col) % m`.
+ * `(offset + col) % m`. `tilt` shifts column `col` vertically by `tilt * col` rows,
+ * giving the grid a diagonal lean (range −3..=3).
  * @param {JsSemigroup} s
  * @param {number} offset
+ * @param {number} tilt
  * @returns {string}
  */
-export function combined_table(s, offset) {
+export function combined_table(s, offset, tilt) {
     let deferred1_0;
     let deferred1_1;
     try {
         _assertClass(s, JsSemigroup);
-        const ret = wasm.combined_table(s.__wbg_ptr, offset);
+        const ret = wasm.combined_table(s.__wbg_ptr, offset, tilt);
         deferred1_0 = ret[0];
         deferred1_1 = ret[1];
         return getStringFromWasm0(ret[0], ret[1]);

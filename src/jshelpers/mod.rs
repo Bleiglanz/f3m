@@ -147,12 +147,15 @@ pub fn js_classify_table(s: &JsSemigroup) -> String {
     let mut out = String::from("<table class=\"classify-table\"><tbody>");
     for n in 0..=(sg.f + sg.m) {
         let n_span = span(cls_of(n), n, true);
-        let (label, cls) = match sg.classify(n) {
-            "zero" => ("zero", "cl-zero"),
-            "in S" => ("in S", "cl-in"),
-            _      => ("gap",  "cl-gap"),
+        let label = sg.classify(n);
+        let cls = match label {
+            "zero"                => "cl-zero",
+            "in S" | "in S, Apery" | "m=min(S)" | "minimal Generator"
+            | "f=f(S) Frobenius" | "c=c(S)=f+1 Conductor" => "cl-in",
+            "reflected gap"       => "cl-reflect",
+            _                     => "cl-gap",
         };
-        let _ = write!(out, "<tr><td class=\"cl-n\">{n_span}</td><td class=\"{cls}\">{label}</td></tr>");
+        let _ = write!(out, "<tr><td class=\"cl-n\">{n_span}</td><td class=\"{cls}\">{label}</td></tr>",);
     }
     out.push_str("</tbody></table>");
     out

@@ -426,10 +426,11 @@ span[data-remove-gen]     { cursor: pointer; }
   background: transparent;
 }
 
-.cl-n    { color: var(--muted); text-align: right; min-width: 2.5em; }
-.cl-zero { color: var(--dim); }
-.cl-in   { color: var(--green); }
-.cl-gap  { color: var(--red); }
+.cl-n       { color: var(--muted); text-align: right; min-width: 2.5em; }
+.cl-zero    { color: var(--dim); }
+.cl-in      { color: var(--green); }
+.cl-gap     { color: var(--red); }
+.cl-reflect { color: var(--orange, #c07000); }
 
 /* ─── Misc ──────────────────────────────────────────────────────── */
 .scroll-x { overflow-x: auto; }

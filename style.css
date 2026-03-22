@@ -408,6 +408,29 @@ span[data-remove-gen]     { cursor: pointer; }
   white-space: pre;
 }
 
+/* ─── Classify Table ────────────────────────────────────────────── */
+.classify-table {
+  border-collapse: collapse;
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  width: auto;
+  border: none;
+  box-shadow: none;
+  margin: 0;
+  background: transparent;
+}
+
+.classify-table td {
+  border: 1px solid var(--border);
+  padding: 0.12rem 0.5rem;
+  background: transparent;
+}
+
+.cl-n    { color: var(--muted); text-align: right; min-width: 2.5em; }
+.cl-zero { color: var(--dim); }
+.cl-in   { color: var(--green); }
+.cl-gap  { color: var(--red); }
+
 /* ─── Misc ──────────────────────────────────────────────────────── */
 .scroll-x { overflow-x: auto; }
 #sg-grid-container { overflow-x: auto; }

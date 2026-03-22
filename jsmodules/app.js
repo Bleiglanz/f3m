@@ -1,8 +1,8 @@
-import init, { js_compute, combined_table, shortprop_tds, eval_expr, js_gap_block, js_graph_edges_text, gap_header, gap_footer, js_node_class } from '../pkg/f3m.js';
+import init, { js_compute, combined_table, shortprop_tds, eval_expr, js_gap_block, js_graph_edges_text, gap_header, gap_footer, js_node_class, js_classify_table, js_cmp_semigroups } from '../pkg/f3m.js';
 import { render3d } from './view3d.js';
 import { rebuildGraph, setupGraphUpto, setupShowGaps } from './graph.js';
 
-const PROP_THEAD_TR = '<tr><th>#</th><th>toggle</th><th>m</th><th>f</th><th>e</th><th>g</th><th>c-g</th><th>t</th><th>Sym</th><th>gen</th><th>PF</th><th>SPF</th><th>expr</th><th>value</th></tr>';
+const PROP_THEAD_TR = '<tr><th>#</th><th>toggle</th><th>m</th><th>f</th><th>e</th><th>g</th><th>c-g</th><th>t</th><th>Sym</th><th>gen</th><th>PF</th><th>SPF</th><th>expr</th><th>value</th><th>⊆?</th></tr>';
 
 // Display an error message in the error banner.
 function showError(msg) {
@@ -52,12 +52,12 @@ const historyList = []; // all JsSemigroup objects computed this session
 let gapBlocks = '';    // accumulated js_gap_block output, without header/footer
 
 // Build a history table row for semigroup `s` at index `idx`.
-function historyRow(s, idx, toggle, expr, value) {
+function historyRow(s, idx, toggle, expr, value, cmp) {
   const valStr = value ?? '—';
   const toggleStr = toggle
     ? `${toggle.sign}<span class="${toggle.cls}">${toggle.n}</span>`
     : '—';
-  return `<tr class="history-row" data-idx="${idx}"><td>${idx}</td><td>${toggleStr}</td>${shortprop_tds(s)}<td class="left">${expr}</td><td>${valStr}</td></tr>`;
+  return `<tr class="history-row" data-idx="${idx}"><td>${idx}</td><td>${toggleStr}</td>${shortprop_tds(s)}<td class="left">${expr}</td><td>${valStr}</td><td>${cmp}</td></tr>`;
 }
 
 // Clicking a span in the graph tab's shortprop row toggles without switching tabs.
@@ -118,7 +118,8 @@ function render(s, toggle = null) {
   historyList.push(s);
   const idx = historyList.length - 1;
   const exprVal = eval_expr(evaExpr, s);
-  const rowHtml = historyRow(s, idx, toggle, evaExpr, exprVal);
+  const cmp = idx > 0 ? js_cmp_semigroups(s, historyList[idx - 1]) : '—';
+  const rowHtml = historyRow(s, idx, toggle, evaExpr, exprVal, cmp);
 
   // History tab
   document.getElementById('history-tbody').insertAdjacentHTML('beforeend', rowHtml);
@@ -152,6 +153,7 @@ function render(s, toggle = null) {
     ['Largest generator (ae)',      `<td class="value"><span class="sg-gen">${s.max_gen}</span></td>`],
     ['Structure / <span class="has-tip">c<sub>ij</sub><span class="tip">apery(i) + apery(j) − apery((i+j) mod m) / m</span></span>',
       `<td class="value sg-cell"><div class="sg-slider-row"><label>offset: <span id="sg-offset-val">0</span></label><input type="range" id="sg-offset" min="0" max="${s.m - 1}" value="0"></div><div id="sg-grid-container"></div></td>`],
+    ['Classification (0…f+m)',      `<td class="value"><div id="classify">${js_classify_table(s)}</div></td>`],
   ];
 
   const tbody = rows.map(([label, td]) => `<tr><td class="label">${label}</td>${td}</tr>`).join('');
@@ -230,7 +232,7 @@ document.getElementById('result').addEventListener('click', e => {
   if (guardBusy()) return;
   const span = e.target.closest('span.sg-frob, span.sg-pf, span.sg-gen, span[data-remove-gen]');
   if (span) { doToggle(parseInt(span.textContent)); return; }
-  const sgSpan = e.target.closest('.sg-grid span[data-n]');
+  const sgSpan = e.target.closest('.sg-grid span[data-n], .classify-table span[data-n]');
   if (sgSpan) doToggle(parseInt(sgSpan.dataset.n));
 });
 

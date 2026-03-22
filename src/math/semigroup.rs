@@ -3,8 +3,8 @@
 use std::collections;
 use super::compute;
 
-/// All computed properties of a numerical semigroup S = <gen_set>.
-#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
+/// All computed properties of a numerical semigroup S = <`gen_set`>.
+#[derive(Debug, Clone)]
 pub struct Semigroup {
     /// Embedding dimension: number of minimal generators.
     pub e: usize,
@@ -20,13 +20,42 @@ pub struct Semigroup {
     pub max_gen: usize,
     /// Sorted list of minimal generators.
     pub gen_set: Vec<usize>,
-    /// Apéry set w.r.t. m: apery_set[i] is the smallest element of S congruent to i mod m.
+    /// Apéry set w.r.t. m: `apery_set`[i] is the smallest element of S congruent to i mod m.
     pub apery_set: Vec<usize>,
+}
+
+/// Two semigroups are equal iff they have the same generators, Frobenius number,
+/// embedding dimension, and multiplicity.
+impl PartialEq for Semigroup {
+    fn eq(&self, other: &Self) -> bool {
+        self.gen_set == other.gen_set
+            && self.f == other.f
+            && self.e == other.e
+            && self.m == other.m
+    }
+}
+
+impl Eq for Semigroup {}
+
+/// Partial order by set containment: S1 ≤ S2 iff every element of S1 is also in S2.
+/// Returns `None` when neither semigroup is a subset of the other.
+impl PartialOrd for Semigroup {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        let limit = self.f.max(other.f) + self.m.max(other.m);
+        let self_in_other = (1..=limit).all(|i| !self.element(i)  || other.element(i));
+        let other_in_self = (1..=limit).all(|i| !other.element(i) || self.element(i));
+        match (self_in_other, other_in_self) {
+            (true,  true)  => Some(std::cmp::Ordering::Equal),
+            (true,  false) => Some(std::cmp::Ordering::Less),
+            (false, true)  => Some(std::cmp::Ordering::Greater),
+            (false, false) => None,
+        }
+    }
 }
 
 impl Semigroup {
     /// Returns `true` if `x` is an element of S.
-    /// Uses the Apéry set for O(1) membership: x ∈ S iff x ≥ apery_set[x mod m].
+    /// Uses the Apéry set for O(1) membership: x ∈ S iff x ≥ `apery_set`[x mod m].
     #[must_use]
     pub fn element(&self, x: usize) -> bool {
         let modulus = x % self.m;
@@ -38,7 +67,7 @@ impl Semigroup {
     pub fn is_gap(&self, x: usize) -> bool {
         !self.element(x)
     }
-    /// Returns `true` if S is symmetric (genus == count_set, equivalently f+1 = 2·genus).
+    /// Returns `true` if S is symmetric (genus == `count_set`, equivalently f+1 = 2·genus).
     /// # Panics
     /// Panics if the symmetric invariant `f + 1 == 2 * g` is violated (internal consistency check).
     #[must_use]
@@ -47,7 +76,7 @@ impl Semigroup {
         assert!(!sym || self.f + 1 == 2 * self.count_gap);
         sym
     }
-    /// Wilf quotient: count_set / (f+1). Wilf's conjecture states this is ≥ 1/e for all S.
+    /// Wilf quotient: `count_set` / (f+1). Wilf's conjecture states this is ≥ 1/e for all S.
     #[must_use]
     #[allow(clippy::cast_precision_loss)]
     pub fn wilf(&self) -> f64 {
@@ -86,9 +115,10 @@ impl Semigroup {
     /// - `pf` = pseudo-Frobenius numbers: gaps x such that x + s ∈ S for every s ∈ S \ {0}.
     /// - `t`  = |PF(S)| (the type of S).
     /// - `spf` = special PF: elements of PF(S) expressible as gen[i] - gen[j] (i > j) that don't divide f,
-    ///           paired with the generator indices `(i, j)`.
+    ///   paired with the generator indices `(i, j)`.
     /// - `st` = |SPF(S)|.
     #[must_use]
+    #[allow(clippy::type_complexity)]
     pub fn pseudo_and_special(&self) ->
                                      ((Vec<usize>, usize), // PF and its length
                                       (Vec<(usize, (usize, usize))>, usize) // SPF with what diff it is and the length of SPF
@@ -105,7 +135,7 @@ impl Semigroup {
         let normal_pseudofrobenius = (pf, t);
 
         // Special PF: elements of PF(S) that equal gen[i]-gen[j] (i>j) and don't divide f
-        let pf_set: collections::HashSet<(usize)> =
+        let pf_set: collections::HashSet<usize> =
             normal_pseudofrobenius.0.iter().copied().collect();
         let mut special_set:Vec<(usize, (usize, usize))>= Vec::new();
         for i in 1..self.gen_set.len() {
@@ -116,7 +146,7 @@ impl Semigroup {
                 }
             }
         }
-        let mut special: Vec<(usize,(usize,usize))> = special_set.into_iter().collect();
+        let special: Vec<(usize,(usize,usize))> = special_set.into_iter().collect();
         // todo: sort by the first number x in the pair (x(-,-))
         let st = special.len();
         (normal_pseudofrobenius, (special, st))
@@ -141,6 +171,22 @@ impl Semigroup {
                 .collect();
             if newgen.is_empty() { return self.clone(); }
             compute(&newgen)
+        }
+    }
+    /// classify a number
+    #[must_use]
+    pub fn classify(&self,n:usize) -> &str {
+        match n {
+            0 => "zero",
+            n if n==self.m => "m=min(S)",
+            n if n==self.f => "f=f(S) Frobenius",
+            n if n==self.f+1 => "c=c(S)=f+1 Conductor",
+            n if self.gen_set.contains(&n) => "minimal Generator",
+            n if self.apery_set.contains(&n) => "in S, Apery",
+            n if self.element(n) => "in S",
+            n if !self.element(n) && !self.element(self.f - n) => "reflected gap",
+            n if !self.element(n) => "gap",
+            _ => "unknown"
         }
     }
 }

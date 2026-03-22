@@ -10,7 +10,7 @@ pub use shortprops_table::{shortprop, shortprop_tds};
 
 // ── shared helpers ────────────────────────────────────────────────────────────
 
-/// Pre-built HashSets used for O(1) CSS-class lookups across rendering functions.
+/// Pre-built `HashSets` used for O(1) CSS-class lookups across rendering functions.
 pub(super) struct ClassSets {
     pub gens:   HashSet<usize>, // minimal generators
     pub pf_set: HashSet<usize>, // pseudo-Frobenius numbers
@@ -38,6 +38,7 @@ pub(super) fn span(cls: &str, n: usize, data_n: bool) -> String {
 }
 
 /// Cast a `usize` slice to `Vec<u32>` for WASM transfer (values are always small in practice).
+#[allow(clippy::cast_possible_truncation)]
 fn to_u32(v: &[usize]) -> Vec<u32> {
     v.iter().map(|&x| x as u32).collect()
 }
@@ -119,6 +120,42 @@ impl JsSemigroup {
     pub fn toggle(&self, n: usize) -> JsSemigroup {
         JsSemigroup(self.0.toggle(n))
     }
+}
+
+/// Returns the set-containment relationship between two semigroups as a symbol:
+/// "⊂" (s1 ⊊ s2), "=" (equal), "⊃" (s1 ⊋ s2), or "?" (incomparable).
+#[wasm_bindgen]
+#[must_use]
+pub fn js_cmp_semigroups(s1: &JsSemigroup, s2: &JsSemigroup) -> String {
+    match s1.0.partial_cmp(&s2.0) {
+        Some(std::cmp::Ordering::Less)    => "⊂".to_string(),
+        Some(std::cmp::Ordering::Equal)   => "=".to_string(),
+        Some(std::cmp::Ordering::Greater) => "⊃".to_string(),
+        None                              => "?".to_string(),
+    }
+}
+
+/// Returns an HTML table mapping each integer 0..=f+m to its classification.
+/// The first column uses the same colour+toggle span as the structure grid.
+#[wasm_bindgen]
+#[must_use]
+pub fn js_classify_table(s: &JsSemigroup) -> String {
+    use std::fmt::Write as _;
+    let sg = &s.0;
+    let sets = class_sets(sg);
+    let cls_of = |n| combined_table::get_cls(n, false, sg.f, sg.m, &sg.apery_set, &sets.gens, &sets.pf_set, &sets.blobs);
+    let mut out = String::from("<table class=\"classify-table\"><tbody>");
+    for n in 0..=(sg.f + sg.m) {
+        let n_span = span(cls_of(n), n, true);
+        let (label, cls) = match sg.classify(n) {
+            "zero" => ("zero", "cl-zero"),
+            "in S" => ("in S", "cl-in"),
+            _      => ("gap",  "cl-gap"),
+        };
+        let _ = write!(out, "<tr><td class=\"cl-n\">{n_span}</td><td class=\"{cls}\">{label}</td></tr>");
+    }
+    out.push_str("</tbody></table>");
+    out
 }
 
 /// Return the GAP assertion block for a single semigroup, numbered `idx`.

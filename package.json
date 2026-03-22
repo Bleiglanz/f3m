@@ -1,0 +1,25 @@
+{
+  "name": "f3m",
+  "version": "1.0.0",
+  "description": "A browser-based tool for computing properties of numerical semigroups from a list of generators. The core algorithm is written in Rust and compiled to WebAssembly; the UI is plain HTML/JS/CSS with no framework.",
+  "type": "module",
+  "scripts": {
+    "lint": "eslint jsmodules/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Bleiglanz/f3m.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Bleiglanz/f3m/issues"
+  },
+  "homepage": "https://github.com/Bleiglanz/f3m#readme",
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^9.39.4",
+    "globals": "^17.4.0"
+  }
+}

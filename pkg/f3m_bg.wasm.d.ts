@@ -1,10 +1,11 @@
 /* tslint:disable */
 /* eslint-disable */
 export const memory: WebAssembly.Memory;
-export const eval_expr: (a: number, b: number, c: number) => number;
 export const __wbg_jssemigroup_free: (a: number, b: number) => void;
 export const gap_footer: () => [number, number];
 export const gap_header: () => [number, number];
+export const js_classify_table: (a: number) => [number, number];
+export const js_cmp_semigroups: (a: number, b: number) => [number, number];
 export const js_compute: (a: number, b: number) => number;
 export const js_gap_block: (a: number, b: number) => [number, number];
 export const jssemigroup_apery_set: (a: number) => [number, number];
@@ -25,6 +26,7 @@ export const jssemigroup_special_pf_str: (a: number) => [number, number];
 export const jssemigroup_toggle: (a: number, b: number) => number;
 export const jssemigroup_type_t: (a: number) => number;
 export const jssemigroup_wilf: (a: number) => number;
+export const eval_expr: (a: number, b: number, c: number) => number;
 export const shortprop: (a: number) => [number, number];
 export const shortprop_tds: (a: number) => [number, number];
 export const js_graph_edge_pairs: (a: number, b: number) => [number, number];

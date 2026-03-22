@@ -1,3 +1,5 @@
+#![warn(clippy::pedantic)]
+#![allow(dead_code)]
 use crate::math::Semigroup;
 
 #[derive()]

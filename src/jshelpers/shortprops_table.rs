@@ -1,3 +1,4 @@
+#![warn(clippy::pedantic)]
 use wasm_bindgen::prelude::*;
 use crate::math::Semigroup;
 use super::JsSemigroup;
@@ -11,6 +12,7 @@ pub(super) fn spf_grouped(spf: &[(usize, (usize, usize))], gen_set: &[usize]) ->
         if !seen.contains(&diff) { seen.push(diff); }
     }
     seen.iter().map(|&diff| {
+        #[allow(clippy::format_collect)]
         let reps: String = spf.iter()
             .filter(|&&(d, _)| d == diff)
             .map(|&(_, (i, j))| format!(

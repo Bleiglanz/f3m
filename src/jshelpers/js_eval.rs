@@ -1,3 +1,4 @@
+#![warn(clippy::pedantic)]
 use wasm_bindgen::prelude::*;
 use crate::eva;
 use super::JsSemigroup;

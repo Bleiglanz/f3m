@@ -32,7 +32,7 @@ const graphVisEl = document.getElementById('graph-vis');
 // Initialise the vis-network Hasse diagram (directed edges = covering relations).
 const graphNodes = new vis.DataSet([]);
 const graphEdges = new vis.DataSet([]);
-const graphNetwork = new vis.Network(
+const _graphNetwork = new vis.Network(
   graphVisEl,
   { nodes: graphNodes, edges: graphEdges },
   { edges: { arrows: 'to' } }

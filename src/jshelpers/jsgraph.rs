@@ -1,3 +1,4 @@
+#![warn(clippy::pedantic)]
 use std::collections::HashSet;
 use wasm_bindgen::prelude::*;
 use crate::math::Semigroup;

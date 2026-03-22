@@ -45,6 +45,18 @@ export function gap_footer(): string;
 
 export function gap_header(): string;
 
+/**
+ * Returns an HTML table mapping each integer 0..=f+m to its classification.
+ * The first column uses the same colour+toggle span as the structure grid.
+ */
+export function js_classify_table(s: JsSemigroup): string;
+
+/**
+ * Returns the set-containment relationship between two semigroups as a symbol:
+ * "⊂" (s1 ⊊ s2), "=" (equal), "⊃" (s1 ⊋ s2), or "?" (incomparable).
+ */
+export function js_cmp_semigroups(s1: JsSemigroup, s2: JsSemigroup): string;
+
 export function js_compute(input: string): JsSemigroup;
 
 /**
@@ -86,10 +98,11 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
-    readonly eval_expr: (a: number, b: number, c: number) => number;
     readonly __wbg_jssemigroup_free: (a: number, b: number) => void;
     readonly gap_footer: () => [number, number];
     readonly gap_header: () => [number, number];
+    readonly js_classify_table: (a: number) => [number, number];
+    readonly js_cmp_semigroups: (a: number, b: number) => [number, number];
     readonly js_compute: (a: number, b: number) => number;
     readonly js_gap_block: (a: number, b: number) => [number, number];
     readonly jssemigroup_apery_set: (a: number) => [number, number];
@@ -110,6 +123,7 @@ export interface InitOutput {
     readonly jssemigroup_toggle: (a: number, b: number) => number;
     readonly jssemigroup_type_t: (a: number) => number;
     readonly jssemigroup_wilf: (a: number) => number;
+    readonly eval_expr: (a: number, b: number, c: number) => number;
     readonly shortprop: (a: number) => [number, number];
     readonly shortprop_tds: (a: number) => [number, number];
     readonly js_graph_edge_pairs: (a: number, b: number) => [number, number];

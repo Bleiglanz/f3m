@@ -1,6 +1,8 @@
 #![warn(clippy::pedantic)]
 
 pub mod semigroup;
+mod graph;
+
 pub use semigroup::Semigroup;
 
 /// Greatest common divisor of two numbers (Euclidean algorithm).

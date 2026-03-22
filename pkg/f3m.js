@@ -236,6 +236,48 @@ export function gap_header() {
 }
 
 /**
+ * Returns an HTML table mapping each integer 0..=f+m to its classification.
+ * The first column uses the same colour+toggle span as the structure grid.
+ * @param {JsSemigroup} s
+ * @returns {string}
+ */
+export function js_classify_table(s) {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        _assertClass(s, JsSemigroup);
+        const ret = wasm.js_classify_table(s.__wbg_ptr);
+        deferred1_0 = ret[0];
+        deferred1_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+    }
+}
+
+/**
+ * Returns the set-containment relationship between two semigroups as a symbol:
+ * "⊂" (s1 ⊊ s2), "=" (equal), "⊃" (s1 ⊋ s2), or "?" (incomparable).
+ * @param {JsSemigroup} s1
+ * @param {JsSemigroup} s2
+ * @returns {string}
+ */
+export function js_cmp_semigroups(s1, s2) {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        _assertClass(s1, JsSemigroup);
+        _assertClass(s2, JsSemigroup);
+        const ret = wasm.js_cmp_semigroups(s1.__wbg_ptr, s2.__wbg_ptr);
+        deferred1_0 = ret[0];
+        deferred1_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+    }
+}
+
+/**
  * @param {string} input
  * @returns {JsSemigroup}
  */

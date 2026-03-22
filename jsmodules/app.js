@@ -2,6 +2,8 @@ import init, { js_compute, combined_table, shortprop_tds, eval_expr, js_gap_bloc
 import { render3d } from './view3d.js';
 import { rebuildGraph, setupGraphUpto, setupShowGaps } from './graph.js';
 
+const PROP_THEAD_TR = '<tr><th>#</th><th>toggle</th><th>m</th><th>f</th><th>e</th><th>g</th><th>c-g</th><th>t</th><th>Sym</th><th>gen</th><th>PF</th><th>SPF</th><th>expr</th><th>value</th></tr>';
+
 // Display an error message in the error banner.
 function showError(msg) {
   const errEl = document.getElementById('error');
@@ -34,6 +36,9 @@ document.getElementById('gap-copy-btn').addEventListener('click', e => {
 
 await init();
 
+document.querySelector('#tab-graph .history-table thead').innerHTML = PROP_THEAD_TR;
+document.querySelector('#tab-history .history-table thead').innerHTML = PROP_THEAD_TR;
+
 setupGraphUpto(() => currentS);
 setupShowGaps(() => currentS, () => Number(document.getElementById('graph-upto').value));
 
@@ -44,6 +49,7 @@ let evaExpr = 'f+1';      // expression shown in the evaluator input
 let computing = false;    // true while a computation is running (guards re-entry)
 const busyBanner = document.getElementById('busy-banner');
 const historyList = []; // all JsSemigroup objects computed this session
+let gapBlocks = '';    // accumulated js_gap_block output, without header/footer
 
 // Build a history table row for semigroup `s` at index `idx`.
 function historyRow(s, idx, toggle, expr, value) {
@@ -54,6 +60,19 @@ function historyRow(s, idx, toggle, expr, value) {
   return `<tr class="history-row" data-idx="${idx}"><td>${idx}</td><td>${toggleStr}</td>${shortprop_tds(s)}<td class="left">${expr}</td><td>${valStr}</td></tr>`;
 }
 
+// Clicking a span in the graph tab's shortprop row toggles without switching tabs.
+document.getElementById('graph-prop-tbody').addEventListener('click', e => {
+  if (guardBusy()) return;
+  const span = e.target.closest('span.sg-gen, span.sg-frob, span.sg-pf');
+  if (!span) return;
+  const row = e.target.closest('.history-row');
+  if (!row) return;
+  const s = historyList[parseInt(row.dataset.idx)];
+  currentS = s;
+  currentGenSet = Array.from(s.gen_set);
+  doToggle(parseInt(span.textContent));
+});
+
 // Clicking a history row re-renders that semigroup in the main tab.
 document.getElementById('history-tbody').addEventListener('click', e => {
   const cell = e.target.closest('td');
@@ -61,13 +80,11 @@ document.getElementById('history-tbody').addEventListener('click', e => {
   if (!row || !cell) return;
   const s = historyList[parseInt(row.dataset.idx)];
   if (cell.cellIndex === 0) {
-    // # column: load that semigroup and switch to S tab
     gensInput.value = Array.from(s.gen_set).join(', ');
     switchTab('s');
     render(s);
     return;
   }
-  // Colored span: toggle that value relative to the row's semigroup
   const span = e.target.closest('span.sg-gen, span.sg-frob, span.sg-pf');
   if (!span) return;
   currentS = s;
@@ -105,7 +122,8 @@ function render(s, toggle = null) {
 
   // History tab
   document.getElementById('history-tbody').insertAdjacentHTML('beforeend', rowHtml);
-  document.getElementById('history-gap').textContent = gap_header() + historyList.map((s, i) => js_gap_block(s, i + 1)).join('') + gap_footer();
+  gapBlocks += js_gap_block(s, idx + 1);
+  document.getElementById('history-gap').textContent = gap_header() + gapBlocks + gap_footer();
 
   // Graph tab
   document.getElementById('graph-prop-tbody').innerHTML = rowHtml;
@@ -125,7 +143,6 @@ function render(s, toggle = null) {
     return `<td class="value has-tip">${value}<span class="tip">${tipText}</span></td>`;
   }
 
-  // Build the main property table rows: [label, td-html] pairs or raw <tr> strings.
   const rows = [
     ['Wilf&nbsp;sporadic/(f+1)',                   `<td class="value">${s.wilf.toFixed(4)} &gt;= ${(1/s.e).toFixed(4)}</td>`],
     ['Embedding&nbsp;dimension&nbsp;(e)', `<td class="value">${s.e}</td>`],
@@ -142,10 +159,7 @@ function render(s, toggle = null) {
   const resultEl = document.getElementById('result');
   resultEl.innerHTML = `
     <table class="history-table">
-      <thead><tr>
-        <th>#</th><th>toggle</th><th>m</th><th>f</th><th>e</th><th>g</th><th>c-g</th><th>t</th><th>Sym</th>
-        <th>gen</th><th>PF</th><th>SPF</th><th>expr</th><th>value</th>
-      </tr></thead>
+      <thead>${PROP_THEAD_TR}</thead>
       <tbody>${rowHtml}</tbody>
     </table>
     <table>

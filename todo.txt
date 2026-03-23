@@ -10,3 +10,9 @@ if there is no number, take m=2, k=3
 if there is one number, take m=<input>, k=1 and continue with the case of two numbers
 if there are two numbers: let the new input be <m,km+1,km+2,...,km+m-1>, do this in the inputbox and "Compute"
 
+4) Hitting Enter in the input textbox should always trigger the "Compute" action
+
+5) When the user uses the browser BACK or FORWARD button, can we use the history for these (seems delicate javascript, but should be a solved problem for SPA)
+
+6) Sometimes a pseudofrobenius is also a reflected gap. It should be coloured via css as a gradient left lower corner to up right corner from "reflected gap color" -> "pseudofrobenius Color"
+

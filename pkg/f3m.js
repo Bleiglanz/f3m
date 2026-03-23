@@ -237,8 +237,8 @@ export function gap_header() {
 }
 
 /**
- * Returns an HTML table mapping each integer 0..=f+m to its classification.
- * The first column uses the same colour+toggle span as the structure grid.
+ * Returns an HTML table mapping each integer 0..=f+m to its classification,
+ * with a third "Diff" column showing SPF generator-difference expressions.
  * @param {JsSemigroup} s
  * @returns {string}
  */

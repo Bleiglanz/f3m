@@ -38,6 +38,12 @@ pub(super) fn span(cls: &str, n: usize, data_n: bool) -> String {
     }
 }
 
+/// Render `=<span sg-gen>a</span>-<span sg-gen>b</span>` for one SPF generator pair.
+/// If `data_n` is true, both spans get `data-n` attributes for click-to-toggle.
+pub(super) fn spf_pair(gen_i: usize, gen_j: usize, data_n: bool) -> String {
+    format!("={}-{}", span("sg-gen", gen_i, data_n), span("sg-gen", gen_j, data_n))
+}
+
 /// Cast a `usize` slice to `Vec<u32>` for WASM transfer (values are always small in practice).
 #[allow(clippy::cast_possible_truncation)]
 fn to_u32(v: &[usize]) -> Vec<u32> {
@@ -152,10 +158,7 @@ pub fn js_classify_table(s: &JsSemigroup) -> String {
     let mut spf_diff: HashMap<usize, String> = HashMap::new();
     for &(diff, (i, j)) in &spf {
         let entry = spf_diff.entry(diff).or_default();
-        entry.push('=');
-        entry.push_str(&span("sg-gen", sg.gen_set[i], true));
-        entry.push('-');
-        entry.push_str(&span("sg-gen", sg.gen_set[j], true));
+        entry.push_str(&spf_pair(sg.gen_set[i], sg.gen_set[j], true));
     }
 
     let mut out = String::from(
@@ -173,7 +176,7 @@ pub fn js_classify_table(s: &JsSemigroup) -> String {
             "reflected gap"       => "cl-reflect",
             _                     => "cl-gap",
         };
-        let diff_cell = spf_diff.get(&n).map(String::as_str).unwrap_or("");
+        let diff_cell = spf_diff.get(&n).map_or("", String::as_str);
         let _ = write!(
             out,
             "<tr><td class=\"cl-n\">{n_span}</td><td class=\"{cls}\">{label}</td><td class=\"cl-diff\">{diff_cell}</td></tr>",

@@ -15,10 +15,7 @@ pub(super) fn spf_grouped(spf: &[(usize, (usize, usize))], gen_set: &[usize]) ->
         #[allow(clippy::format_collect)]
         let reps: String = spf.iter()
             .filter(|&&(d, _)| d == diff)
-            .map(|&(_, (i, j))| format!(
-                "=<span class=\"sg-gen\">{}</span>-<span class=\"sg-gen\">{}</span>",
-                gen_set[i], gen_set[j]
-            ))
+            .map(|&(_, (i, j))| super::spf_pair(gen_set[i], gen_set[j], false))
             .collect();
         format!("<span class=\"sg-pf\">{diff}</span>{reps}")
     }).collect()

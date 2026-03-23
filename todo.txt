@@ -1,0 +1,12 @@
+todo
+
+1) remove the special frobenius gaps from the html, leave them in the rust code
+
+2) rename the "RandomPrimes" button to "Prime", and let it compute more than 3 random primes between 5...100, use the list 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97
+
+3) add a new Button next to compute called H(m,k)
+click on it should take the input numbers
+if there is no number, take m=2, k=3
+if there is one number, take m=<input>, k=1 and continue with the case of two numbers
+if there are two numbers: let the new input be <m,km+1,km+2,...,km+m-1>, do this in the inputbox and "Compute"
+

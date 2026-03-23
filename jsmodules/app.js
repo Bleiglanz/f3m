@@ -2,7 +2,7 @@ import init, { js_compute, combined_table, tilt_table, shortprop_tds, eval_expr,
 import { render3d } from './view3d.js';
 import { rebuildGraph, setupGraphUpto, setupShowGaps } from './graph.js';
 
-const PROP_THEAD_TR = '<tr><th>#</th><th>toggle</th><th>m</th><th>f</th><th>e</th><th>g</th><th>c-g</th><th>t</th><th>Sym</th><th>gen</th><th>PF</th><th>expr</th><th>value</th><th>⊆?</th></tr>';
+const PROP_THEAD_TR = '<tr><th>#</th><th>toggle</th><th>m</th><th>f</th><th>e</th><th>g</th><th>c-g</th><th>t</th><th>Sym</th><th>gen</th><th>PF</th><th>SPF</th><th>expr</th><th>value</th><th>⊆?</th></tr>';
 
 // Display an error message in the error banner.
 function showError(msg) {
@@ -198,6 +198,26 @@ function render(s, toggle = null) {
   tiltInput.addEventListener('input', e => {
     document.getElementById('tilt-tilt-val').textContent = e.target.value;
     renderTiltGrid();
+  });
+
+  // Sortable classify-table: clicking a <th> sorts by that column.
+  document.querySelectorAll('#classify .classify-table th').forEach((th, col) => {
+    th.addEventListener('click', () => {
+      const table = th.closest('table');
+      const tbody = table.querySelector('tbody');
+      const asc = th.dataset.sort !== 'asc';
+      table.querySelectorAll('th').forEach(h => delete h.dataset.sort);
+      th.dataset.sort = asc ? 'asc' : 'desc';
+      Array.from(tbody.querySelectorAll('tr'))
+        .sort((a, b) => {
+          const av = a.cells[col].textContent.trim();
+          const bv = b.cells[col].textContent.trim();
+          const an = parseFloat(av), bn = parseFloat(bv);
+          const cmp = (!isNaN(an) && !isNaN(bn)) ? an - bn : av.localeCompare(bv);
+          return asc ? cmp : -cmp;
+        })
+        .forEach(r => tbody.appendChild(r));
+    });
   });
 
   requestAnimationFrame(() => {

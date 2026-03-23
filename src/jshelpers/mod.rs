@@ -136,16 +136,34 @@ pub fn js_cmp_semigroups(s1: &JsSemigroup, s2: &JsSemigroup) -> String {
     }
 }
 
-/// Returns an HTML table mapping each integer 0..=f+m to its classification.
-/// The first column uses the same colour+toggle span as the structure grid.
+/// Returns an HTML table mapping each integer 0..=f+m to its classification,
+/// with a third "Diff" column showing SPF generator-difference expressions.
 #[wasm_bindgen]
 #[must_use]
 pub fn js_classify_table(s: &JsSemigroup) -> String {
     use std::fmt::Write as _;
+    use std::collections::HashMap;
     let sg = &s.0;
     let sets = class_sets(sg);
     let cls_of = |n| combined_table::get_cls(n, false, sg.f, sg.m, &sg.apery_set, &sets.gens, &sets.pf_set, &sets.blobs);
-    let mut out = String::from("<table class=\"classify-table\"><tbody>");
+
+    // Build a map from SPF value → diff expression string (e.g. "=11-4=13-6")
+    let (_, (spf, _)) = sg.pseudo_and_special();
+    let mut spf_diff: HashMap<usize, String> = HashMap::new();
+    for &(diff, (i, j)) in &spf {
+        let entry = spf_diff.entry(diff).or_default();
+        let _ = write!(
+            entry,
+            "=<span class=\"sg-gen\">{}</span>-<span class=\"sg-gen\">{}</span>",
+            sg.gen_set[i], sg.gen_set[j]
+        );
+    }
+
+    let mut out = String::from(
+        "<table class=\"classify-table\">\
+         <thead><tr><th>n</th><th>class</th><th>Diff</th></tr></thead>\
+         <tbody>"
+    );
     for n in 0..=(sg.f + sg.m) {
         let n_span = span(cls_of(n), n, true);
         let label = sg.classify(n);
@@ -156,7 +174,11 @@ pub fn js_classify_table(s: &JsSemigroup) -> String {
             "reflected gap"       => "cl-reflect",
             _                     => "cl-gap",
         };
-        let _ = write!(out, "<tr><td class=\"cl-n\">{n_span}</td><td class=\"{cls}\">{label}</td></tr>",);
+        let diff_cell = spf_diff.get(&n).map(String::as_str).unwrap_or("");
+        let _ = write!(
+            out,
+            "<tr><td class=\"cl-n\">{n_span}</td><td class=\"{cls}\">{label}</td><td class=\"cl-diff\">{diff_cell}</td></tr>",
+        );
     }
     out.push_str("</tbody></table>");
     out

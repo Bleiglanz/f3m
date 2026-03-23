@@ -16,3 +16,12 @@ if there are two numbers: let the new input be <m,km+1,km+2,...,km+m-1>, do this
 
 6) [DONE] Sometimes a pseudofrobenius is also a reflected gap. It should be coloured via css as a gradient left lower corner to up right corner from "reflected gap color" -> "pseudofrobenius Color"
 
+7) in the classify-table add a column "Diff"
+
+8) this new column should show - for the special pseudofrob PFS the differences (like now in the shortprops)
+
+9) in shortprops under SPF only show the number of special pseudofrobeniuses
+
+10) make the classifay-table sortable (click on the th sorts the table)
+
+

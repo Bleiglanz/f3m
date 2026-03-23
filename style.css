@@ -453,6 +453,21 @@ span[data-remove-gen]     { cursor: pointer; }
   background: transparent;
 }
 
+.classify-table th {
+  border: 1px solid var(--border);
+  padding: 0.12rem 0.5rem;
+  background: #2a2a2a;
+  color: #fff;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.classify-table th:hover { background: #444; }
+.classify-table th[data-sort="asc"]::after  { content: ' ▲'; font-size: 0.7em; }
+.classify-table th[data-sort="desc"]::after { content: ' ▼'; font-size: 0.7em; }
+
 .classify-table td {
   border: 1px solid var(--border);
   padding: 0.12rem 0.5rem;
@@ -464,6 +479,7 @@ span[data-remove-gen]     { cursor: pointer; }
 .cl-in      { color: var(--green); }
 .cl-gap     { color: var(--red); }
 .cl-reflect { color: var(--orange, #c07000); }
+.cl-diff    { color: var(--muted); font-size: 0.8em; }
 
 /* ─── Misc ──────────────────────────────────────────────────────── */
 .scroll-x { overflow-x: auto; }

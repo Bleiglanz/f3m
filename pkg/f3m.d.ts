@@ -46,8 +46,8 @@ export function gap_footer(): string;
 export function gap_header(): string;
 
 /**
- * Returns an HTML table mapping each integer 0..=f+m to its classification.
- * The first column uses the same colour+toggle span as the structure grid.
+ * Returns an HTML table mapping each integer 0..=f+m to its classification,
+ * with a third "Diff" column showing SPF generator-difference expressions.
  */
 export function js_classify_table(s: JsSemigroup): string;
 
@@ -132,14 +132,14 @@ export interface InitOutput {
     readonly jssemigroup_type_t: (a: number) => number;
     readonly jssemigroup_wilf: (a: number) => number;
     readonly eval_expr: (a: number, b: number, c: number) => number;
-    readonly tilt_table: (a: number, b: number) => [number, number];
-    readonly combined_table: (a: number, b: number, c: number) => [number, number];
-    readonly shortprop: (a: number) => [number, number];
-    readonly shortprop_tds: (a: number) => [number, number];
     readonly js_graph_edge_pairs: (a: number, b: number) => [number, number];
     readonly js_graph_edges_text: (a: number, b: number) => [number, number];
     readonly js_graph_node_ids: (a: number, b: number) => [number, number];
     readonly js_node_class: (a: number, b: number) => [number, number];
+    readonly shortprop: (a: number) => [number, number];
+    readonly shortprop_tds: (a: number) => [number, number];
+    readonly combined_table: (a: number, b: number, c: number) => [number, number];
+    readonly tilt_table: (a: number, b: number) => [number, number];
     readonly __wbindgen_externrefs: WebAssembly.Table;
     readonly __wbindgen_free: (a: number, b: number, c: number) => void;
     readonly __wbindgen_malloc: (a: number, b: number) => number;

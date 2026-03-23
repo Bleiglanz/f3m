@@ -2,7 +2,7 @@ import init, { js_compute, combined_table, tilt_table, shortprop_tds, eval_expr,
 import { render3d } from './view3d.js';
 import { rebuildGraph, setupGraphUpto, setupShowGaps } from './graph.js';
 
-const PROP_THEAD_TR = '<tr><th>#</th><th>toggle</th><th>m</th><th>f</th><th>e</th><th>g</th><th>c-g</th><th>t</th><th>Sym</th><th>gen</th><th>PF</th><th>SPF</th><th>expr</th><th>value</th><th>⊆?</th></tr>';
+const PROP_THEAD_TR = '<tr><th>#</th><th>toggle</th><th>m</th><th>f</th><th>e</th><th>g</th><th>c-g</th><th>t</th><th>Sym</th><th>gen</th><th>PF</th><th>expr</th><th>value</th><th>⊆?</th></tr>';
 
 // Display an error message in the error banner.
 function showError(msg) {
@@ -48,6 +48,7 @@ let currentS = null;      // JsSemigroup WASM object currently displayed
 let currentIdx = -1;      // index of currentS in historyList
 let evaExpr = 'f+1';      // expression shown in the evaluator input
 let computing = false;    // true while a computation is running (guards re-entry)
+let navigating = false;   // true when compute() is triggered by popstate (skip pushState)
 const busyBanner = document.getElementById('busy-banner');
 const historyList = []; // all JsSemigroup objects computed this session
 let gapBlocks = '';    // accumulated js_gap_block output, without header/footer
@@ -64,7 +65,7 @@ function historyRow(s, idx, toggle, expr, value, cmp) {
 // Clicking a span in the shared shortprop row toggles without switching tabs.
 document.getElementById('current-prop-tbody').addEventListener('click', e => {
   if (guardBusy()) return;
-  const span = e.target.closest('span.sg-gen, span.sg-frob, span.sg-pf');
+  const span = e.target.closest('span.sg-gen, span.sg-frob, span.sg-pf, span.sg-pf-blob');
   if (!span) return;
   const row = e.target.closest('.history-row');
   if (!row) return;
@@ -86,7 +87,7 @@ document.getElementById('history-tbody').addEventListener('click', e => {
     render(s);
     return;
   }
-  const span = e.target.closest('span.sg-gen, span.sg-frob, span.sg-pf');
+  const span = e.target.closest('span.sg-gen, span.sg-frob, span.sg-pf, span.sg-pf-blob');
   if (!span) return;
   currentS = s;
   currentIdx = parseInt(row.dataset.idx);
@@ -112,6 +113,9 @@ function guardBusy() {
 const guarded = fn => () => { if (!guardBusy()) fn(); };
 
 const gensInput = document.getElementById('gens');
+
+// Parse a comma-separated generator string into an array of positive integers.
+const parseGens = str => str.split(',').map(t => parseInt(t.trim())).filter(n => !isNaN(n));
 
 // Render a semigroup: update all tabs, history, GAP output, and the main property table.
 function render(s, toggle = null) {
@@ -218,18 +222,30 @@ function compute() {
   if (!raw) { return; }
 
   // Normalise display: sort numerically
-  const sorted = raw.split(',').map(t => parseInt(t.trim())).filter(n => !isNaN(n)).sort((a, b) => a - b);
-  gensInput.value = sorted.join(', ');
+  const sorted = parseGens(raw).sort((a, b) => a - b);
+  const canonical = sorted.join(', ');
+  gensInput.value = canonical;
 
   setBusy(true);
   try {
     render(js_compute(raw));
+    if (!navigating) history.pushState({gens: canonical}, '', '?g=' + encodeURIComponent(canonical));
   } catch (e) {
     showError('Error: ' + (e.message ?? e));
   } finally {
     setBusy(false);
   }
 }
+
+// Browser back/forward: restore the generator set from history state.
+window.addEventListener('popstate', e => {
+  if (e.state?.gens) {
+    gensInput.value = e.state.gens;
+    navigating = true;
+    compute();
+    navigating = false;
+  }
+});
 
 // Toggle a generator or gap: clicking a labelled number in the result panel.
 function doToggle(val) {
@@ -254,7 +270,7 @@ document.getElementById('tilt-grid-container').addEventListener('click', e => {
 // Delegate click-to-toggle from property spans and grid cells.
 document.getElementById('result').addEventListener('click', e => {
   if (guardBusy()) return;
-  const span = e.target.closest('span.sg-frob, span.sg-pf, span.sg-gen, span[data-remove-gen]');
+  const span = e.target.closest('span.sg-frob, span.sg-pf, span.sg-pf-blob, span.sg-gen, span[data-remove-gen]');
   if (span) { doToggle(parseInt(span.textContent)); return; }
   const sgSpan = e.target.closest('.sg-grid span[data-n], .classify-table span[data-n]');
   if (sgSpan) doToggle(parseInt(sgSpan.dataset.n));
@@ -295,22 +311,37 @@ document.getElementById('random-symmetric-btn').addEventListener('click', guarde
   showError('Could not find a symmetric semigroup after 10000 attempts.');
 }));
 
-function isPrime(n) {
-  if (n < 2) return false;
-  for (let i = 2; i * i <= n; i++) if (n % i === 0) return false;
-  return true;
-}
+const PRIMES_LIST = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97];
 
-// "RandomPrimes": consecutive primes starting from a random base ≥ 3.
+// "Prime": pick a random subset of 4–8 primes from the fixed list.
 const guardedCompute = guarded(compute);
 document.getElementById('random-primes-btn').addEventListener('click', guarded(() => {
-  const x = Math.floor(Math.random() * 48) + 3;
-  const primes = Array.from({length: 5 * x + 1}, (_, i) => x + i).filter(isPrime);
-  gensInput.value = primes.join(', ');
+  const count = Math.floor(Math.random() * 5) + 4; // 4..8
+  const shuffled = PRIMES_LIST.slice().sort(() => Math.random() - 0.5);
+  const chosen = shuffled.slice(0, count).sort((a, b) => a - b);
+  gensInput.value = chosen.join(', ');
+  compute();
+}));
+
+// "H(m,k)": generate semigroup <m, km+1, km+2, ..., km+m-1>.
+document.getElementById('hmk-btn').addEventListener('click', guarded(() => {
+  const nums = parseGens(gensInput.value);
+  let m, k;
+  if (nums.length === 0)      { m = 2; k = 3; }
+  else if (nums.length === 1) { m = nums[0]; k = 1; }
+  else                        { m = nums[0]; k = nums[1]; }
+  const gens = [m, ...Array.from({length: m - 1}, (_, i) => k * m + 1 + i)];
+  gensInput.value = gens.join(', ');
   compute();
 }));
 
 document.getElementById('compute-btn').addEventListener('click', guardedCompute);
 gensInput.addEventListener('keydown', e => { if (e.key === 'Enter') guardedCompute(); });
 
+// On load: use URL param ?g=... if present, otherwise compute the default input.
+const urlGens = new URLSearchParams(location.search).get('g');
+if (urlGens) {
+  gensInput.value = urlGens;
+  history.replaceState({gens: urlGens}, '', location.href);
+}
 compute();

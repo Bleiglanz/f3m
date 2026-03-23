@@ -134,12 +134,12 @@ export interface InitOutput {
     readonly eval_expr: (a: number, b: number, c: number) => number;
     readonly tilt_table: (a: number, b: number) => [number, number];
     readonly combined_table: (a: number, b: number, c: number) => [number, number];
+    readonly shortprop: (a: number) => [number, number];
+    readonly shortprop_tds: (a: number) => [number, number];
     readonly js_graph_edge_pairs: (a: number, b: number) => [number, number];
     readonly js_graph_edges_text: (a: number, b: number) => [number, number];
     readonly js_graph_node_ids: (a: number, b: number) => [number, number];
     readonly js_node_class: (a: number, b: number) => [number, number];
-    readonly shortprop: (a: number) => [number, number];
-    readonly shortprop_tds: (a: number) => [number, number];
     readonly __wbindgen_externrefs: WebAssembly.Table;
     readonly __wbindgen_free: (a: number, b: number, c: number) => void;
     readonly __wbindgen_malloc: (a: number, b: number) => number;

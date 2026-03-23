@@ -198,13 +198,16 @@ td.value {
 }
 
 /* ─── Color Badges ──────────────────────────────────────────────── */
-.sg-gen   { background: #7ab3e8; color: #111; }
-.sg-apery { background: #1a5fb4; color: #fff; }
-.sg-frob  { background: #ffd6d3; color: #7a1008; }
-.sg-blob  { background: #d2f0d2; color: #0f4a0f; }
-.sg-pf    { background: #e8d5ff; color: #4a1a80; }
+.sg-gen    { background: #7ab3e8; color: #111; }
+.sg-apery  { background: #1a5fb4; color: #fff; }
+.sg-frob   { background: #ffd6d3; color: #7a1008; }
+.sg-blob   { background: #d2f0d2; color: #0f4a0f; }
+.sg-pf     { background: #e8d5ff; color: #4a1a80; }
+.sg-pf-blob,
+.apery-table td.sg-pf-blob,
+.sg-grid .sg-pf-blob { background: linear-gradient(45deg, #d2f0d2, #e8d5ff); color: #4a1a80; }
 
-span.sg-gen, span.sg-apery, span.sg-frob, span.sg-blob, span.sg-pf {
+span.sg-gen, span.sg-apery, span.sg-frob, span.sg-blob, span.sg-pf, span.sg-pf-blob {
   display: inline-block;
   padding: 0.05rem 0.35rem;
   border-radius: 3px;
@@ -212,7 +215,7 @@ span.sg-gen, span.sg-apery, span.sg-frob, span.sg-blob, span.sg-pf {
   font-size: 0.88em;
 }
 
-span.sg-frob, span.sg-pf { cursor: pointer; }
+span.sg-frob, span.sg-pf, span.sg-pf-blob { cursor: pointer; }
 span[data-remove-gen]     { cursor: pointer; }
 
 /* ─── Apéry Table ───────────────────────────────────────────────── */
@@ -325,11 +328,11 @@ span[data-remove-gen]     { cursor: pointer; }
 .sg-grid span.sg-apery,
 .sg-grid span.sg-large { font-weight: bold; }
 
-.sg-grid .sg-gen   { background: #7ab3e8; color: #111; }
-.sg-grid .sg-apery { background: #1a5fb4; color: #fff; }
-.sg-grid .sg-frob  { background: #ffd6d3; color: #7a1008; }
-.sg-grid .sg-pf    { background: #e8d5ff; color: #4a1a80; }
-.sg-grid .sg-blob  { background: #d2f0d2; color: #0f4a0f; }
+.sg-grid .sg-gen     { background: #7ab3e8; color: #111; }
+.sg-grid .sg-apery   { background: #1a5fb4; color: #fff; }
+.sg-grid .sg-frob    { background: #ffd6d3; color: #7a1008; }
+.sg-grid .sg-pf   { background: #e8d5ff; color: #4a1a80; }
+.sg-grid .sg-blob { background: #d2f0d2; color: #0f4a0f; }
 .sg-grid .sg-in    { background: #222222; color: #ffffff; }
 .sg-grid .sg-out   { background: #f7f8fa; color: #999; }
 .sg-grid .sg-large { background: #e8eaed; color: #aaa; }

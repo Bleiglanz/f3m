@@ -27,12 +27,13 @@ pub(crate) fn get_cls(
     } else {
         let apery_val = apery_set[n % m];
         if n > f + m                { "sg-large" }
-        else if n == f              { "sg-frob"  }
-        else if gens.contains(&n)   { "sg-gen"   }
-        else if n == apery_val      { "sg-apery" }
-        else if n >= apery_val      { "sg-in"    }
-        else if pf_set.contains(&n) { "sg-pf"   }
-        else if blobs.contains(&n)  { "sg-blob" }
+        else if n == f                                      { "sg-frob"    }
+        else if gens.contains(&n)                          { "sg-gen"     }
+        else if n == apery_val                             { "sg-apery"   }
+        else if n >= apery_val                             { "sg-in"      }
+        else if pf_set.contains(&n) && blobs.contains(&n) { "sg-pf-blob" }
+        else if pf_set.contains(&n)                        { "sg-pf"      }
+        else if blobs.contains(&n)                         { "sg-blob"    }
         else                        { "sg-out"  }
     }
 }

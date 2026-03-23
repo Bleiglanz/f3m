@@ -152,11 +152,10 @@ pub fn js_classify_table(s: &JsSemigroup) -> String {
     let mut spf_diff: HashMap<usize, String> = HashMap::new();
     for &(diff, (i, j)) in &spf {
         let entry = spf_diff.entry(diff).or_default();
-        let _ = write!(
-            entry,
-            "=<span class=\"sg-gen\">{}</span>-<span class=\"sg-gen\">{}</span>",
-            sg.gen_set[i], sg.gen_set[j]
-        );
+        entry.push('=');
+        entry.push_str(&span("sg-gen", sg.gen_set[i], true));
+        entry.push('-');
+        entry.push_str(&span("sg-gen", sg.gen_set[j], true));
     }
 
     let mut out = String::from(

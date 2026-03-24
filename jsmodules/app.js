@@ -1,8 +1,13 @@
-import init, { js_compute, combined_table, tilt_table, shortprop_tds, eval_expr, js_gap_block, js_graph_edges_text, gap_header, gap_footer, js_node_class, js_classify_table, js_cmp_semigroups } from '../pkg/f3m.js';
+import init, {
+  js_compute, combined_table, tilt_table, shortprop_tds, eval_expr,
+  js_graph_edges_text, js_node_class, js_classify_table,
+  state_push, state_get, state_current_idx, state_set_current_idx,
+  state_get_eva_expr, state_set_eva_expr, state_gap_output, state_cmp,
+} from '../pkg/f3m.js';
 import { render3d } from './view3d.js';
 import { rebuildGraph, setupGraphUpto, setupShowGaps } from './graph.js';
 
-const PROP_THEAD_TR = '<tr><th>#</th><th>toggle</th><th>m</th><th>f</th><th>e</th><th>g</th><th>c-g</th><th>t</th><th>Sym</th><th>gen</th><th>PF</th><th>SPF</th><th>expr</th><th>value</th><th>⊆?</th></tr>';
+const PROP_THEAD_TR = '<tr><th>#</th><th>toggle</th><th>m</th><th>f</th><th>e</th><th>g</th><th style="white-space:nowrap">c&#8209;g</th><th>t</th><th>Sym</th><th>gen</th><th>PF</th><th>SPF</th><th>expr</th><th>value</th><th>&#8838;?</th></tr>';
 
 // Display an error message in the error banner.
 function showError(msg) {
@@ -42,24 +47,22 @@ document.querySelector('#tab-history .history-table thead').innerHTML = PROP_THE
 setupGraphUpto(() => currentS);
 setupShowGaps(() => currentS, () => Number(document.getElementById('graph-upto').value));
 
-// ── App state ─────────────────────────────────────────────────────────────────
-let currentGenSet = null; // generator array of the most recently rendered semigroup
-let currentS = null;      // JsSemigroup WASM object currently displayed
-let currentIdx = -1;      // index of currentS in historyList
-let evaExpr = 'f+1';      // expression shown in the evaluator input
+// ── UI-only state (Rust owns the data) ────────────────────────────────────────
+let currentGenSet = null; // gen array of the currently displayed semigroup
+let currentS = null;      // JsSemigroup currently displayed (rendering cache)
 let computing = false;    // true while a computation is running (guards re-entry)
 let navigating = false;   // true when compute() is triggered by popstate (skip pushState)
 const busyBanner = document.getElementById('busy-banner');
-const historyList = []; // all JsSemigroup objects computed this session
-let gapBlocks = '';    // accumulated js_gap_block output, without header/footer
 
 // Build a history table row for semigroup `s` at index `idx`.
+const sIdx = n => `S<sub>${n}</sub>`;
+
 function historyRow(s, idx, toggle, expr, value, cmp) {
   const valStr = value ?? '—';
   const toggleStr = toggle
-    ? `${toggle.sign}#${toggle.from}<span class="${toggle.cls}">${toggle.n}</span>`
+    ? `${toggle.sign}${sIdx(toggle.from)}<span class="${toggle.cls}">${toggle.n}</span>`
     : '—';
-  return `<tr class="history-row" data-idx="${idx}"><td>${idx}</td><td>${toggleStr}</td>${shortprop_tds(s)}<td class="left">${expr}</td><td>${valStr}</td><td>${cmp}</td></tr>`;
+  return `<tr class="history-row" data-idx="${idx}"><td>${sIdx(idx)}</td><td>${toggleStr}</td>${shortprop_tds(s)}<td class="left">${expr}</td><td>${valStr}</td><td>${cmp}</td></tr>`;
 }
 
 // Clicking a span in the shared shortprop row toggles without switching tabs.
@@ -69,8 +72,9 @@ document.getElementById('current-prop-tbody').addEventListener('click', e => {
   if (!span) return;
   const row = e.target.closest('.history-row');
   if (!row) return;
-  currentIdx = parseInt(row.dataset.idx);
-  currentS = historyList[currentIdx];
+  const rowIdx = parseInt(row.dataset.idx);
+  state_set_current_idx(rowIdx);
+  currentS = state_get(rowIdx);
   currentGenSet = Array.from(currentS.gen_set);
   doToggle(parseInt(span.textContent));
 });
@@ -80,17 +84,19 @@ document.getElementById('history-tbody').addEventListener('click', e => {
   const cell = e.target.closest('td');
   const row = e.target.closest('.history-row');
   if (!row || !cell) return;
-  const s = historyList[parseInt(row.dataset.idx)];
+  const rowIdx = parseInt(row.dataset.idx);
+  const s = state_get(rowIdx);
   if (cell.cellIndex === 0) {
-    gensInput.value = Array.from(s.gen_set).join(', ');
+    const canonical = Array.from(s.gen_set).join(', ');
+    gensInput.value = canonical;
     switchTab('s');
-    render(s);
+    render(state_get(state_push(canonical)));
     return;
   }
   const span = e.target.closest('span.sg-gen, span.sg-frob, span.sg-pf, span.sg-pf-blob');
   if (!span) return;
   currentS = s;
-  currentIdx = parseInt(row.dataset.idx);
+  state_set_current_idx(rowIdx);
   currentGenSet = Array.from(s.gen_set);
   doToggle(parseInt(span.textContent));
 });
@@ -114,29 +120,27 @@ const guarded = fn => () => { if (!guardBusy()) fn(); };
 
 const gensInput = document.getElementById('gens');
 
-// Parse a comma-separated generator string into an array of positive integers.
-const parseGens = str => str.split(',').map(t => parseInt(t.trim())).filter(n => !isNaN(n));
+// Parse a generator string: split on any non-digit sequence, keep positive integers.
+const parseGens = str => str.split(/\D+/).map(t => parseInt(t)).filter(n => !isNaN(n) && n > 0);
 
-// Render a semigroup: update all tabs, history, GAP output, and the main property table.
+// Render a semigroup: update all UI tabs. Caller must call state_push first.
 function render(s, toggle = null) {
   currentGenSet = Array.from(s.gen_set);
   currentS = s;
-  historyList.push(s);
-  currentIdx = historyList.length - 1;
-  const idx = currentIdx;
-  const exprVal = eval_expr(evaExpr, s);
+  const idx = state_current_idx();
+  const expr = state_get_eva_expr();
+  const exprVal = eval_expr(expr, s);
   const cmpSourceIdx = toggle ? toggle.from : (idx > 0 ? idx - 1 : null);
   const cmp = cmpSourceIdx != null
-    ? `#${idx}&nbsp;${js_cmp_semigroups(s, historyList[cmpSourceIdx])}&nbsp;#${cmpSourceIdx}`
+    ? `${sIdx(idx)}&nbsp;${state_cmp(idx, cmpSourceIdx)}&nbsp;${sIdx(cmpSourceIdx)}`
     : '—';
-  const rowHtml = historyRow(s, idx, toggle, evaExpr, exprVal, cmp);
+  const rowHtml = historyRow(s, idx, toggle, expr, exprVal, cmp);
 
   // History tab
   document.getElementById('history-tbody').insertAdjacentHTML('beforeend', rowHtml);
-  gapBlocks += js_gap_block(s, idx + 1);
-  document.getElementById('history-gap').textContent = gap_header() + gapBlocks + gap_footer();
+  document.getElementById('history-gap').textContent = state_gap_output();
 
-  // Graph tab
+  // Top property row + graph tab
   document.getElementById('current-prop-tbody').innerHTML = rowHtml;
   const graphUpto = document.getElementById('graph-upto');
   graphUpto.min = s.m;
@@ -157,7 +161,7 @@ function render(s, toggle = null) {
   const rows = [
     ['Wilf&nbsp;sporadic/(f+1)',                   `<td class="value">${s.wilf.toFixed(4)} &gt;= ${(1/s.e).toFixed(4)}</td>`],
     ['Embedding&nbsp;dimension&nbsp;(e)', `<td class="value">${s.e}</td>`],
-    [`<input type="text" id="eva-input" value="${evaExpr}" style="width:100%" title="Ops: + - * /  (integer)&#10;e=emb.dim  g=gaps  f=Frobenius  t=type  m=mult&#10;Q=largest gen  A=max Apéry (f+m)&#10;a[i]=Apéry[i]  q[i]=generator[i]">`,
+    [`<input type="text" id="eva-input" value="${expr}" style="width:100%" title="Ops: + - * /  (integer)&#10;e=emb.dim  g=gaps  f=Frobenius  t=type  m=mult&#10;Q=largest gen  A=max Apéry (f+m)&#10;a[i]=Apéry[i]  q[i]=generator[i]">`,
      `<td class="value" id="eva-result">${exprVal ?? '—'}</td>`],
     ['# reflected&nbsp;gaps',  tipCell(blobs.length, blobs.join(', '))],
     ['Largest generator (ae)',      `<td class="value"><span class="sg-gen">${s.max_gen}</span></td>`],
@@ -173,9 +177,8 @@ function render(s, toggle = null) {
 
   // Live expression evaluator
   document.getElementById('eva-input').addEventListener('input', e => {
-    evaExpr = e.target.value;
-    const result = eval_expr(evaExpr, s);
-    document.getElementById('eva-result').textContent = result ?? '—';
+    state_set_eva_expr(e.target.value);
+    document.getElementById('eva-result').textContent = eval_expr(e.target.value, s) ?? '—';
   });
 
   const slider = document.getElementById('sg-offset');
@@ -230,7 +233,7 @@ function render(s, toggle = null) {
   if (document.getElementById('tab-gapgraph').classList.contains('active')) render3d(s);
 }
 
-// Parse the generator input, sort it, and compute + render the semigroup.
+// Parse the generator input, push to Rust state, and render.
 function compute() {
   if (guardBusy()) return;
   const raw = gensInput.value.trim();
@@ -241,14 +244,13 @@ function compute() {
 
   if (!raw) { return; }
 
-  // Normalise display: sort numerically
-  const sorted = parseGens(raw).sort((a, b) => a - b);
-  const canonical = sorted.join(', ');
+  // Normalise: sort numerically, then use canonical form throughout
+  const canonical = parseGens(raw).sort((a, b) => a - b).join(', ');
   gensInput.value = canonical;
 
   setBusy(true);
   try {
-    render(js_compute(raw));
+    render(state_get(state_push(canonical)));
     if (!navigating) history.pushState({gens: canonical}, '', '?g=' + encodeURIComponent(canonical));
   } catch (e) {
     showError('Error: ' + (e.message ?? e));
@@ -274,10 +276,10 @@ function doToggle(val) {
   const newGens = Array.from(newS.gen_set);
   if (newGens.length === 0 || newGens.join(',') === currentGenSet.join(',')) return;
   const sign = currentS.is_element(val) ? '-' : '+';
-  const from = currentIdx;
-  const toggle = { sign, cls: js_node_class(currentS, val), n: val, from };
-  gensInput.value = newGens.join(', ');
-  render(newS, toggle);
+  const toggle = { sign, cls: js_node_class(currentS, val), n: val, from: state_current_idx() };
+  const canonical = newGens.join(', ');
+  gensInput.value = canonical;
+  render(state_get(state_push(canonical)), toggle);
 }
 
 // Tilt tab: click-to-toggle, stays on tilt tab.
@@ -309,11 +311,9 @@ document.getElementById('random-btn').addEventListener('click', guarded(() => {
 // "Random3f": random generators + enough multiples of m to force a large Frobenius number.
 document.getElementById('random3f-btn').addEventListener('click', guarded(() => {
   const nums = randNums();
-  const tempS = js_compute(nums.join(', '));
-  const m = tempS.m;
+  const m = js_compute(nums.join(', ')).m; // peek without storing
   const extra = Array.from({length: 3 * m + 1}, (_, i) => 3 * m + i);
-  const combined = [...nums, ...extra];
-  gensInput.value = combined.join(', ');
+  gensInput.value = [...nums, ...extra].join(', ');
   compute();
 }));
 
@@ -321,8 +321,7 @@ document.getElementById('random3f-btn').addEventListener('click', guarded(() => 
 document.getElementById('random-symmetric-btn').addEventListener('click', guarded(() => {
   for (let attempt = 0; attempt < 10000; attempt++) {
     const nums = randNums();
-    const tempS = js_compute(nums.join(', '));
-    if (tempS.is_symmetric) {
+    if (js_compute(nums.join(', ')).is_symmetric) { // peek without storing
       gensInput.value = nums.join(', ');
       compute();
       return;
@@ -337,8 +336,7 @@ const PRIMES_LIST = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53,
 const guardedCompute = guarded(compute);
 document.getElementById('random-primes-btn').addEventListener('click', guarded(() => {
   const count = Math.floor(Math.random() * 5) + 4; // 4..8
-  const shuffled = PRIMES_LIST.slice().sort(() => Math.random() - 0.5);
-  const chosen = shuffled.slice(0, count).sort((a, b) => a - b);
+  const chosen = PRIMES_LIST.slice().sort(() => Math.random() - 0.5).slice(0, count).sort((a, b) => a - b);
   gensInput.value = chosen.join(', ');
   compute();
 }));
@@ -350,12 +348,27 @@ document.getElementById('hmk-btn').addEventListener('click', guarded(() => {
   if (nums.length === 0)      { m = 2; k = 3; }
   else if (nums.length === 1) { m = nums[0]; k = 1; }
   else                        { m = nums[0]; k = nums[1]; }
-  const gens = [m, ...Array.from({length: m - 1}, (_, i) => k * m + 1 + i)];
-  gensInput.value = gens.join(', ');
+  gensInput.value = [m, ...Array.from({length: m - 1}, (_, i) => k * m + 1 + i)].join(', ');
+  compute();
+}));
+
+// "A(m,d,n)": generate arithmetic sequence m, m+d, m+2d, ..., m+nd.
+document.getElementById('amdn-btn').addEventListener('click', guarded(() => {
+  const nums = parseGens(gensInput.value);
+  let m, d, n;
+  if (nums.length === 0)      { m = 3; d = 1; n = 3; }
+  else if (nums.length === 1) { m = nums[0]; d = 1; n = 3; }
+  else if (nums.length === 2) { m = nums[0]; d = nums[1]; n = 3; }
+  else                        { m = nums[0]; d = nums[1]; n = nums[2]; }
+  gensInput.value = Array.from({length: n + 1}, (_, i) => m + i * d).join(', ');
   compute();
 }));
 
 document.getElementById('compute-btn').addEventListener('click', guardedCompute);
+document.getElementById('reset-btn').addEventListener('click', guarded(() => {
+  gensInput.value = '6, 9, 20';
+  compute();
+}));
 gensInput.addEventListener('keydown', e => { if (e.key === 'Enter') guardedCompute(); });
 
 // On load: use URL param ?g=... if present, otherwise compute the default input.

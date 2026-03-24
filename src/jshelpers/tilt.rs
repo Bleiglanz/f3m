@@ -1,4 +1,5 @@
 #![warn(clippy::pedantic)]
+use std::fmt::Write as _;
 use wasm_bindgen::prelude::*;
 use super::{JsSemigroup, class_sets};
 use super::combined_table::get_cls;
@@ -19,6 +20,7 @@ pub fn tilt_table(s: &JsSemigroup, tilt: i32) -> String {
     let col_start = -range;
     let col_end   =  range + 1;
     let row_start = -2;
+    #[allow(clippy::cast_possible_wrap)]
     let row_end   = (f / m + 3) as isize;  // 2 rows above the Frobenius row
     let num_cols  = (col_end - col_start).cast_unsigned();
 
@@ -44,7 +46,7 @@ pub fn tilt_table(s: &JsSemigroup, tilt: i32) -> String {
     for row in (row_start..row_end).rev() {
         let row_axis = row == 0;
         let th_cls = if row_axis { " class=\"tilt-axis\"" } else { "" };
-        html.push_str(&format!("<tr><th{th_cls}>{row}</th>"));
+        let _ = write!(html, "<tr><th{th_cls}>{row}</th>");
         for col_idx in 0..num_cols {
             let x = col_start + col_idx.cast_signed();
             let axis = row_axis || x == 0;
@@ -52,16 +54,16 @@ pub fn tilt_table(s: &JsSemigroup, tilt: i32) -> String {
             let n_signed: isize = row * m as isize + x - tilt as isize * row;
             if n_signed < 0 {
                 let cls = if axis { "sg-empty tilt-axis" } else { "sg-empty" };
-                html.push_str(&format!("<td class=\"{cls}\"></td>"));
+                let _ = write!(html, "<td class=\"{cls}\"></td>");
                 continue;
             }
             #[allow(clippy::cast_sign_loss)]
             let n = n_signed as usize;
             let inner = super::span(cls_of(n), n, true);
             if axis {
-                html.push_str(&format!("<td class=\"tilt-axis\">{inner}</td>"));
+                let _ = write!(html, "<td class=\"tilt-axis\">{inner}</td>");
             } else {
-                html.push_str(&format!("<td>{inner}</td>"));
+                let _ = write!(html, "<td>{inner}</td>");
             }
         }
         html.push_str("</tr>");

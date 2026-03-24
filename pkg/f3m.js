@@ -416,6 +416,118 @@ export function shortprop_tds(s) {
 }
 
 /**
+ * Containment-comparison HTML symbol between `history[a]` and `history[b]`.
+ * @param {number} a
+ * @param {number} b
+ * @returns {string}
+ */
+export function state_cmp(a, b) {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        const ret = wasm.state_cmp(a, b);
+        deferred1_0 = ret[0];
+        deferred1_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+    }
+}
+
+/**
+ * Current history index, or -1 if history is empty.
+ * @returns {number}
+ */
+export function state_current_idx() {
+    const ret = wasm.state_current_idx();
+    return ret;
+}
+
+/**
+ * Full GAP script: header + all accumulated blocks + footer.
+ * @returns {string}
+ */
+export function state_gap_output() {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        const ret = wasm.state_gap_output();
+        deferred1_0 = ret[0];
+        deferred1_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+    }
+}
+
+/**
+ * Return the semigroup at history index `idx`.
+ * @param {number} idx
+ * @returns {JsSemigroup}
+ */
+export function state_get(idx) {
+    const ret = wasm.state_get(idx);
+    return JsSemigroup.__wrap(ret);
+}
+
+/**
+ * Get the evaluator expression string.
+ * @returns {string}
+ */
+export function state_get_eva_expr() {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        const ret = wasm.state_get_eva_expr();
+        deferred1_0 = ret[0];
+        deferred1_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+    }
+}
+
+/**
+ * Number of semigroups in history.
+ * @returns {number}
+ */
+export function state_len() {
+    const ret = wasm.state_len();
+    return ret >>> 0;
+}
+
+/**
+ * Compute a semigroup from comma-separated input, push it to history,
+ * update `current_idx`, and return the new index.
+ * @param {string} input
+ * @returns {number}
+ */
+export function state_push(input) {
+    const ptr0 = passStringToWasm0(input, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.state_push(ptr0, len0);
+    return ret >>> 0;
+}
+
+/**
+ * Set the current history index (call when the user re-focuses a history entry).
+ * @param {number} idx
+ */
+export function state_set_current_idx(idx) {
+    wasm.state_set_current_idx(idx);
+}
+
+/**
+ * Set the evaluator expression string.
+ * @param {string} expr
+ */
+export function state_set_eva_expr(expr) {
+    const ptr0 = passStringToWasm0(expr, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    wasm.state_set_eva_expr(ptr0, len0);
+}
+
+/**
  * Pure x-y grid for the Tilt tab: no Apéry row, no Kunz matrix.
  * x (columns) and y (rows) both run from -3m to 3m.
  * y increases upward (highest y at top). x increases left to right.

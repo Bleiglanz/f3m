@@ -95,6 +95,52 @@ export function shortprop(s: JsSemigroup): string;
 export function shortprop_tds(s: JsSemigroup): string;
 
 /**
+ * Containment-comparison HTML symbol between `history[a]` and `history[b]`.
+ */
+export function state_cmp(a: number, b: number): string;
+
+/**
+ * Current history index, or -1 if history is empty.
+ */
+export function state_current_idx(): number;
+
+/**
+ * Full GAP script: header + all accumulated blocks + footer.
+ */
+export function state_gap_output(): string;
+
+/**
+ * Return the semigroup at history index `idx`.
+ */
+export function state_get(idx: number): JsSemigroup;
+
+/**
+ * Get the evaluator expression string.
+ */
+export function state_get_eva_expr(): string;
+
+/**
+ * Number of semigroups in history.
+ */
+export function state_len(): number;
+
+/**
+ * Compute a semigroup from comma-separated input, push it to history,
+ * update `current_idx`, and return the new index.
+ */
+export function state_push(input: string): number;
+
+/**
+ * Set the current history index (call when the user re-focuses a history entry).
+ */
+export function state_set_current_idx(idx: number): void;
+
+/**
+ * Set the evaluator expression string.
+ */
+export function state_set_eva_expr(expr: string): void;
+
+/**
  * Pure x-y grid for the Tilt tab: no Apéry row, no Kunz matrix.
  * x (columns) and y (rows) both run from -3m to 3m.
  * y increases upward (highest y at top). x increases left to right.
@@ -132,14 +178,23 @@ export interface InitOutput {
     readonly jssemigroup_type_t: (a: number) => number;
     readonly jssemigroup_wilf: (a: number) => number;
     readonly eval_expr: (a: number, b: number, c: number) => number;
+    readonly shortprop: (a: number) => [number, number];
+    readonly shortprop_tds: (a: number) => [number, number];
+    readonly tilt_table: (a: number, b: number) => [number, number];
+    readonly combined_table: (a: number, b: number, c: number) => [number, number];
     readonly js_graph_edge_pairs: (a: number, b: number) => [number, number];
     readonly js_graph_edges_text: (a: number, b: number) => [number, number];
     readonly js_graph_node_ids: (a: number, b: number) => [number, number];
     readonly js_node_class: (a: number, b: number) => [number, number];
-    readonly combined_table: (a: number, b: number, c: number) => [number, number];
-    readonly shortprop: (a: number) => [number, number];
-    readonly shortprop_tds: (a: number) => [number, number];
-    readonly tilt_table: (a: number, b: number) => [number, number];
+    readonly state_cmp: (a: number, b: number) => [number, number];
+    readonly state_gap_output: () => [number, number];
+    readonly state_get: (a: number) => number;
+    readonly state_get_eva_expr: () => [number, number];
+    readonly state_push: (a: number, b: number) => number;
+    readonly state_set_eva_expr: (a: number, b: number) => void;
+    readonly state_current_idx: () => number;
+    readonly state_set_current_idx: (a: number) => void;
+    readonly state_len: () => number;
     readonly __wbindgen_externrefs: WebAssembly.Table;
     readonly __wbindgen_free: (a: number, b: number, c: number) => void;
     readonly __wbindgen_malloc: (a: number, b: number) => number;

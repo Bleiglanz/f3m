@@ -170,14 +170,15 @@ if (Symbol.dispose) JsSemigroup.prototype[Symbol.dispose] = JsSemigroup.prototyp
  * @param {JsSemigroup} s
  * @param {number} offset
  * @param {number} tilt
+ * @param {boolean} show_kunz
  * @returns {string}
  */
-export function combined_table(s, offset, tilt) {
+export function combined_table(s, offset, tilt, show_kunz) {
     let deferred1_0;
     let deferred1_1;
     try {
         _assertClass(s, JsSemigroup);
-        const ret = wasm.combined_table(s.__wbg_ptr, offset, tilt);
+        const ret = wasm.combined_table(s.__wbg_ptr, offset, tilt, show_kunz);
         deferred1_0 = ret[0];
         deferred1_1 = ret[1];
         return getStringFromWasm0(ret[0], ret[1]);
@@ -488,6 +489,42 @@ export function state_get_eva_expr() {
 }
 
 /**
+ * Get/set show_classification display toggle.
+ * @returns {boolean}
+ */
+export function state_get_show_classification() {
+    const ret = wasm.state_get_show_classification();
+    return ret !== 0;
+}
+
+/**
+ * Get/set show_gaps display toggle.
+ * @returns {boolean}
+ */
+export function state_get_show_gaps() {
+    const ret = wasm.state_get_show_gaps();
+    return ret !== 0;
+}
+
+/**
+ * Get/set show_kunz display toggle.
+ * @returns {boolean}
+ */
+export function state_get_show_kunz() {
+    const ret = wasm.state_get_show_kunz();
+    return ret !== 0;
+}
+
+/**
+ * Get/set show_s display toggle.
+ * @returns {boolean}
+ */
+export function state_get_show_s() {
+    const ret = wasm.state_get_show_s();
+    return ret !== 0;
+}
+
+/**
  * Number of semigroups in history.
  * @returns {number}
  */
@@ -525,6 +562,34 @@ export function state_set_eva_expr(expr) {
     const ptr0 = passStringToWasm0(expr, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
     const len0 = WASM_VECTOR_LEN;
     wasm.state_set_eva_expr(ptr0, len0);
+}
+
+/**
+ * @param {boolean} v
+ */
+export function state_set_show_classification(v) {
+    wasm.state_set_show_classification(v);
+}
+
+/**
+ * @param {boolean} v
+ */
+export function state_set_show_gaps(v) {
+    wasm.state_set_show_gaps(v);
+}
+
+/**
+ * @param {boolean} v
+ */
+export function state_set_show_kunz(v) {
+    wasm.state_set_show_kunz(v);
+}
+
+/**
+ * @param {boolean} v
+ */
+export function state_set_show_s(v) {
+    wasm.state_set_show_s(v);
 }
 
 /**

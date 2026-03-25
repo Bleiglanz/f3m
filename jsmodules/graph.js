@@ -1,4 +1,5 @@
-import { js_node_class, js_graph_node_ids, js_graph_edge_pairs, js_graph_edges_text } from '../pkg/f3m.js';
+import { js_node_class, js_graph_node_ids, js_graph_edge_pairs, js_graph_edges_text,
+         state_get_show_gaps, state_set_show_gaps, state_get_show_s, state_set_show_s } from '../pkg/f3m.js';
 
 // CSS class → vis-network background/border colors.
 // Mirrors the color legend in style.css and CLAUDE.md.
@@ -49,12 +50,8 @@ const GAP_CLASSES = new Set(['sg-out', 'sg-blob', 'sg-pf', 'sg-frob']);
 // CSS classes that belong to elements of S.
 const S_CLASSES   = new Set(['sg-in', 'sg-gen', 'sg-apery', 'sg-large']);
 
-// Visibility toggles controlled by the "Show gaps" / "Show S" checkboxes.
-let showGaps = true;
-let showS    = true;
-
 // Return true if node `n` should be shown given current toggle state.
-function isVisible(s, n) {
+function isVisible(s, n, showGaps, showS) {
   const cls = js_node_class(s, n);
   if (GAP_CLASSES.has(cls)) return showGaps;
   if (S_CLASSES.has(cls))   return showS;
@@ -64,9 +61,11 @@ function isVisible(s, n) {
 // Rebuild the graph for semigroup `s` up to value `upto`, respecting visibility toggles.
 // Edges whose endpoints are hidden are also suppressed.
 export function rebuildGraph(s, upto) {
+  const showGaps = state_get_show_gaps();
+  const showS    = state_get_show_s();
   const nodeIds  = js_graph_node_ids(s, upto);
   const edgePairs = js_graph_edge_pairs(s, upto);
-  const visibleIds = new Set(Array.from(nodeIds).filter(n => isVisible(s, n)));
+  const visibleIds = new Set(Array.from(nodeIds).filter(n => isVisible(s, n, showGaps, showS)));
   graphNodes.clear();
   graphEdges.clear();
   graphNodes.add([...visibleIds].map(n => visNode(s, n)));
@@ -94,9 +93,13 @@ export function setupGraphUpto(getCurrentS) {
 export function setupShowGaps(getCurrentS, getUpto) {
   const rebuild = () => { const s = getCurrentS(); if (s) rebuildGraph(s, getUpto()); };
   document.getElementById('graph-show-gaps').addEventListener('change', function() {
-    showGaps = this.checked; rebuild();
+    state_set_show_gaps(this.checked);
+    document.body.classList.toggle('hide-gaps', !this.checked);
+    rebuild();
   });
   document.getElementById('graph-show-s').addEventListener('change', function() {
-    showS = this.checked; rebuild();
+    state_set_show_s(this.checked);
+    document.body.classList.toggle('hide-s', !this.checked);
+    rebuild();
   });
 }

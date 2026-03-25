@@ -11,6 +11,10 @@ pub struct PageState {
     current_idx: Option<usize>,
     eva_expr:    String,
     gap_blocks:  String,
+    show_gaps:           bool,
+    show_s:              bool,
+    show_kunz:           bool,
+    show_classification: bool,
 }
 
 impl Default for PageState {
@@ -20,6 +24,10 @@ impl Default for PageState {
             current_idx: None,
             eva_expr:    "f+1".to_string(),
             gap_blocks:  String::new(),
+            show_gaps:           true,
+            show_s:              true,
+            show_kunz:           true,
+            show_classification: true,
         }
     }
 }
@@ -105,6 +113,34 @@ pub fn state_set_eva_expr(expr: &str) {
 pub fn state_gap_output() -> String {
     with_state(|state| format!("{}{}{}", GAP_HEADER, state.gap_blocks, GAP_FOOTER))
 }
+
+/// Get/set show_gaps display toggle.
+#[wasm_bindgen]
+#[must_use]
+pub fn state_get_show_gaps() -> bool { with_state(|s| s.show_gaps) }
+#[wasm_bindgen]
+pub fn state_set_show_gaps(v: bool) { with_state_mut(|s| s.show_gaps = v); }
+
+/// Get/set show_s display toggle.
+#[wasm_bindgen]
+#[must_use]
+pub fn state_get_show_s() -> bool { with_state(|s| s.show_s) }
+#[wasm_bindgen]
+pub fn state_set_show_s(v: bool) { with_state_mut(|s| s.show_s = v); }
+
+/// Get/set show_kunz display toggle.
+#[wasm_bindgen]
+#[must_use]
+pub fn state_get_show_kunz() -> bool { with_state(|s| s.show_kunz) }
+#[wasm_bindgen]
+pub fn state_set_show_kunz(v: bool) { with_state_mut(|s| s.show_kunz = v); }
+
+/// Get/set show_classification display toggle.
+#[wasm_bindgen]
+#[must_use]
+pub fn state_get_show_classification() -> bool { with_state(|s| s.show_classification) }
+#[wasm_bindgen]
+pub fn state_set_show_classification(v: bool) { with_state_mut(|s| s.show_classification = v); }
 
 /// Containment-comparison HTML symbol between `history[a]` and `history[b]`.
 #[wasm_bindgen]

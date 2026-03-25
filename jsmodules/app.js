@@ -3,6 +3,8 @@ import init, {
   js_graph_edges_text, js_node_class, js_classify_table,
   state_push, state_get, state_current_idx, state_set_current_idx,
   state_get_eva_expr, state_set_eva_expr, state_gap_output, state_cmp,
+  state_get_show_kunz, state_set_show_kunz,
+  state_get_show_classification, state_set_show_classification,
 } from '../pkg/f3m.js';
 import { render3d } from './view3d.js';
 import { rebuildGraph, setupGraphUpto, setupShowGaps } from './graph.js';
@@ -47,6 +49,32 @@ document.querySelector('#tab-history .history-table thead').innerHTML = PROP_THE
 setupGraphUpto(() => currentS);
 setupShowGaps(() => currentS, () => Number(document.getElementById('graph-upto').value));
 
+document.getElementById('show-classification').addEventListener('change', function() {
+  state_set_show_classification(this.checked);
+  document.body.classList.toggle('hide-classification', !this.checked);
+});
+
+document.getElementById('show-kunz').addEventListener('change', function() {
+  state_set_show_kunz(this.checked);
+  const slider = document.getElementById('sg-offset');
+  if (currentS && slider) {
+    document.getElementById('sg-grid-container').innerHTML = combined_table(currentS, parseInt(slider.value), 0, this.checked);
+  }
+});
+
+// Toggle .open on .has-popup cells when the count is clicked (touch / click support).
+document.addEventListener('click', e => {
+  const popup = e.target.closest('.has-popup');
+  const isSpan = e.target.closest('span[data-n], span.sg-gen, span.sg-frob, span.sg-pf, span.sg-pf-blob');
+  if (popup && !isSpan) {
+    // close all others, toggle this one
+    document.querySelectorAll('.has-popup.open').forEach(el => { if (el !== popup) el.classList.remove('open'); });
+    popup.classList.toggle('open');
+  } else if (!popup) {
+    document.querySelectorAll('.has-popup.open').forEach(el => el.classList.remove('open'));
+  }
+});
+
 // ── UI-only state (Rust owns the data) ────────────────────────────────────────
 let currentGenSet = null; // gen array of the currently displayed semigroup
 let currentS = null;      // JsSemigroup currently displayed (rendering cache)
@@ -60,7 +88,7 @@ const sIdx = n => `S<sub>${n}</sub>`;
 function historyRow(s, idx, toggle, expr, value, cmp) {
   const valStr = value ?? '—';
   const toggleStr = toggle
-    ? `${toggle.sign}${sIdx(toggle.from)}<span class="${toggle.cls}">${toggle.n}</span>`
+    ? `${sIdx(toggle.from)}${toggle.sign}<span class="${toggle.cls}">${toggle.n}</span>`
     : '—';
   return `<tr class="history-row" data-idx="${idx}"><td>${sIdx(idx)}</td><td>${toggleStr}</td>${shortprop_tds(s)}<td class="left">${expr}</td><td>${valStr}</td><td>${cmp}</td></tr>`;
 }
@@ -167,10 +195,10 @@ function render(s, toggle = null) {
     ['Largest generator (ae)',      `<td class="value"><span class="sg-gen">${s.max_gen}</span></td>`],
     ['Structure / <span class="has-tip">c<sub>ij</sub><span class="tip">apery(i) + apery(j) − apery((i+j) mod m) / m</span></span>',
       `<td class="value sg-cell"><div class="sg-slider-row"><label>offset: <span id="sg-offset-val">0</span></label><input type="range" id="sg-offset" min="0" max="${s.m - 1}" value="0"></div><div id="sg-grid-container"></div></td>`],
-    ['Classification (0…f+m)',      `<td class="value"><div id="classify">${js_classify_table(s)}</div></td>`],
+    ['Classification (0…f+m)',      `<td class="value"><div id="classify">${js_classify_table(s)}</div></td>`, 'classify-row'],
   ];
 
-  const tbody = rows.map(([label, td]) => `<tr><td class="label">${label}</td>${td}</tr>`).join('');
+  const tbody = rows.map(([label, td, cls]) => `<tr${cls ? ` class="${cls}"` : ''}><td class="label">${label}</td>${td}</tr>`).join('');
 
   const resultEl = document.getElementById('result');
   resultEl.innerHTML = `<table><tbody>${tbody}</tbody></table>`;
@@ -183,7 +211,7 @@ function render(s, toggle = null) {
 
   const slider = document.getElementById('sg-offset');
   const renderGrid = () => {
-    document.getElementById('sg-grid-container').innerHTML = combined_table(s, parseInt(slider.value), 0);
+    document.getElementById('sg-grid-container').innerHTML = combined_table(s, parseInt(slider.value), 0, state_get_show_kunz());
   };
   renderGrid();
   slider.addEventListener('input', () => {
@@ -222,6 +250,27 @@ function render(s, toggle = null) {
         .forEach(r => tbody.appendChild(r));
     });
   });
+
+  // Help tab: dynamic description of the current semigroup
+  {
+    const sg = n => `<span class="sg-gen">${n}</span>`;
+    const sf = n => `<span class="sg-frob">${n}</span>`;
+    const sp = n => `<span class="sg-pf">${n}</span>`;
+    const gensSpans = Array.from(s.gen_set).map(sg).join(', ');
+    const pf = Array.from(s.pf);
+    const pfStr = pf.length ? pf.map(sp).join(', ') : '—';
+    document.getElementById('help-dynamic').innerHTML =
+      `<p>The semigroup <strong>S&nbsp;=&nbsp;&#x27E8;${gensSpans}&#x27E9;</strong> has:</p>
+      <ul>
+        <li>Multiplicity <strong>m = ${sg(s.m)}</strong></li>
+        <li>Frobenius number <strong>f = ${sf(s.f)}</strong></li>
+        <li>Embedding dimension <strong>e = ${s.e}</strong> (= number of minimal generators)</li>
+        <li>Number of gaps <strong>g = ${s.count_gap}</strong></li>
+        <li>Conductor <strong>c = ${s.f + 1}</strong>, elements below conductor: ${s.count_set}</li>
+        <li>Type <strong>t = ${s.type_t}</strong> — pseudo-Frobenius numbers: ${pfStr}</li>
+        <li>${s.is_symmetric ? 'S is <strong>symmetric</strong> (t&nbsp;=&nbsp;1, g&nbsp;=&nbsp;(f+1)/2)' : 'S is <strong>not symmetric</strong>'}</li>
+      </ul>`;
+  }
 
   requestAnimationFrame(() => {
     const w = document.getElementById('current-prop-tbody').closest('table').offsetWidth;
@@ -308,14 +357,16 @@ document.getElementById('random-btn').addEventListener('click', guarded(() => {
   compute();
 }));
 
-// "Random3f": random generators + enough multiples of m to force a large Frobenius number.
-document.getElementById('random3f-btn').addEventListener('click', guarded(() => {
+// "RndKf": random generators + generators [k*m .. (k+1)*m] to push f near k*m.
+function randWithMultiplier(k) {
   const nums = randNums();
   const m = js_compute(nums.join(', ')).m; // peek without storing
-  const extra = Array.from({length: 3 * m + 1}, (_, i) => 3 * m + i);
+  const extra = Array.from({length: k * m + 1}, (_, i) => k * m + i);
   gensInput.value = [...nums, ...extra].join(', ');
   compute();
-}));
+}
+document.getElementById('random3f-btn').addEventListener('click', guarded(() => randWithMultiplier(3)));
+document.getElementById('random2f-btn').addEventListener('click', guarded(() => randWithMultiplier(2)));
 
 // "Symmetric": retry random samples until a symmetric semigroup is found.
 document.getElementById('random-symmetric-btn').addEventListener('click', guarded(() => {

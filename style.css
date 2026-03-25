@@ -342,29 +342,6 @@ span[data-remove-gen]     { cursor: pointer; }
 .tilt-grid td, .tilt-grid th { width: 2.5em; min-width: 2.5em; max-width: 2.5em; height: 2.5em; padding: 0; text-align: center; }
 .tilt-grid span[data-n] { display: inline; padding: 0.15rem; }
 
-/* ─── Kunz Table ────────────────────────────────────────────────── */
-.kunz-table {
-  margin-top: 1.5rem;
-  border-collapse: collapse;
-  font-size: 0.82rem;
-  font-family: var(--mono);
-}
-
-.kunz-table th, .kunz-table td {
-  border: 1px solid var(--border);
-  padding: 0.2rem 0.5rem;
-  text-align: right;
-  min-width: 2rem;
-}
-
-.kunz-table thead th {
-  background: #2a2a2a;
-  color: #ccc;
-}
-
-.kunz-table td.sg-gen   { background: #7ab3e8; color: #111;        font-weight: bold; }
-.kunz-table td.sg-apery { background: #1a5fb4; color: #fff;        font-weight: bold; }
-.kunz-table td.kunz-zero { background: #e8eaed; color: #888; }
 
 /* ─── Tooltips ──────────────────────────────────────────────────── */
 .has-tip {
@@ -399,6 +376,7 @@ span[data-remove-gen]     { cursor: pointer; }
   border-collapse: collapse;
   font-size: 0.82rem;
   font-family: var(--mono);
+  overflow: visible; /* allow .popup to escape the table boundary */
 }
 
 .history-table th, .history-table td {
@@ -481,10 +459,125 @@ span[data-remove-gen]     { cursor: pointer; }
 .cl-reflect { color: var(--orange, #c07000); }
 .cl-diff    { color: var(--muted); font-size: 0.8em; }
 
+/* ─── Hide-gaps / Hide-S (white on white in the structure grid) ─── */
+body.hide-gaps .sg-grid span.sg-out,
+body.hide-gaps .sg-grid span.sg-frob,
+body.hide-gaps .sg-grid span.sg-pf,
+body.hide-gaps .sg-grid span.sg-pf-blob,
+body.hide-gaps .sg-grid span.sg-blob { opacity: 0; }
+
+body.hide-s .sg-grid span.sg-in,
+body.hide-s .sg-grid span.sg-gen,
+body.hide-s .sg-grid span.sg-apery,
+body.hide-s .sg-grid span.sg-large { opacity: 0; }
+
+body.hide-classification tr.classify-row { display: none; }
+
+/* ─── Checkbox Strip ────────────────────────────────────────────── */
+.checkbox-strip {
+  display: flex;
+  gap: 1.2rem;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  font-size: 0.88rem;
+  color: var(--label);
+}
+
+.checkbox-strip label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* ─── Gen/PF Popup ──────────────────────────────────────────────── */
+.has-popup {
+  position: relative;
+}
+
+.popup-count {
+  cursor: pointer;
+  text-decoration: underline dotted var(--border);
+  font-family: var(--mono);
+}
+
+.has-popup .popup {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 2px);
+  z-index: 20;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 0.4rem 0.8rem;
+  white-space: nowrap;
+  box-shadow: 0 3px 12px rgba(0,0,0,.18);
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  min-width: max-content;
+  /* fast fade: visible instantly on hover, hidden when not */
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.1s, visibility 0.1s;
+}
+
+.has-popup:hover .popup,
+.has-popup.open .popup {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
 /* ─── Misc ──────────────────────────────────────────────────────── */
 .scroll-x { overflow-x: auto; }
 #sg-grid-container { overflow-x: auto; }
 #result { width: 100%; }
+
+/* ─── Help Tab ──────────────────────────────────────────────────── */
+.help-content {
+  max-width: 680px;
+  line-height: 1.7;
+  font-size: 0.92rem;
+  color: var(--text);
+}
+
+.help-content h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 0.6rem;
+  color: var(--text);
+}
+
+.help-content h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 1.2rem 0 0.4rem;
+  color: var(--label);
+}
+
+.help-content p, .help-content ul {
+  margin-bottom: 0.6rem;
+}
+
+.help-content ul, .help-content dl {
+  padding-left: 1.4rem;
+}
+
+.help-content dt {
+  font-weight: 600;
+  margin-top: 0.5rem;
+}
+
+.help-content dd {
+  margin-left: 1rem;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+#help-dynamic ul { list-style: disc; }
+#help-dynamic li { margin-bottom: 0.2rem; }
 
 /* ─── Footer ────────────────────────────────────────────────────── */
 footer {

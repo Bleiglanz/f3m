@@ -43,7 +43,7 @@ pub(crate) fn get_cls(
 /// the wider neighbourhood is visible for a tilted view.
 #[wasm_bindgen]
 #[must_use]
-pub fn combined_table(s: &JsSemigroup, offset: usize, tilt: i32) -> String {
+pub fn combined_table(s: &JsSemigroup, offset: usize, tilt: i32, show_kunz: bool) -> String {
     let sg = &s.0;
     let m = sg.m;
     let f = sg.f;
@@ -113,18 +113,20 @@ pub fn combined_table(s: &JsSemigroup, offset: usize, tilt: i32) -> String {
     }
     html.push_str("</tr>");
 
-    // Kunz matrix rows
-    for &i in &perm {
-        html.push_str("<tr>");
-        for &j in &perm {
-            let v = sg.kunz(i, j);
-            html.push_str("<td class=\"");
-            html.push_str(cls_of(v, true));
-            html.push_str("\">");
-            html.push_str(&v.to_string());
-            html.push_str("</td>");
+    // Kunz matrix rows (optional)
+    if show_kunz {
+        for &i in &perm {
+            html.push_str("<tr>");
+            for &j in &perm {
+                let v = sg.kunz(i, j);
+                html.push_str("<td class=\"");
+                html.push_str(cls_of(v, true));
+                html.push_str("\">");
+                html.push_str(&v.to_string());
+                html.push_str("</td>");
+            }
+            html.push_str("</tr>");
         }
-        html.push_str("</tr>");
     }
 
     html.push_str("</tbody></table>");

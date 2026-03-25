@@ -58,3 +58,26 @@ if there are two numbers: let the new input be <m,km+1,km+2,...,km+m-1>, do this
 
 24) [DONE] add a tooltip to H(m,k): "Semigroup <m, km+1, ..., km+m-1>"
 
+25) [DONE] move show_gaps and show_S as bool state variables to State
+
+26) [DONE] move the two checkboxes between but compute buttons and the tabs
+
+27) [DONE] introduce a new state bool show_kunz, create a new checkbox "Show Kunz" - defaut is true, if false, the Kunz_cij part of the structure table is not computed and not visible (if f is to big, this is too much)
+
+28) [DONE] Intruduce a new Rnd2f Button, computes a random Semigroup with f<2m
+
+29) [DONE] Introduce a new Help Tab at the end, it should show a short explanation of Semigroups, and then "Now you a semigroup with generators "..." f= " ", and so on where the numbers are formatted as usual
+
+30) [DONE] in the first col of short_props called #, the order must be reversed: not +- S_i number, but S_i +- number
+
+31) [DONE] in short_probs/history row, in the gen and pf columns - show the resp. count, and the current list of numbers in a hover <div>, into which the user can click
+
+
+32) [DONE] if show_gaps is false, whenever a number is formatted, it just should be invisible: white on white, if true everything should be like it is now
+
+33) [DONE] if show_S is false, hide the elements of S in the same way
+
+34) [DONE] the hover divs for pf and spf do not work correctly, should be identical in shortprops and history, hover should appear fast (0.1ms) - the div might be bigger
+
+
+

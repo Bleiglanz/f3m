@@ -30,7 +30,7 @@ export class JsSemigroup {
  * When `tilt == 0` columns span `[0, m)`; when `tilt != 0` they span `[-2m, 2m)` so
  * the wider neighbourhood is visible for a tilted view.
  */
-export function combined_table(s: JsSemigroup, offset: number, tilt: number): string;
+export function combined_table(s: JsSemigroup, offset: number, tilt: number, show_kunz: boolean): string;
 
 /**
  * Replace a[expr], q[expr] and scalars in `expr` with semigroup values:
@@ -120,6 +120,26 @@ export function state_get(idx: number): JsSemigroup;
 export function state_get_eva_expr(): string;
 
 /**
+ * Get/set show_classification display toggle.
+ */
+export function state_get_show_classification(): boolean;
+
+/**
+ * Get/set show_gaps display toggle.
+ */
+export function state_get_show_gaps(): boolean;
+
+/**
+ * Get/set show_kunz display toggle.
+ */
+export function state_get_show_kunz(): boolean;
+
+/**
+ * Get/set show_s display toggle.
+ */
+export function state_get_show_s(): boolean;
+
+/**
  * Number of semigroups in history.
  */
 export function state_len(): number;
@@ -139,6 +159,14 @@ export function state_set_current_idx(idx: number): void;
  * Set the evaluator expression string.
  */
 export function state_set_eva_expr(expr: string): void;
+
+export function state_set_show_classification(v: boolean): void;
+
+export function state_set_show_gaps(v: boolean): void;
+
+export function state_set_show_kunz(v: boolean): void;
+
+export function state_set_show_s(v: boolean): void;
 
 /**
  * Pure x-y grid for the Tilt tab: no Apéry row, no Kunz matrix.
@@ -178,10 +206,10 @@ export interface InitOutput {
     readonly jssemigroup_type_t: (a: number) => number;
     readonly jssemigroup_wilf: (a: number) => number;
     readonly eval_expr: (a: number, b: number, c: number) => number;
+    readonly tilt_table: (a: number, b: number) => [number, number];
     readonly shortprop: (a: number) => [number, number];
     readonly shortprop_tds: (a: number) => [number, number];
-    readonly tilt_table: (a: number, b: number) => [number, number];
-    readonly combined_table: (a: number, b: number, c: number) => [number, number];
+    readonly combined_table: (a: number, b: number, c: number, d: number) => [number, number];
     readonly js_graph_edge_pairs: (a: number, b: number) => [number, number];
     readonly js_graph_edges_text: (a: number, b: number) => [number, number];
     readonly js_graph_node_ids: (a: number, b: number) => [number, number];
@@ -190,8 +218,16 @@ export interface InitOutput {
     readonly state_gap_output: () => [number, number];
     readonly state_get: (a: number) => number;
     readonly state_get_eva_expr: () => [number, number];
+    readonly state_get_show_classification: () => number;
+    readonly state_get_show_gaps: () => number;
+    readonly state_get_show_kunz: () => number;
+    readonly state_get_show_s: () => number;
     readonly state_push: (a: number, b: number) => number;
     readonly state_set_eva_expr: (a: number, b: number) => void;
+    readonly state_set_show_classification: (a: number) => void;
+    readonly state_set_show_gaps: (a: number) => void;
+    readonly state_set_show_kunz: (a: number) => void;
+    readonly state_set_show_s: (a: number) => void;
     readonly state_current_idx: () => number;
     readonly state_set_current_idx: (a: number) => void;
     readonly state_len: () => number;

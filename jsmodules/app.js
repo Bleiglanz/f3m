@@ -403,6 +403,17 @@ document.getElementById('hmk-btn').addEventListener('click', guarded(() => {
   compute();
 }));
 
+// "T(m,f)": generate semigroup <m, f+1, f+2, ..., f+m>; default f=2m when only m given.
+document.getElementById('tmf-btn').addEventListener('click', guarded(() => {
+  const nums = parseGens(gensInput.value);
+  let m, f;
+  if (nums.length === 0)      { m = 2; f = 2 * m; }
+  else if (nums.length === 1) { m = nums[0]; f = 2 * m; }
+  else                        { m = nums[0]; f = nums[1]; }
+  gensInput.value = [m, ...Array.from({length: m}, (_, i) => f + 1 + i)].join(', ');
+  compute();
+}));
+
 // "A(m,d,n)": generate arithmetic sequence m, m+d, m+2d, ..., m+nd.
 document.getElementById('amdn-btn').addEventListener('click', guarded(() => {
   const nums = parseGens(gensInput.value);

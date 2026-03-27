@@ -1,7 +1,7 @@
 #![warn(clippy::pedantic)]
 
-use std::collections;
 use super::compute;
+use std::collections;
 
 /// All computed properties of a numerical semigroup S = <`gen_set`>.
 #[derive(Debug, Clone)]
@@ -28,10 +28,7 @@ pub struct Semigroup {
 /// embedding dimension, and multiplicity.
 impl PartialEq for Semigroup {
     fn eq(&self, other: &Self) -> bool {
-        self.gen_set == other.gen_set
-            && self.f == other.f
-            && self.e == other.e
-            && self.m == other.m
+        self.gen_set == other.gen_set && self.f == other.f && self.e == other.e && self.m == other.m
     }
 }
 
@@ -42,12 +39,12 @@ impl Eq for Semigroup {}
 impl PartialOrd for Semigroup {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         let limit = self.f.max(other.f) + self.m.max(other.m);
-        let self_in_other = (1..=limit).all(|i| !self.element(i)  || other.element(i));
+        let self_in_other = (1..=limit).all(|i| !self.element(i) || other.element(i));
         let other_in_self = (1..=limit).all(|i| !other.element(i) || self.element(i));
         match (self_in_other, other_in_self) {
-            (true,  true)  => Some(std::cmp::Ordering::Equal),
-            (true,  false) => Some(std::cmp::Ordering::Less),
-            (false, true)  => Some(std::cmp::Ordering::Greater),
+            (true, true) => Some(std::cmp::Ordering::Equal),
+            (true, false) => Some(std::cmp::Ordering::Less),
+            (false, true) => Some(std::cmp::Ordering::Greater),
             (false, false) => None,
         }
     }
@@ -119,11 +116,12 @@ impl Semigroup {
     /// - `st` = |SPF(S)|.
     #[must_use]
     #[allow(clippy::type_complexity)]
-    pub fn pseudo_and_special(&self) ->
-                                     ((Vec<usize>, usize), // PF and its length
-                                      (Vec<(usize, (usize, usize))>, usize) // SPF with what diff it is and the length of SPF
-                                     )
-    {
+    pub fn pseudo_and_special(
+        &self,
+    ) -> (
+        (Vec<usize>, usize),                   // PF and its length
+        (Vec<(usize, (usize, usize))>, usize), // SPF with what diff it is and the length of SPF
+    ) {
         let mut pf: Vec<usize> = self
             .blob()
             .into_iter()
@@ -137,16 +135,16 @@ impl Semigroup {
         // Special PF: elements of PF(S) that equal gen[i]-gen[j] (i>j) and don't divide f
         let pf_set: collections::HashSet<usize> =
             normal_pseudofrobenius.0.iter().copied().collect();
-        let mut special_set:Vec<(usize, (usize, usize))>= Vec::new();
+        let mut special_set: Vec<(usize, (usize, usize))> = Vec::new();
         for i in 1..self.gen_set.len() {
             for j in 0..i {
                 let diff = self.gen_set[i] - self.gen_set[j];
                 if pf_set.contains(&diff) && !self.f.is_multiple_of(diff) {
-                    special_set.push((diff,(i,j))    );
+                    special_set.push((diff, (i, j)));
                 }
             }
         }
-        let special: Vec<(usize,(usize,usize))> = special_set.into_iter().collect();
+        let special: Vec<(usize, (usize, usize))> = special_set.into_iter().collect();
         // todo: sort by the first number x in the pair (x(-,-))
         let st = special.len();
         (normal_pseudofrobenius, (special, st))
@@ -163,13 +161,12 @@ impl Semigroup {
             compute(&newgen)
         } else {
             let is_newgen = |x: usize| {
-                (x > n && self.element(x))
-                    || (x < n && self.element(x) && !self.element(n - x))
+                (x > n && self.element(x)) || (x < n && self.element(x) && !self.element(n - x))
             };
-            let newgen: Vec<usize> = (1..=(self.f + self.m))
-                .filter(|&x| is_newgen(x))
-                .collect();
-            if newgen.is_empty() { return self.clone(); }
+            let newgen: Vec<usize> = (1..=(self.f + self.m)).filter(|&x| is_newgen(x)).collect();
+            if newgen.is_empty() {
+                return self.clone();
+            }
             compute(&newgen)
         }
     }
@@ -186,7 +183,39 @@ impl Semigroup {
             n if self.element(n) => "S",
             n if n < self.f && !self.element(self.f - n) => "reflected gap",
             n if !self.element(n) => "gap",
-            _ => "unknown"
+            _ => "unknown",
         }
+    }
+    //
+    // compute S/2, i.e the Semigroup of all number x>= 0 such that 2x is in S
+    //
+    #[must_use]
+    pub fn compute_s_over_2(&self) -> Semigroup {
+        let new_generators: Vec<usize> = (1..usize::midpoint(self.f, self.m) + 2 * self.m)
+            .filter(|&x| self.element(2 * x))
+            .collect();
+        compute(&new_generators)
+    }
+
+    #[must_use]
+    pub fn compute_add_all_pf(&self) -> Semigroup {
+        let mut current_gen_set = self.gen_set.clone();
+        let mut current_pf: Vec<usize> = self
+            .pseudo_and_special()
+            .0
+            .0
+            .into_iter()
+            .filter(|&x| x != self.f)
+            .collect();
+        current_gen_set.append(&mut current_pf);
+        compute(&current_gen_set)
+    }
+
+    #[must_use]
+    pub fn compute_add_reflected_gaps(&self) -> Semigroup {
+        let mut current_gen_set = self.gen_set.clone();
+        let mut current_blob = self.blob().clone();
+        current_gen_set.append(&mut current_blob);
+        compute(&current_gen_set)
     }
 }

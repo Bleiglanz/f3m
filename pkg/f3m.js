@@ -21,6 +21,24 @@ export class JsSemigroup {
     /**
      * @returns {Uint32Array}
      */
+    add_all_pf() {
+        const ret = wasm.jssemigroup_add_all_pf(this.__wbg_ptr);
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * @returns {Uint32Array}
+     */
+    add_reflected_gaps() {
+        const ret = wasm.jssemigroup_add_reflected_gaps(this.__wbg_ptr);
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * @returns {Uint32Array}
+     */
     get apery_set() {
         const ret = wasm.jssemigroup_apery_set(this.__wbg_ptr);
         var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
@@ -116,6 +134,15 @@ export class JsSemigroup {
      */
     get pf() {
         const ret = wasm.jssemigroup_pf(this.__wbg_ptr);
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * @returns {Uint32Array}
+     */
+    s_over_2() {
+        const ret = wasm.jssemigroup_s_over_2(this.__wbg_ptr);
         var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
         wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
         return v1;
@@ -489,7 +516,7 @@ export function state_get_eva_expr() {
 }
 
 /**
- * Get/set show_classification display toggle.
+ * Get/set `show_classification` display toggle.
  * @returns {boolean}
  */
 export function state_get_show_classification() {
@@ -498,7 +525,7 @@ export function state_get_show_classification() {
 }
 
 /**
- * Get/set show_gaps display toggle.
+ * Get/set `show_gaps` display toggle.
  * @returns {boolean}
  */
 export function state_get_show_gaps() {
@@ -507,7 +534,7 @@ export function state_get_show_gaps() {
 }
 
 /**
- * Get/set show_kunz display toggle.
+ * Get/set `show_kunz` display toggle.
  * @returns {boolean}
  */
 export function state_get_show_kunz() {
@@ -516,7 +543,7 @@ export function state_get_show_kunz() {
 }
 
 /**
- * Get/set show_s display toggle.
+ * Get/set `show_s` display toggle.
  * @returns {boolean}
  */
 export function state_get_show_s() {

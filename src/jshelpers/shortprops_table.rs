@@ -1,7 +1,7 @@
 #![warn(clippy::pedantic)]
-use wasm_bindgen::prelude::*;
-use crate::math::Semigroup;
 use super::JsSemigroup;
+use crate::math::Semigroup;
+use wasm_bindgen::prelude::*;
 
 /// Groups special-PF entries by diff value and formats each as
 /// `<sg-pf>p</sg-pf>=<sg-gen>a</sg-gen>-<sg-gen>b</sg-gen>=...`
@@ -9,16 +9,21 @@ pub(super) fn spf_grouped(spf: &[(usize, (usize, usize))], gen_set: &[usize]) ->
     // collect unique diffs in order of first appearance
     let mut seen: Vec<usize> = Vec::new();
     for &(diff, _) in spf {
-        if !seen.contains(&diff) { seen.push(diff); }
+        if !seen.contains(&diff) {
+            seen.push(diff);
+        }
     }
-    seen.iter().map(|&diff| {
-        #[allow(clippy::format_collect)]
-        let reps: String = spf.iter()
-            .filter(|&&(d, _)| d == diff)
-            .map(|&(_, (i, j))| super::spf_pair(gen_set[i], gen_set[j], false))
-            .collect();
-        format!("<span class=\"sg-pf\">{diff}</span>{reps}")
-    }).collect()
+    seen.iter()
+        .map(|&diff| {
+            #[allow(clippy::format_collect)]
+            let reps: String = spf
+                .iter()
+                .filter(|&&(d, _)| d == diff)
+                .map(|&(_, (i, j))| super::spf_pair(gen_set[i], gen_set[j], false))
+                .collect();
+            format!("<span class=\"sg-pf\">{diff}</span>{reps}")
+        })
+        .collect()
 }
 
 /// Render a `<td>` with a count that reveals a hover popup listing the items.
@@ -37,12 +42,20 @@ fn popup_cell(left: bool, count: usize, content: &str) -> String {
 pub(super) fn shortprop_cells(sg: &Semigroup) -> String {
     let ((pf, t), (spf_vec, st)) = sg.pseudo_and_special();
     let fmt_spans = |items: &[usize], cls: &str| -> String {
-        items.iter().map(|&x| super::span(cls, x, false)).collect::<Vec<_>>().join(", ")
+        items
+            .iter()
+            .map(|&x| super::span(cls, x, false))
+            .collect::<Vec<_>>()
+            .join(", ")
     };
-    let gen_td  = popup_cell(true,  sg.e, &fmt_spans(&sg.gen_set, "sg-gen"));
-    let pf_td   = popup_cell(true,  t,    &fmt_spans(&pf, "sg-pf"));
-    let spf_td  = if st > 0 {
-        popup_cell(false, st, &spf_grouped(&spf_vec, &sg.gen_set).join("&nbsp; "))
+    let gen_td = popup_cell(true, sg.e, &fmt_spans(&sg.gen_set, "sg-gen"));
+    let pf_td = popup_cell(true, t, &fmt_spans(&pf, "sg-pf"));
+    let spf_td = if st > 0 {
+        popup_cell(
+            false,
+            st,
+            &spf_grouped(&spf_vec, &sg.gen_set).join("&nbsp; "),
+        )
     } else {
         "<td>0</td>".to_string()
     };
@@ -52,8 +65,14 @@ pub(super) fn shortprop_cells(sg: &Semigroup) -> String {
         m = sg.m,
         f = fmt_spans(&[sg.f], "sg-frob"),
         e = sg.e,
-        g = sg.count_gap, cg = sg.count_set, t = t,
-        sym = if sg.is_symmetric() { "\u{2705}" } else { "\u{1F6AB}" },
+        g = sg.count_gap,
+        cg = sg.count_set,
+        t = t,
+        sym = if sg.is_symmetric() {
+            "\u{2705}"
+        } else {
+            "\u{1F6AB}"
+        },
     )
 }
 

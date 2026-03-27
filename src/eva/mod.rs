@@ -48,21 +48,46 @@ fn tokenize(input: &str) -> Result<Vec<Token>, String> {
     let mut chars = input.chars().peekable();
     while let Some(&ch) = chars.peek() {
         match ch {
-            ' ' | '\t' | '\n' => { chars.next(); }
+            ' ' | '\t' | '\n' => {
+                chars.next();
+            }
             '0'..='9' => {
                 let mut s = String::new();
                 while let Some(&d) = chars.peek() {
-                    if d.is_ascii_digit() { s.push(d); chars.next(); } else { break; }
+                    if d.is_ascii_digit() {
+                        s.push(d);
+                        chars.next();
+                    } else {
+                        break;
+                    }
                 }
                 let n: usize = s.parse().map_err(|_| format!("number too large: {s}"))?;
                 tokens.push(Token::Num(n));
             }
-            '+' => { tokens.push(Token::Plus);   chars.next(); }
-            '-' => { tokens.push(Token::Minus);  chars.next(); }
-            '*' => { tokens.push(Token::Star);   chars.next(); }
-            '/' => { tokens.push(Token::Slash);  chars.next(); }
-            '(' => { tokens.push(Token::LParen); chars.next(); }
-            ')' => { tokens.push(Token::RParen); chars.next(); }
+            '+' => {
+                tokens.push(Token::Plus);
+                chars.next();
+            }
+            '-' => {
+                tokens.push(Token::Minus);
+                chars.next();
+            }
+            '*' => {
+                tokens.push(Token::Star);
+                chars.next();
+            }
+            '/' => {
+                tokens.push(Token::Slash);
+                chars.next();
+            }
+            '(' => {
+                tokens.push(Token::LParen);
+                chars.next();
+            }
+            ')' => {
+                tokens.push(Token::RParen);
+                chars.next();
+            }
             other => return Err(format!("unknown character: '{other}'")),
         }
     }
@@ -97,7 +122,8 @@ impl Parser {
                 Some(Token::Minus) => {
                     self.consume();
                     let rhs = self.term()?;
-                    val = val.checked_sub(rhs)
+                    val = val
+                        .checked_sub(rhs)
                         .ok_or_else(|| format!("subtraction underflow: {val} - {rhs}"))?;
                 }
                 _ => break,
@@ -157,25 +183,47 @@ mod tests {
     use super::eval;
 
     #[test]
-    fn test_number()        { assert_eq!(eval("42"),          Ok(42)); }
+    fn test_number() {
+        assert_eq!(eval("42"), Ok(42));
+    }
     #[test]
-    fn test_add()           { assert_eq!(eval("1 + 2"),        Ok(3)); }
+    fn test_add() {
+        assert_eq!(eval("1 + 2"), Ok(3));
+    }
     #[test]
-    fn test_sub()           { assert_eq!(eval("10 - 3"),       Ok(7)); }
+    fn test_sub() {
+        assert_eq!(eval("10 - 3"), Ok(7));
+    }
     #[test]
-    fn test_mul()           { assert_eq!(eval("4 * 5"),        Ok(20)); }
+    fn test_mul() {
+        assert_eq!(eval("4 * 5"), Ok(20));
+    }
     #[test]
-    fn test_div()           { assert_eq!(eval("20 / 4"),       Ok(5)); }
+    fn test_div() {
+        assert_eq!(eval("20 / 4"), Ok(5));
+    }
     #[test]
-    fn test_precedence()    { assert_eq!(eval("3 + 4 * 2"),   Ok(11)); }
+    fn test_precedence() {
+        assert_eq!(eval("3 + 4 * 2"), Ok(11));
+    }
     #[test]
-    fn test_parens()        { assert_eq!(eval("(3 + 4) * 2"), Ok(14)); }
+    fn test_parens() {
+        assert_eq!(eval("(3 + 4) * 2"), Ok(14));
+    }
     #[test]
-    fn test_nested_parens() { assert_eq!(eval("(1+(2*3))"),    Ok(7)); }
+    fn test_nested_parens() {
+        assert_eq!(eval("(1+(2*3))"), Ok(7));
+    }
     #[test]
-    fn test_underflow()     { assert!(eval("3 - 5").is_err()); }
+    fn test_underflow() {
+        assert!(eval("3 - 5").is_err());
+    }
     #[test]
-    fn test_div_by_zero()   { assert!(eval("1 / 0").is_err()); }
+    fn test_div_by_zero() {
+        assert!(eval("1 / 0").is_err());
+    }
     #[test]
-    fn test_unknown_char()  { assert!(eval("1 $ 2").is_err()); }
+    fn test_unknown_char() {
+        assert!(eval("1 $ 2").is_err());
+    }
 }

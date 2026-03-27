@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Numerical Semigroup Calculator</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.44/dist/katex.min.css" integrity="sha384-irXK0JiCGinqGL+slwVklbhJetrjczNwaP2lANewD8lKAs9n61SbQ3As28iSqXUE" crossorigin="anonymous">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.44/dist/katex.min.js" integrity="sha384-m/s9umSlhJbqEdA/j7pQVdGCMx2fHf7GXtgCVhNGOwLuu+1qJQES5AzIE8pn3nKQ" crossorigin="anonymous"></script>
   <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
   <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
   <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -37,6 +39,12 @@
     <tbody id="current-prop-tbody"></tbody>
   </table>
 
+  <div class="extra-btns-row">
+    <button id="half-btn" class="btn-muted" title="Compute S/2 = { x : 2x ∈ S }">compute S/2</button>
+    <button id="add-pf-btn" class="btn-muted" title="Add all pseudo-Frobenius numbers ≠ f as generators" style="display:none">add all PF &#x2260; f</button>
+    <button id="add-blobs-btn" class="btn-muted" title="Add all reflected gaps as generators" style="display:none">add reflected gaps</button>
+  </div>
+
   <div class="checkbox-strip">
     <label><input type="checkbox" id="graph-show-gaps" checked> Show gaps</label>
     <label><input type="checkbox" id="graph-show-s" checked> Show S</label>
@@ -51,6 +59,8 @@
     <button class="tab-btn" data-tab="gapgraph">3dview</button>
     <button class="tab-btn" data-tab="tilt">Tilt</button>
     <button class="tab-btn" data-tab="gap">GAP</button>
+    <button class="tab-btn" data-tab="csv">.csv</button>
+    <button class="tab-btn" data-tab="latex">LaTeX</button>
     <button class="tab-btn" data-tab="help">Help</button>
   </div>
 
@@ -98,8 +108,119 @@
     <div id="tilt-grid-container"></div>
   </div>
 
+  <div id="tab-csv" class="tab-content">
+    <button id="csv-copy-btn">Copy</button>
+    <textarea id="csv-output" readonly wrap="off" style="width:100%;box-sizing:border-box;font-family:monospace;font-size:0.85em;resize:vertical;height:400px"></textarea>
+  </div>
+
+  <div id="tab-latex" class="tab-content">
+    <div class="latex-pane">
+      <div class="latex-col">
+        <div class="latex-col-label">LaTeX source</div>
+        <textarea id="latex-source" spellcheck="false"></textarea>
+      </div>
+      <div class="latex-col">
+        <div class="latex-col-label">Rendered</div>
+        <div id="latex-rendered"><em>Compute a semigroup to see output.</em></div>
+      </div>
+    </div>
+  </div>
+
   <div id="tab-help" class="tab-content">
     <div class="help-content">
+
+      <h2>Basic Usage</h2>
+      <p>Type a list of generators into the input box and press <kbd>Enter</kbd> or the <kbd>&#x23CE;</kbd> button.
+      Generators can be separated by any non-digit character &mdash; commas, spaces, or anything else.
+      <code>6,9,20</code>, <code>6 9 20</code>, and <code>6a9b20</code> all produce the same result.</p>
+
+      <h3>Toolbar Buttons</h3>
+      <table class="help-table">
+        <thead><tr><th>Button</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr><td><kbd>&#x23CE;</kbd></td><td>Compute the generators currently in the input box.</td></tr>
+          <tr><td><kbd>&#x21BB;</kbd></td><td>Reset input to the default example &langle;6,&thinsp;9,&thinsp;20&rangle; and recompute.</td></tr>
+          <tr><td>Rnd</td><td>8 random generators in [10, 100].</td></tr>
+          <tr><td>Rnd3m</td><td>Random generators with Frobenius number near 3m.</td></tr>
+          <tr><td>Rnd2f</td><td>Random generators with Frobenius number near 2m.</td></tr>
+          <tr><td>Sym</td><td>Retry random samples until a symmetric semigroup is found.</td></tr>
+          <tr><td>P</td><td>Random subset of 4&ndash;8 primes &le; 97.</td></tr>
+          <tr><td>H(m,k)</td><td>Generate &langle;m, km+1, &hellip;, km+m&minus;1&rangle; from 1&ndash;2 numbers in the box.</td></tr>
+          <tr><td>T(m,f)</td><td>Generate &langle;m, f+1, &hellip;, f+m&rangle; from 1&ndash;2 numbers in the box.</td></tr>
+          <tr><td>A(m,d,n)</td><td>Arithmetic sequence m, m+d, &hellip;, m+nd from 3 numbers in the box.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Tabs</h3>
+      <table class="help-table">
+        <thead><tr><th>Tab</th><th>Content</th></tr></thead>
+        <tbody>
+          <tr><td>Semigroup</td><td>Structure grid, Kunz matrix, classification table, expression evaluator.</td></tr>
+          <tr><td>History</td><td>All computed semigroups in a sortable summary table. Click a row number to restore that entry.</td></tr>
+          <tr><td>Graph</td><td>Cayley graph up to a configurable bound.</td></tr>
+          <tr><td>3dview</td><td>3D visualisation of the gap structure.</td></tr>
+          <tr><td>Tilt</td><td>Sheared grid view with a tilt slider.</td></tr>
+          <tr><td>GAP</td><td>Auto-generated <a href="https://gap-packages.github.io/numericalsgps/" target="_blank">GAP</a> verification script for all history entries. Copy button included.</td></tr>
+          <tr><td>.csv</td><td>History table in CSV format, ready to copy.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Interactive Editing</h3>
+      <ul>
+        <li>Click any element in the structure grid to toggle it as a generator (add a gap / remove a generator).</li>
+        <li>Click any Frobenius or pseudo-Frobenius span in the properties table to toggle it.</li>
+        <li>Browser Back / Forward restores previous computations via the URL (<code>?g=&hellip;</code>).</li>
+      </ul>
+
+      <h3>Structure Grid Colours</h3>
+      <table class="help-table">
+        <thead><tr><th>Colour</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td><span class="sg-gen help-swatch">n</span></td><td>Minimal generator</td></tr>
+          <tr><td><span class="sg-apery help-swatch">n</span></td><td>Ap&eacute;ry set element (non-generator)</td></tr>
+          <tr><td><span class="sg-frob help-swatch">n</span></td><td>Frobenius number</td></tr>
+          <tr><td><span class="sg-pf help-swatch">n</span></td><td>Pseudo-Frobenius number</td></tr>
+          <tr><td><span class="sg-in help-swatch">n</span></td><td>Element of the semigroup</td></tr>
+          <tr><td><span class="sg-out help-swatch">n</span></td><td>Gap</td></tr>
+          <tr><td><span class="sg-blob help-swatch">n</span></td><td>Reflected gap: both n and f&minus;n are gaps</td></tr>
+          <tr><td><span class="sg-pf-blob help-swatch">n</span></td><td>Pseudo-Frobenius number that is also a reflected gap</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Expression Evaluator</h2>
+      <p>The Semigroup tab contains an input field that evaluates an arithmetic expression over the current semigroup.
+      The expression and its value are recorded in the History and CSV tables for every entry.</p>
+
+      <h3>Scalar Variables</h3>
+      <table class="help-table">
+        <thead><tr><th>Symbol</th><th>Value</th></tr></thead>
+        <tbody>
+          <tr><td><code>m</code></td><td>Multiplicity</td></tr>
+          <tr><td><code>f</code></td><td>Frobenius number</td></tr>
+          <tr><td><code>e</code></td><td>Embedding dimension</td></tr>
+          <tr><td><code>g</code></td><td>Number of gaps (genus)</td></tr>
+          <tr><td><code>t</code></td><td>Type</td></tr>
+          <tr><td><code>Q</code></td><td>Largest minimal generator (a<sub>e</sub>)</td></tr>
+          <tr><td><code>A</code></td><td>Largest Ap&eacute;ry element (= f + m)</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Indexed Access</h3>
+      <table class="help-table">
+        <thead><tr><th>Syntax</th><th>Value</th></tr></thead>
+        <tbody>
+          <tr><td><code>a[i]</code></td><td>i-th Ap&eacute;ry set element; 0 if i &ge; m.</td></tr>
+          <tr><td><code>q[i]</code></td><td>i-th minimal generator; 0 if i &ge; e.</td></tr>
+        </tbody>
+      </table>
+      <p>The index expression is itself fully evaluated, so <code>a[m-1]</code>, <code>q[e-1]</code>, and <code>a[a[0]+1]</code> all work.</p>
+
+      <h3>Operators</h3>
+      <p><code>+</code> <code>-</code> <code>*</code> <code>/</code> over non-negative integers.
+      <code>/</code> is integer (truncating) division.
+      Subtraction below zero returns an error (shown as &mdash;).
+      Standard operator precedence and parentheses are supported.</p>
+
       <h2>What is a Numerical Semigroup?</h2>
       <p>A <strong>numerical semigroup</strong> S is a subset of &#x2115;&#x2080; = {0, 1, 2, &hellip;} that</p>
       <ul>
@@ -108,6 +229,7 @@
         <li>has finite complement in &#x2115;&#x2080; (only finitely many &ldquo;gaps&rdquo;).</li>
       </ul>
       <p>Every numerical semigroup can be written as S = &#x27E8;a&#x2081;, &hellip;, a&#x2091;&#x27E9; for generators a&#x2081; &lt; &hellip; &lt; a&#x2091; with gcd = 1.</p>
+
       <h3>Key Properties</h3>
       <dl>
         <dt><strong>Multiplicity m</strong></dt><dd>The smallest positive element of S.</dd>
@@ -115,11 +237,13 @@
         <dt><strong>Embedding dimension e</strong></dt><dd>The number of minimal generators. Always e &le; m.</dd>
         <dt><strong>Gaps g</strong></dt><dd>The cardinality of &#x2115; &setminus; S. Always g &le; (f+1)/2 &le; f.</dd>
         <dt><strong>Conductor c</strong></dt><dd>c = f+1; every integer &ge; c is in S. c&minus;g = the number of semigroup elements below c.</dd>
-        <dt><strong>Type t</strong></dt><dd>The number of pseudo-Frobenius numbers (gaps x with x+m&isin;S for all generators m).</dd>
+        <dt><strong>Type t</strong></dt><dd>The number of pseudo-Frobenius numbers (gaps x with x+s&isin;S for all s&isin;S\{0}).</dd>
         <dt><strong>Symmetric</strong></dt><dd>S is symmetric iff t = 1, equivalently g = (f+1)/2.</dd>
-        <dt><strong>Ap&eacute;ry set</strong></dt><dd>Ap(S,m) = {min(S &cap; (k+m&#x2124;)) : 0&le;k&lt;m} — one representative per residue class mod m.</dd>
+        <dt><strong>Wilf conjecture</strong></dt><dd>(c&minus;g) / (f+1) &ge; 1/e; open in general, verified here for each entry.</dd>
+        <dt><strong>Ap&eacute;ry set</strong></dt><dd>Ap(S,m) = {min(S &cap; (k+m&#x2124;)) : 0&le;k&lt;m} &mdash; one representative per residue class mod m.</dd>
         <dt><strong>Kunz coefficients c&#x1D62;&#x2C7C;</strong></dt><dd>c&#x1D62;&#x2C7C; = (w&#x1D62; + w&#x2C7C; &minus; w&#x208A;&#x2C7C; &#x230A;mod m&#x230B;) / m where w&#x1D62; = Ap&eacute;ry[i]. All c&#x1D62;&#x2C7C; &ge; 0; highlighted zeros constrain the semigroup.</dd>
       </dl>
+
       <h3>Current Semigroup</h3>
       <div id="help-dynamic"><em>Compute a semigroup to see details here.</em></div>
     </div>

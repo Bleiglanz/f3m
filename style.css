@@ -98,6 +98,19 @@ button {
 button:hover { background: #444; }
 button:active { transform: scale(0.97); }
 
+.btn-muted {
+  background: #9a9a9a;
+  font-size: 0.78rem;
+  padding: 0.3rem 0.7rem;
+}
+.btn-muted:hover { background: #777; }
+
+.extra-btns-row {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+
 /* ─── Status Banners ────────────────────────────────────────────── */
 #busy-banner {
   display: none;
@@ -318,6 +331,8 @@ span[data-remove-gen]     { cursor: pointer; }
 
 .sg-grid span[data-n]:hover { filter: brightness(0.88); }
 
+.sg-grid td.kunz-highlight { background: rgba(255, 150, 30, 0.22) !important; }
+
 .sg-grid td:has(span.sg-in),
 .sg-grid td:has(span.sg-gen),
 .sg-grid td:has(span.sg-apery),
@@ -398,7 +413,8 @@ span[data-remove-gen]     { cursor: pointer; }
 .history-table td.left { text-align: left; }
 
 /* ─── GAP Tab ───────────────────────────────────────────────────── */
-#gap-copy-btn {
+#gap-copy-btn,
+#csv-copy-btn {
   display: block;
   margin: 0.75rem auto;
   padding: 0.3rem 1rem;
@@ -578,6 +594,96 @@ body.hide-classification tr.classify-row { display: none; }
 
 #help-dynamic ul { list-style: disc; }
 #help-dynamic li { margin-bottom: 0.2rem; }
+
+.help-table {
+  border-collapse: collapse;
+  font-size: 0.88rem;
+  margin-bottom: 0.8rem;
+  width: 100%;
+  max-width: 620px;
+}
+
+.help-table th, .help-table td {
+  border: 1px solid var(--border);
+  padding: 0.3rem 0.6rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.help-table th {
+  background: var(--border);
+  font-weight: 600;
+}
+
+.help-table kbd {
+  font-family: monospace;
+  font-size: 0.9em;
+}
+
+.help-swatch {
+  display: inline-block;
+  padding: 0.1em 0.4em;
+  border-radius: 3px;
+  font-size: 0.85em;
+  font-weight: 600;
+}
+
+/* ─── LaTeX tab ─────────────────────────────────────────────────── */
+.latex-pane {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.latex-col {
+  flex: 1 1 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.latex-col-label {
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+#latex-source {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: monospace;
+  font-size: 0.82em;
+  resize: vertical;
+  height: 420px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.5rem;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+}
+
+#latex-rendered {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  min-height: 420px;
+  background: var(--bg);
+  overflow-x: auto;
+}
+
+#latex-rendered .katex-display {
+  margin: 0.6em 0;
+}
+
+.latex-error {
+  color: #c0392b;
+  font-family: monospace;
+  font-size: 0.85em;
+}
 
 /* ─── Footer ────────────────────────────────────────────────────── */
 footer {

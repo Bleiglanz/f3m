@@ -1,7 +1,7 @@
 #![warn(clippy::pedantic)]
 
-pub mod semigroup;
 mod graph;
+pub mod semigroup;
 
 pub use semigroup::Semigroup;
 
@@ -154,8 +154,12 @@ pub fn to_gap(semigroups: &[Semigroup]) -> String {
 #[must_use]
 pub fn gap_block(sg: &Semigroup, idx: usize) -> String {
     use std::fmt::Write as _;
-    let gens  = sg.gen_set  .iter().map(usize::to_string).collect::<Vec<_>>();
-    let apery = sg.apery_set.iter().map(usize::to_string).collect::<Vec<_>>();
+    let gens = sg.gen_set.iter().map(usize::to_string).collect::<Vec<_>>();
+    let apery = sg
+        .apery_set
+        .iter()
+        .map(usize::to_string)
+        .collect::<Vec<_>>();
     let ((pf, t), _) = sg.pseudo_and_special();
     let pf_strs = pf.iter().map(usize::to_string).collect::<Vec<_>>();
     let sym = if sg.is_symmetric() { "true" } else { "false" };
@@ -165,11 +169,32 @@ pub fn gap_block(sg: &Semigroup, idx: usize) -> String {
     writeln!(out, "Assert(0, Multiplicity(ng{idx}) = {});", sg.m).unwrap();
     writeln!(out, "Assert(0, FrobeniusNumber(ng{idx}) = {});", sg.f).unwrap();
     writeln!(out, "Assert(0, EmbeddingDimension(ng{idx}) = {});", sg.e).unwrap();
-    writeln!(out, "Assert(0, GenusOfNumericalSemigroup(ng{idx}) = {});", sg.count_gap).unwrap();
-    writeln!(out, "Assert(0, 1 + FrobeniusNumber(ng{idx}) - GenusOfNumericalSemigroup(ng{idx}) = {});", sg.count_set).unwrap();
+    writeln!(
+        out,
+        "Assert(0, GenusOfNumericalSemigroup(ng{idx}) = {});",
+        sg.count_gap
+    )
+    .unwrap();
+    writeln!(
+        out,
+        "Assert(0, 1 + FrobeniusNumber(ng{idx}) - GenusOfNumericalSemigroup(ng{idx}) = {});",
+        sg.count_set
+    )
+    .unwrap();
     writeln!(out, "Assert(0, IsSymmetric(ng{idx}) = {sym});").unwrap();
-    writeln!(out, "Assert(0, AperyList(ng{idx}, {}) = [{}]);", sg.m, apery.join(",")).unwrap();
-    writeln!(out, "Assert(0, Set(PseudoFrobeniusOfNumericalSemigroup(ng{idx})) = Set([{}]));", pf_strs.join(",")).unwrap();
+    writeln!(
+        out,
+        "Assert(0, AperyList(ng{idx}, {}) = [{}]);",
+        sg.m,
+        apery.join(",")
+    )
+    .unwrap();
+    writeln!(
+        out,
+        "Assert(0, Set(PseudoFrobeniusOfNumericalSemigroup(ng{idx})) = Set([{}]));",
+        pf_strs.join(",")
+    )
+    .unwrap();
     writeln!(out, "Assert(0, TypeOfNumericalSemigroup(ng{idx}) = {t});").unwrap();
     out.push('\n');
     out

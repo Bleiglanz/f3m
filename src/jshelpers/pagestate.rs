@@ -1,32 +1,34 @@
 #![warn(clippy::pedantic)]
+use super::JsSemigroup;
+use crate::math::{GAP_FOOTER, GAP_HEADER, Semigroup, compute, gap_block};
 use std::cell::RefCell;
 use wasm_bindgen::prelude::*;
-use crate::math::{Semigroup, compute, gap_block, GAP_HEADER, GAP_FOOTER};
-use super::JsSemigroup;
 
 /// Global page state owned by the WASM module.
 /// Uses `thread_local! + RefCell` — safe and zero-cost on the single WASM thread.
+// ALLOW: the four bools are independent UI display toggles with no meaningful enum grouping.
+#[allow(clippy::struct_excessive_bools)]
 pub struct PageState {
-    history:     Vec<Semigroup>,
+    history: Vec<Semigroup>,
     current_idx: Option<usize>,
-    eva_expr:    String,
-    gap_blocks:  String,
-    show_gaps:           bool,
-    show_s:              bool,
-    show_kunz:           bool,
+    eva_expr: String,
+    gap_blocks: String,
+    show_gaps: bool,
+    show_s: bool,
+    show_kunz: bool,
     show_classification: bool,
 }
 
 impl Default for PageState {
     fn default() -> Self {
         Self {
-            history:     Vec::new(),
+            history: Vec::new(),
             current_idx: None,
-            eva_expr:    "f+1".to_string(),
-            gap_blocks:  String::new(),
-            show_gaps:           true,
-            show_s:              true,
-            show_kunz:           true,
+            eva_expr: "f+1".to_string(),
+            gap_blocks: String::new(),
+            show_gaps: true,
+            show_s: true,
+            show_kunz: true,
             show_classification: true,
         }
     }
@@ -36,11 +38,17 @@ thread_local! {
     static STATE: RefCell<PageState> = RefCell::new(PageState::default());
 }
 
-fn with_state<F, R>(f: F) -> R where F: FnOnce(&PageState) -> R {
+fn with_state<F, R>(f: F) -> R
+where
+    F: FnOnce(&PageState) -> R,
+{
     STATE.with(|s| f(&s.borrow()))
 }
 
-fn with_state_mut<F, R>(f: F) -> R where F: FnOnce(&mut PageState) -> R {
+fn with_state_mut<F, R>(f: F) -> R
+where
+    F: FnOnce(&mut PageState) -> R,
+{
     STATE.with(|s| f(&mut s.borrow_mut()))
 }
 
@@ -114,42 +122,60 @@ pub fn state_gap_output() -> String {
     with_state(|state| format!("{}{}{}", GAP_HEADER, state.gap_blocks, GAP_FOOTER))
 }
 
-/// Get/set show_gaps display toggle.
+/// Get/set `show_gaps` display toggle.
 #[wasm_bindgen]
 #[must_use]
-pub fn state_get_show_gaps() -> bool { with_state(|s| s.show_gaps) }
+pub fn state_get_show_gaps() -> bool {
+    with_state(|s| s.show_gaps)
+}
 #[wasm_bindgen]
-pub fn state_set_show_gaps(v: bool) { with_state_mut(|s| s.show_gaps = v); }
+pub fn state_set_show_gaps(v: bool) {
+    with_state_mut(|s| s.show_gaps = v);
+}
 
-/// Get/set show_s display toggle.
+/// Get/set `show_s` display toggle.
 #[wasm_bindgen]
 #[must_use]
-pub fn state_get_show_s() -> bool { with_state(|s| s.show_s) }
+pub fn state_get_show_s() -> bool {
+    with_state(|s| s.show_s)
+}
 #[wasm_bindgen]
-pub fn state_set_show_s(v: bool) { with_state_mut(|s| s.show_s = v); }
+pub fn state_set_show_s(v: bool) {
+    with_state_mut(|s| s.show_s = v);
+}
 
-/// Get/set show_kunz display toggle.
+/// Get/set `show_kunz` display toggle.
 #[wasm_bindgen]
 #[must_use]
-pub fn state_get_show_kunz() -> bool { with_state(|s| s.show_kunz) }
+pub fn state_get_show_kunz() -> bool {
+    with_state(|s| s.show_kunz)
+}
 #[wasm_bindgen]
-pub fn state_set_show_kunz(v: bool) { with_state_mut(|s| s.show_kunz = v); }
+pub fn state_set_show_kunz(v: bool) {
+    with_state_mut(|s| s.show_kunz = v);
+}
 
-/// Get/set show_classification display toggle.
+/// Get/set `show_classification` display toggle.
 #[wasm_bindgen]
 #[must_use]
-pub fn state_get_show_classification() -> bool { with_state(|s| s.show_classification) }
+pub fn state_get_show_classification() -> bool {
+    with_state(|s| s.show_classification)
+}
 #[wasm_bindgen]
-pub fn state_set_show_classification(v: bool) { with_state_mut(|s| s.show_classification = v); }
+pub fn state_set_show_classification(v: bool) {
+    with_state_mut(|s| s.show_classification = v);
+}
 
 /// Containment-comparison HTML symbol between `history[a]` and `history[b]`.
 #[wasm_bindgen]
 #[must_use]
 pub fn state_cmp(a: usize, b: usize) -> String {
-    with_state(|state| match state.history[a].partial_cmp(&state.history[b]) {
-        Some(std::cmp::Ordering::Less)    => "⊂".to_string(),
-        Some(std::cmp::Ordering::Equal)   => "=".to_string(),
-        Some(std::cmp::Ordering::Greater) => "⊃".to_string(),
-        None                              => "?".to_string(),
-    })
+    with_state(
+        |state| match state.history[a].partial_cmp(&state.history[b]) {
+            Some(std::cmp::Ordering::Less) => "⊂".to_string(),
+            Some(std::cmp::Ordering::Equal) => "=".to_string(),
+            Some(std::cmp::Ordering::Greater) => "⊃".to_string(),
+            None => "?".to_string(),
+        },
+    )
 }

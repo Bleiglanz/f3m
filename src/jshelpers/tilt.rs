@@ -1,13 +1,15 @@
 #![warn(clippy::pedantic)]
+use super::combined_table::get_cls;
+use super::{JsSemigroup, class_sets};
 use std::fmt::Write as _;
 use wasm_bindgen::prelude::*;
-use super::{JsSemigroup, class_sets};
-use super::combined_table::get_cls;
 
 /// Pure x-y grid for the Tilt tab: no Apéry row, no Kunz matrix.
 /// x (columns) and y (rows) both run from -3m to 3m.
 /// y increases upward (highest y at top). x increases left to right.
 /// Element at (x, y) = y*m + x - tilt*y.
+// ALLOW: m, f, x, n are standard mathematical notation for this domain.
+#[allow(clippy::many_single_char_names)]
 #[wasm_bindgen]
 #[must_use]
 pub fn tilt_table(s: &JsSemigroup, tilt: i32) -> String {
@@ -18,22 +20,35 @@ pub fn tilt_table(s: &JsSemigroup, tilt: i32) -> String {
     #[allow(clippy::cast_possible_wrap)]
     let range = 3 * m as isize;
     let col_start = -range;
-    let col_end   =  range + 1;
+    let col_end = range + 1;
     let row_start = -2;
     #[allow(clippy::cast_possible_wrap)]
-    let row_end   = (f / m + 3) as isize;  // 2 rows above the Frobenius row
-    let num_cols  = (col_end - col_start).cast_unsigned();
+    let row_end = (f / m + 3) as isize; // 2 rows above the Frobenius row
+    let num_cols = (col_end - col_start).cast_unsigned();
 
     let sets = class_sets(sg);
-    let cls_of = |n| get_cls(n, false, f, m, &sg.apery_set, &sets.gens, &sets.pf_set, &sets.blobs);
+    let cls_of = |n| {
+        get_cls(
+            n,
+            false,
+            f,
+            m,
+            &sg.apery_set,
+            &sets.gens,
+            &sets.pf_set,
+            &sets.blobs,
+        )
+    };
 
     // Header: "y\x" corner + x-coordinate labels; x=0 column highlighted
     #[allow(clippy::format_collect)]
     let header_cells: String = (col_start..col_end)
-        .map(|x| if x == 0 {
-            format!("<th class=\"tilt-axis\">{x}</th>")
-        } else {
-            format!("<th>{x}</th>")
+        .map(|x| {
+            if x == 0 {
+                format!("<th class=\"tilt-axis\">{x}</th>")
+            } else {
+                format!("<th>{x}</th>")
+            }
         })
         .collect();
     let header_row = format!("<tr><th>y\\x</th>{header_cells}</tr>");
@@ -53,7 +68,11 @@ pub fn tilt_table(s: &JsSemigroup, tilt: i32) -> String {
             #[allow(clippy::cast_possible_wrap)]
             let n_signed: isize = row * m as isize + x - tilt as isize * row;
             if n_signed < 0 {
-                let cls = if axis { "sg-empty tilt-axis" } else { "sg-empty" };
+                let cls = if axis {
+                    "sg-empty tilt-axis"
+                } else {
+                    "sg-empty"
+                };
                 let _ = write!(html, "<td class=\"{cls}\"></td>");
                 continue;
             }

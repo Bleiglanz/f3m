@@ -5,8 +5,11 @@ export class JsSemigroup {
     private constructor();
     free(): void;
     [Symbol.dispose](): void;
+    add_all_pf(): Uint32Array;
+    add_reflected_gaps(): Uint32Array;
     is_element(x: number): boolean;
     kunz(i: number, j: number): number;
+    s_over_2(): Uint32Array;
     toggle(n: number): JsSemigroup;
     readonly apery_set: Uint32Array;
     readonly blob: Uint32Array;
@@ -120,22 +123,22 @@ export function state_get(idx: number): JsSemigroup;
 export function state_get_eva_expr(): string;
 
 /**
- * Get/set show_classification display toggle.
+ * Get/set `show_classification` display toggle.
  */
 export function state_get_show_classification(): boolean;
 
 /**
- * Get/set show_gaps display toggle.
+ * Get/set `show_gaps` display toggle.
  */
 export function state_get_show_gaps(): boolean;
 
 /**
- * Get/set show_kunz display toggle.
+ * Get/set `show_kunz` display toggle.
  */
 export function state_get_show_kunz(): boolean;
 
 /**
- * Get/set show_s display toggle.
+ * Get/set `show_s` display toggle.
  */
 export function state_get_show_s(): boolean;
 
@@ -187,6 +190,8 @@ export interface InitOutput {
     readonly js_cmp_semigroups: (a: number, b: number) => [number, number];
     readonly js_compute: (a: number, b: number) => number;
     readonly js_gap_block: (a: number, b: number) => [number, number];
+    readonly jssemigroup_add_all_pf: (a: number) => [number, number];
+    readonly jssemigroup_add_reflected_gaps: (a: number) => [number, number];
     readonly jssemigroup_apery_set: (a: number) => [number, number];
     readonly jssemigroup_blob: (a: number) => [number, number];
     readonly jssemigroup_count_gap: (a: number) => number;
@@ -200,16 +205,13 @@ export interface InitOutput {
     readonly jssemigroup_m: (a: number) => number;
     readonly jssemigroup_max_gen: (a: number) => number;
     readonly jssemigroup_pf: (a: number) => [number, number];
+    readonly jssemigroup_s_over_2: (a: number) => [number, number];
     readonly jssemigroup_special_pf: (a: number) => [number, number];
     readonly jssemigroup_special_pf_str: (a: number) => [number, number];
     readonly jssemigroup_toggle: (a: number, b: number) => number;
     readonly jssemigroup_type_t: (a: number) => number;
     readonly jssemigroup_wilf: (a: number) => number;
     readonly eval_expr: (a: number, b: number, c: number) => number;
-    readonly tilt_table: (a: number, b: number) => [number, number];
-    readonly shortprop: (a: number) => [number, number];
-    readonly shortprop_tds: (a: number) => [number, number];
-    readonly combined_table: (a: number, b: number, c: number, d: number) => [number, number];
     readonly js_graph_edge_pairs: (a: number, b: number) => [number, number];
     readonly js_graph_edges_text: (a: number, b: number) => [number, number];
     readonly js_graph_node_ids: (a: number, b: number) => [number, number];
@@ -231,6 +233,10 @@ export interface InitOutput {
     readonly state_current_idx: () => number;
     readonly state_set_current_idx: (a: number) => void;
     readonly state_len: () => number;
+    readonly tilt_table: (a: number, b: number) => [number, number];
+    readonly shortprop: (a: number) => [number, number];
+    readonly shortprop_tds: (a: number) => [number, number];
+    readonly combined_table: (a: number, b: number, c: number, d: number) => [number, number];
     readonly __wbindgen_externrefs: WebAssembly.Table;
     readonly __wbindgen_free: (a: number, b: number, c: number) => void;
     readonly __wbindgen_malloc: (a: number, b: number) => number;

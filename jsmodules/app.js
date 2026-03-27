@@ -4,7 +4,7 @@ import init, {
   state_push, state_get, state_current_idx, state_set_current_idx,
   state_get_eva_expr, state_set_eva_expr, state_gap_output, state_cmp,
   state_get_show_kunz, state_set_show_kunz,
-  state_get_show_classification, state_set_show_classification,
+  state_set_show_classification,
 } from '../pkg/f3m.js';
 import { render3d } from './view3d.js';
 import { rebuildGraph, setupGraphUpto, setupShowGaps } from './graph.js';
@@ -24,11 +24,94 @@ window.addEventListener('error', e => {
 });
 window.addEventListener('unhandledrejection', e => showError('Unhandled promise rejection: ' + e.reason));
 
+// Build a LaTeX source string describing semigroup s.
+function buildLatexSource(s) {
+  const gens = Array.from(s.gen_set);
+  const pf   = Array.from(s.pf);
+  const g    = s.count_gap;
+  const c    = s.f + 1;
+  const cg   = s.count_set; // elements below conductor = c − g
+
+  const genStr = gens.join(',\\,');
+  const pfStr  = pf.length ? `\\{${pf.join(',\\,')}\\}` : '\\emptyset';
+
+  const blocks = [];
+
+  blocks.push(
+    `S = \\langle ${genStr} \\rangle \\subseteq \\mathbb{N}_0, \\quad \\gcd(${gens.join(', ')}) = 1`
+  );
+
+  blocks.push([
+    `\\begin{array}{rll}`,
+    `m(S) &= ${s.m}      & \\text{multiplicity (smallest positive element)} \\\\`,
+    `f(S) &= ${s.f}      & \\text{Frobenius number (largest gap)} \\\\`,
+    `e(S) &= ${s.e}      & \\text{embedding dimension} \\\\`,
+    `g(S) &= ${g}        & \\text{genus } |\\mathbb{N}_0 \\setminus S| \\\\`,
+    `c(S) &= ${c}        & \\text{conductor } (f+1) \\\\`,
+    `t(S) &= ${s.type_t} & \\text{type } |\\mathrm{PF}(S)|`,
+    `\\end{array}`,
+  ].join('\n'));
+
+  blocks.push(`\\mathrm{PF}(S) = ${pfStr}`);
+
+  if (s.is_symmetric) {
+    blocks.push(`S \\text{ is \\textbf{symmetric}:}\\quad t = 1,\\quad g = \\tfrac{f+1}{2} = ${g}`);
+  } else {
+    blocks.push(`S \\text{ is \\textbf{not symmetric}:}\\quad t(S) = ${s.type_t} \\neq 1`);
+  }
+
+  blocks.push(
+    `\\text{Wilf:}\\quad \\frac{c-g}{c} = \\frac{${cg}}{${c}} \\approx ${(cg / c).toFixed(4)} \\;\\geq\\; \\frac{1}{e} = \\frac{1}{${s.e}} \\approx ${(1 / s.e).toFixed(4)}`
+  );
+
+  return blocks.join('\n\n');
+}
+
+// Render a multi-block LaTeX source into #latex-rendered using KaTeX.
+// Blocks are separated by blank lines; each is rendered in display mode.
+function renderLatexPreview(source) {
+  const el = document.getElementById('latex-rendered');
+  if (!window.katex) { el.textContent = 'KaTeX not loaded'; return; }
+  el.innerHTML = source.split(/\n\n+/)
+    .filter(b => b.trim())
+    .map(b => {
+      try {
+        return window.katex.renderToString(b.trim(), { displayMode: true, throwOnError: false });
+      } catch (e) {
+        return `<span class="latex-error">${e.message}</span>`;
+      }
+    })
+    .join('');
+}
+
+function buildLatex(s) {
+  const src = buildLatexSource(s);
+  document.getElementById('latex-source').value = src;
+  renderLatexPreview(src);
+}
+
+// Convert a cell's text content to a CSV-safe field (quote if needed).
+function csvField(text) {
+  const s = text.replace(/\s+/g, ' ').trim();
+  return (s.includes(',') || s.includes('"') || s.includes('\n')) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+// Build CSV text from the current history table and write it to #csv-output.
+function buildCsv() {
+  const CSV_HEADER = '#,toggle,m,f,e,g,c-g,t,Sym,gen,PF,SPF,expr,value,⊆?';
+  const rows = Array.from(document.querySelectorAll('#history-tbody tr'));
+  const lines = rows.map(tr =>
+    Array.from(tr.cells).map(td => csvField(td.textContent)).join(',')
+  );
+  document.getElementById('csv-output').value = [CSV_HEADER, ...lines].join('\n');
+}
+
 // Activate the named tab and deactivate all others; trigger 3D render if needed.
 function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
   document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.id === 'tab-' + name));
   if (name === 'gapgraph' && currentS) render3d(currentS);
+  if (name === 'csv') buildCsv();
 }
 document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
 
@@ -41,13 +124,54 @@ document.getElementById('gap-copy-btn').addEventListener('click', e => {
   });
 });
 
+// Copy the CSV output to the clipboard.
+document.getElementById('csv-copy-btn').addEventListener('click', e => {
+  const btn = e.currentTarget;
+  navigator.clipboard.writeText(document.getElementById('csv-output').value).then(() => {
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 1500);
+  });
+});
+
 await init();
+
+document.getElementById('latex-source').addEventListener('input', e => renderLatexPreview(e.target.value));
 
 document.getElementById('current-prop-thead').innerHTML = PROP_THEAD_TR;
 document.querySelector('#tab-history .history-table thead').innerHTML = PROP_THEAD_TR;
 
 setupGraphUpto(() => currentS);
 setupShowGaps(() => currentS, () => Number(document.getElementById('graph-upto').value));
+
+// Apéry-cell hover: highlight the matching row, column, and anti-diagonal in the Kunz matrix.
+// Delegates from #result (always in DOM) because #sg-grid-container is created by render().
+{
+  const resultEl = document.getElementById('result');
+  let activeK = null;
+
+  const clearHighlight = () => {
+    if (activeK === null) return;
+    activeK = null;
+    document.getElementById('sg-grid-container')
+      ?.querySelectorAll('.kunz-highlight')
+      .forEach(el => el.classList.remove('kunz-highlight'));
+  };
+
+  resultEl.addEventListener('mouseover', e => {
+    const td = e.target.closest('.apery-row td[data-k]');
+    const k = td ? td.dataset.k : null;
+    if (k === activeK) return;
+    clearHighlight();
+    if (k && state_get_show_kunz()) {
+      activeK = k;
+      document.getElementById('sg-grid-container')
+        ?.querySelectorAll(`td[data-kunz-i="${k}"], td[data-kunz-j="${k}"], td[data-kunz-sum="${k}"]`)
+        .forEach(el => el.classList.add('kunz-highlight'));
+    }
+  });
+
+  resultEl.addEventListener('mouseleave', clearHighlight);
+}
 
 document.getElementById('show-classification').addEventListener('change', function() {
   state_set_show_classification(this.checked);
@@ -280,6 +404,12 @@ function render(s, toggle = null) {
 
   // Trigger 3D view re-render if that tab is currently active
   if (document.getElementById('tab-gapgraph').classList.contains('active')) render3d(s);
+
+  document.getElementById('add-pf-btn').style.display = (s.type_t > 0 && s.f > 0) ? '' : 'none';
+  document.getElementById('add-blobs-btn').style.display = blobs.length > 0 ? '' : 'none';
+
+  buildCsv();
+  buildLatex(s);
 }
 
 // Parse the generator input, push to Rust state, and render.
@@ -423,6 +553,30 @@ document.getElementById('amdn-btn').addEventListener('click', guarded(() => {
   else if (nums.length === 2) { m = nums[0]; d = nums[1]; n = 3; }
   else                        { m = nums[0]; d = nums[1]; n = nums[2]; }
   gensInput.value = Array.from({length: n + 1}, (_, i) => m + i * d).join(', ');
+  compute();
+}));
+
+document.getElementById('half-btn').addEventListener('click', guarded(() => {
+  if (!currentS) return;
+  const gens = Array.from(currentS.s_over_2());
+  if (gens.length === 0) return;
+  gensInput.value = gens.join(', ');
+  compute();
+}));
+
+document.getElementById('add-pf-btn').addEventListener('click', guarded(() => {
+  if (!currentS) return;
+  const gens = Array.from(currentS.add_all_pf());
+  if (gens.length === 0) return;
+  gensInput.value = gens.join(', ');
+  compute();
+}));
+
+document.getElementById('add-blobs-btn').addEventListener('click', guarded(() => {
+  if (!currentS) return;
+  const gens = Array.from(currentS.add_reflected_gaps());
+  if (gens.length === 0) return;
+  gensInput.value = gens.join(', ');
   compute();
 }));
 

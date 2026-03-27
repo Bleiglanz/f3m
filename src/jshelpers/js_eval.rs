@@ -1,15 +1,20 @@
 #![warn(clippy::pedantic)]
-use wasm_bindgen::prelude::*;
-use crate::eva;
 use super::JsSemigroup;
+use crate::eva;
+use wasm_bindgen::prelude::*;
 
 /// Evaluation context: all semigroup scalars and slices needed to substitute
 /// named variables (`e`, `f`, `g`, `m`, `t`, `Q`, `A`) and indexed references
 /// (`a[i]` for Apéry, `q[i]` for generators) before passing to `eva::eval`.
 pub(super) struct EvalCtx<'a> {
-    apery:   &'a [usize], // Apéry set (a[i])
+    apery: &'a [usize],   // Apéry set (a[i])
     gen_set: &'a [usize], // minimal generators (q[i])
-    e: usize, g: usize, f: usize, t: usize, m: usize, max_gen: usize,
+    e: usize,
+    g: usize,
+    f: usize,
+    t: usize,
+    m: usize,
+    max_gen: usize,
 }
 
 impl EvalCtx<'_> {
@@ -19,7 +24,12 @@ impl EvalCtx<'_> {
         for (i, &byte) in bytes.iter().enumerate().skip(open) {
             match byte {
                 b'[' => depth += 1,
-                b']' => { depth -= 1; if depth == 0 { return Some(i); } }
+                b']' => {
+                    depth -= 1;
+                    if depth == 0 {
+                        return Some(i);
+                    }
+                }
                 _ => {}
             }
         }
@@ -32,14 +42,17 @@ impl EvalCtx<'_> {
         let bytes = expr.as_bytes();
         let mut i = 0;
         while i < bytes.len() {
-            if bytes[i] == prefix && i + 1 < bytes.len() && bytes[i + 1] == b'['
-                && let Some(close) = Self::matching_bracket(bytes, i + 1) {
-                    let inner = &expr[i + 2..close];
-                    let idx = self.eval(inner).unwrap_or(usize::MAX);
-                    result.push_str(&set.get(idx).copied().unwrap_or(0).to_string());
-                    i = close + 1;
-                    continue;
-                }
+            if bytes[i] == prefix
+                && i + 1 < bytes.len()
+                && bytes[i + 1] == b'['
+                && let Some(close) = Self::matching_bracket(bytes, i + 1)
+            {
+                let inner = &expr[i + 2..close];
+                let idx = self.eval(inner).unwrap_or(usize::MAX);
+                result.push_str(&set.get(idx).copied().unwrap_or(0).to_string());
+                i = close + 1;
+                continue;
+            }
             result.push(bytes[i] as char);
             i += 1;
         }
@@ -50,7 +63,7 @@ impl EvalCtx<'_> {
     /// Returns `None` if substitution or evaluation fails (unknown variable, overflow, etc.).
     pub(super) fn eval(&self, expr: &str) -> Option<usize> {
         let s = self.substitute_indexed(expr, b'a', self.apery);
-        let s = self.substitute_indexed(&s,   b'q', self.gen_set);
+        let s = self.substitute_indexed(&s, b'q', self.gen_set);
         let s = s
             .replace('e', &self.e.to_string())
             .replace('g', &self.g.to_string())
@@ -74,8 +87,14 @@ pub fn eval_expr(expr: &str, s: &JsSemigroup) -> Option<usize> {
     let sg = &s.0;
     let ((_, t), _) = sg.pseudo_and_special();
     let ctx = EvalCtx {
-        apery: &sg.apery_set, gen_set: &sg.gen_set,
-        e: sg.e, g: sg.count_gap, f: sg.f, t, m: sg.m, max_gen: sg.max_gen,
+        apery: &sg.apery_set,
+        gen_set: &sg.gen_set,
+        e: sg.e,
+        g: sg.count_gap,
+        f: sg.f,
+        t,
+        m: sg.m,
+        max_gen: sg.max_gen,
     };
     ctx.eval(expr)
 }

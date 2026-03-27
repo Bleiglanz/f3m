@@ -1,7 +1,8 @@
 #![warn(clippy::pedantic)]
-use std::collections::HashSet;
-use wasm_bindgen::prelude::*;
 use super::{JsSemigroup, class_sets};
+use std::collections::HashSet;
+use std::fmt::Write as _;
+use wasm_bindgen::prelude::*;
 
 /// Wrap a classified number in a `<td>` containing a clickable `<span data-n>`.
 fn cell_td(cls: &str, n: usize) -> String {
@@ -26,15 +27,25 @@ pub(crate) fn get_cls(
         if n == 0 { "kunz-zero" } else { "" }
     } else {
         let apery_val = apery_set[n % m];
-        if n > f + m                { "sg-large" }
-        else if n == f                                      { "sg-frob"    }
-        else if gens.contains(&n)                          { "sg-gen"     }
-        else if n == apery_val                             { "sg-apery"   }
-        else if n >= apery_val                             { "sg-in"      }
-        else if pf_set.contains(&n) && blobs.contains(&n) { "sg-pf-blob" }
-        else if pf_set.contains(&n)                        { "sg-pf"      }
-        else if blobs.contains(&n)                         { "sg-blob"    }
-        else                        { "sg-out"  }
+        if n > f + m {
+            "sg-large"
+        } else if n == f {
+            "sg-frob"
+        } else if gens.contains(&n) {
+            "sg-gen"
+        } else if n == apery_val {
+            "sg-apery"
+        } else if n >= apery_val {
+            "sg-in"
+        } else if pf_set.contains(&n) && blobs.contains(&n) {
+            "sg-pf-blob"
+        } else if pf_set.contains(&n) {
+            "sg-pf"
+        } else if blobs.contains(&n) {
+            "sg-blob"
+        } else {
+            "sg-out"
+        }
     }
 }
 
@@ -68,12 +79,21 @@ pub fn combined_table(s: &JsSemigroup, offset: usize, tilt: i32, show_kunz: bool
     let perm: Vec<usize> = (0..m).map(|k| (offset + k) % m).collect();
 
     let sets = class_sets(sg);
-    let cls_of = |n, kunz| get_cls(n, kunz, f, m, &sg.apery_set, &sets.gens, &sets.pf_set, &sets.blobs);
+    let cls_of = |n, kunz| {
+        get_cls(
+            n,
+            kunz,
+            f,
+            m,
+            &sg.apery_set,
+            &sets.gens,
+            &sets.pf_set,
+            &sets.blobs,
+        )
+    };
 
     #[allow(clippy::format_collect)]
-    let header_cells: String = residues.iter()
-        .map(|&r| format!("<th>{r}</th>"))
-        .collect();
+    let header_cells: String = residues.iter().map(|&r| format!("<th>{r}</th>")).collect();
     let header_row = format!("<tr>{header_cells}</tr>");
 
     let mut html = String::from("<table class=\"sg-grid\"><thead>");
@@ -82,7 +102,11 @@ pub fn combined_table(s: &JsSemigroup, offset: usize, tilt: i32, show_kunz: bool
 
     // Structure rows (bottom-to-top)
     #[allow(clippy::cast_possible_wrap)]
-    let start_row: isize = if (m <= 15 && tilt != 0) || offset != 0 { -1 } else { 0 };
+    let start_row: isize = if (m <= 15 && tilt != 0) || offset != 0 {
+        -1
+    } else {
+        0
+    };
     #[allow(clippy::cast_possible_wrap)]
     let end_row: isize = (f / m + 3) as isize;
     for row in (start_row..end_row).rev() {
@@ -105,25 +129,31 @@ pub fn combined_table(s: &JsSemigroup, offset: usize, tilt: i32, show_kunz: bool
     // Repeated header row as separator
     html.push_str(&header_row);
 
-    // Apéry row
-    html.push_str("<tr>");
+    // Apéry row — data-k carries the residue index for Kunz hover highlighting
+    html.push_str("<tr class=\"apery-row\">");
     for &i in &perm {
         let v = sg.apery_set[i];
-        html.push_str(&cell_td(cls_of(v, false), v));
+        let _ = write!(
+            html,
+            "<td data-k=\"{i}\">{}</td>",
+            super::span(cls_of(v, false), v, true)
+        );
     }
     html.push_str("</tr>");
 
     // Kunz matrix rows (optional)
+    // data-kunz-i / data-kunz-j / data-kunz-sum enable hover highlighting from the Apéry row
     if show_kunz {
         for &i in &perm {
-            html.push_str("<tr>");
+            let _ = write!(html, "<tr data-kunz-i=\"{i}\">");
             for &j in &perm {
                 let v = sg.kunz(i, j);
-                html.push_str("<td class=\"");
-                html.push_str(cls_of(v, true));
-                html.push_str("\">");
-                html.push_str(&v.to_string());
-                html.push_str("</td>");
+                let sum = (i + j) % m;
+                let _ = write!(
+                    html,
+                    "<td class=\"{}\" data-kunz-i=\"{i}\" data-kunz-j=\"{j}\" data-kunz-sum=\"{sum}\">{v}</td>",
+                    cls_of(v, true)
+                );
             }
             html.push_str("</tr>");
         }
@@ -132,4 +162,3 @@ pub fn combined_table(s: &JsSemigroup, offset: usize, tilt: i32, show_kunz: bool
     html.push_str("</tbody></table>");
     html
 }
-

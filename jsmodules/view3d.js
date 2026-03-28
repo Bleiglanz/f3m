@@ -1,5 +1,5 @@
 // Three.js renderer state — kept module-level so render3d() can clean up on re-render.
-let _3dAnimId = null;   // requestAnimationFrame handle
+let _3dAnimId = null; // requestAnimationFrame handle
 let _3dRenderer = null; // WebGLRenderer instance
 
 // (Re-)render the Wilf 3D visualisation for semigroup `s`.
@@ -11,14 +11,14 @@ let _3dRenderer = null; // WebGLRenderer instance
 //   • The Wilf line y = (1 + 1/e) * x in red (boundary of Wilf's conjecture region).
 //   • A black unit cube placed at grid point (g, f+1) representing the semigroup.
 export function render3d(s) {
-  const f = s.f;
-  const e = s.e;
+  const {f} = s;
+  const {e} = s;
   const limit = 2 * f; // extent of axes and grid
 
   const container = document.getElementById('sg-3d-container');
   container.innerHTML = '';
   // Cancel previous animation loop and dispose GPU resources before re-creating.
-  if (_3dAnimId)   { cancelAnimationFrame(_3dAnimId); _3dAnimId = null; }
+  if (_3dAnimId) { cancelAnimationFrame(_3dAnimId); _3dAnimId = null; }
   if (_3dRenderer) { _3dRenderer.dispose(); _3dRenderer = null; }
 
   const W = container.offsetWidth || 800;
@@ -67,7 +67,7 @@ export function render3d(s) {
   const pos = [];
   for (let xi = 0; xi <= limit; xi++) {
     const yi = slope * xi;
-    if (yi > limit) break;
+    if (yi > limit) {break;}
     pos.push(xi, yi, 0);
   }
   const xEnd = limit / slope <= limit ? limit / slope : limit;

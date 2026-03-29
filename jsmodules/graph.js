@@ -24,7 +24,7 @@ function visNode(s, n) {
   const cls = s ? js_node_class(s, n) : 'sg-out';
   const c = CLS_COLOR[cls];
   const node = { id: n, label: String(n), color: nodeColor(cls) };
-  if (c?.font) {node.font = { color: c.font };} // white text on dark backgrounds
+  if (c?.font) { node.font = { color: c.font }; } // white text on dark backgrounds
   return node;
 }
 

@@ -281,14 +281,16 @@ function render(s, toggle = null) {
     if (w > (parseFloat(histTable.style.minWidth) || 0)) { histTable.style.minWidth = `${w}px`; }
   });
 
-  // Trigger 3D view re-render if that tab is currently active
-  if (document.getElementById('tab-gapgraph').classList.contains('active')) { render3d(s); }
+  // Show/hide the 3D tab button (only for e = 3) and re-render if active.
+  const btn3d = document.querySelector('.tab-btn[data-tab="gapgraph"]');
+  btn3d.style.display = s.e === 3 ? '' : 'none';
+  if (s.e === 3 && document.getElementById('tab-gapgraph').classList.contains('active')) { render3d(s); }
 
   document.getElementById('add-pf-btn').style.display = (s.type_t > 0 && s.f > 0) ? '' : 'none';
   document.getElementById('add-blobs-btn').style.display = blobs.length > 0 ? '' : 'none';
 
-  buildCsv();
-  buildLatex(s);
+  if (document.getElementById('tab-csv').classList.contains('active')) { buildCsv(); }
+  if (document.getElementById('tab-latex').classList.contains('active')) { buildLatex(s); }
 }
 
 // Toggle a generator or gap: clicking a labelled number in the result panel.
@@ -350,26 +352,23 @@ function switchTab(name) {
   document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.id === `tab-${name}`));
   if (name === 'gapgraph' && currentS) { render3d(currentS); }
   if (name === 'csv') { buildCsv(); }
+  if (name === 'latex' && currentS) { buildLatex(currentS); }
 }
 document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
 
-// Copy the GAP script from the history panel to the clipboard.
-document.getElementById('gap-copy-btn').addEventListener('click', e => {
-  const btn = e.currentTarget;
-  navigator.clipboard.writeText(document.getElementById('history-gap').textContent).then(() => {
-    btn.textContent = 'Copied!';
-    setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+// Wire a "Copy" button: copy getContent() to clipboard, flash "Copied!" for 1.5 s.
+function setupCopyButton(btnId, getContent) {
+  document.getElementById(btnId).addEventListener('click', e => {
+    const btn = e.currentTarget;
+    navigator.clipboard.writeText(getContent()).then(() => {
+      btn.textContent = 'Copied!';
+      setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+    });
   });
-});
+}
 
-// Copy the CSV output to the clipboard.
-document.getElementById('csv-copy-btn').addEventListener('click', e => {
-  const btn = e.currentTarget;
-  navigator.clipboard.writeText(document.getElementById('csv-output').value).then(() => {
-    btn.textContent = 'Copied!';
-    setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
-  });
-});
+setupCopyButton('gap-copy-btn', () => document.getElementById('history-gap').textContent);
+setupCopyButton('csv-copy-btn', () => document.getElementById('csv-output').value);
 
 await init();
 

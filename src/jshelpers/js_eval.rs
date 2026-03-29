@@ -64,6 +64,10 @@ impl EvalCtx<'_> {
     pub(super) fn eval(&self, expr: &str) -> Option<usize> {
         let s = self.substitute_indexed(expr, b'a', self.apery);
         let s = self.substitute_indexed(&s, b'q', self.gen_set);
+        // Insert implicit '*' between a digit and a letter (e.g. "2e" → "2*e")
+        // and between a letter and a digit (e.g. "e2" → "e*2"), so that
+        // expressions like "2e" evaluate as 2*e rather than concatenating.
+        let s = Self::insert_implicit_mul(&s);
         let s = s
             .replace('e', &self.e.to_string())
             .replace('g', &self.g.to_string())
@@ -73,6 +77,24 @@ impl EvalCtx<'_> {
             .replace('A', &(self.f + self.m).to_string())
             .replace('m', &self.m.to_string());
         eva::eval(&s).ok()
+    }
+
+    fn insert_implicit_mul(s: &str) -> String {
+        let bytes = s.as_bytes();
+        let mut result = String::with_capacity(s.len() + 8);
+        for (i, &b) in bytes.iter().enumerate() {
+            if i > 0 {
+                let prev = bytes[i - 1];
+                // digit then letter, or letter then digit → insert '*'
+                if (prev.is_ascii_digit() && b.is_ascii_alphabetic())
+                    || (prev.is_ascii_alphabetic() && b.is_ascii_digit())
+                {
+                    result.push('*');
+                }
+            }
+            result.push(b as char);
+        }
+        result
     }
 }
 

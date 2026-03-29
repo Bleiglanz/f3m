@@ -281,10 +281,8 @@ function render(s, toggle = null) {
     if (w > (parseFloat(histTable.style.minWidth) || 0)) { histTable.style.minWidth = `${w}px`; }
   });
 
-  // Show/hide the 3D tab button (only for e = 3) and re-render if active.
-  const btn3d = document.querySelector('.tab-btn[data-tab="gapgraph"]');
-  btn3d.style.display = s.e === 3 ? '' : 'none';
-  if (s.e === 3 && document.getElementById('tab-gapgraph').classList.contains('active')) { render3d(s); }
+  // Re-render 3D Kunz view if that tab is currently active.
+  if (document.getElementById('tab-gapgraph').classList.contains('active')) { render3d(s, doToggle); }
 
   document.getElementById('add-pf-btn').style.display = (s.type_t > 0 && s.f > 0) ? '' : 'none';
   document.getElementById('add-blobs-btn').style.display = blobs.length > 0 ? '' : 'none';
@@ -350,7 +348,7 @@ function randWithMultiplier(k) {
 function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
   document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.id === `tab-${name}`));
-  if (name === 'gapgraph' && currentS) { render3d(currentS); }
+  if (name === 'gapgraph' && currentS) { render3d(currentS, doToggle); }
   if (name === 'csv') { buildCsv(); }
   if (name === 'latex' && currentS) { buildLatex(currentS); }
 }

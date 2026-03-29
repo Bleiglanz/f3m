@@ -1,5 +1,6 @@
 import { js_node_class, js_graph_node_ids, js_graph_edge_pairs, js_graph_edges_text,
          state_get_show_gaps, state_set_show_gaps, state_get_show_s, state_set_show_s } from '../pkg/f3m.js';
+import { update3dVisibility } from './view3d.js';
 
 // CSS class → vis-network background/border colors.
 // Mirrors the color legend in style.css and CLAUDE.md.
@@ -97,10 +98,12 @@ export function setupShowGaps(getCurrentS, getUpto) {
     state_set_show_gaps(this.checked);
     document.body.classList.toggle('hide-gaps', !this.checked);
     rebuild();
+    update3dVisibility();
   });
   document.getElementById('graph-show-s').addEventListener('change', function() {
     state_set_show_s(this.checked);
     document.body.classList.toggle('hide-s', !this.checked);
     rebuild();
+    update3dVisibility();
   });
 }

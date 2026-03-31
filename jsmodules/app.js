@@ -7,7 +7,7 @@ import init, {
   state_set_show_classification,
 } from '../pkg/f3m.js';
 import { render3d } from './view3d.js';
-import { rebuildGraph, setupGraphUpto, setupShowGaps } from './graph.js';
+import { rebuildGraph, setupGraphUpto, setupShowGaps, setupGraphToggle } from './graph.js';
 
 const PROP_THEAD_TR = '<tr><th>#</th><th>toggle</th><th>m</th><th>f</th><th>e</th><th>g</th><th style="white-space:nowrap">c&#8209;g</th><th>t</th><th>Sym</th><th>gen</th><th>PF</th><th>SPF</th><th>expr</th><th>value</th><th>&#8838;?</th></tr>';
 
@@ -63,8 +63,8 @@ function buildLatexSource(s) {
   const c = s.f + 1;
   const cg = s.count_set; // elements below conductor = c − g
 
-  const genStr = gens.join(',\\,');
-  const pfStr = pf.length ? `\\{${pf.join(',\\,')}\\}` : '\\emptyset';
+  const genStr = gens.join(',\\, ');
+  const pfStr = pf.length ? `\\{${pf.join(',\\, ')}\\}` : '\\emptyset';
 
   const blocks = [];
 
@@ -135,11 +135,13 @@ function cellText(td) {
 
 // Build CSV text from the current history table and write it to #csv-output.
 function buildCsv() {
-  const CSV_HEADER = '#,toggle,m,f,e,g,c-g,t,Sym,gen,PF,SPF,expr,value,⊆?';
+  const CSV_HEADER = '#,toggle,m,f,e,g,c-g,t,Sym,gen,PF,SPF,expr,value,⊆?,generators';
   const rows = Array.from(document.querySelectorAll('#history-tbody tr'));
-  const lines = rows.map(tr =>
-    Array.from(tr.cells).map(td => csvField(cellText(td))).join(',')
-  );
+  const lines = rows.map(tr => {
+    const cells = Array.from(tr.cells).map(td => csvField(cellText(td))).join(',');
+    const gens = csvField(tr.dataset.gens ?? '');
+    return `${cells},${gens}`;
+  });
   document.getElementById('csv-output').value = [CSV_HEADER, ...lines].join('\n');
 }
 
@@ -151,13 +153,15 @@ function historyRow(s, idx, toggle, expr, value, cmp) {
   const toggleStr = toggle
     ? `${sIdx(toggle.from)}${toggle.sign}<span class="${toggle.cls}">${toggle.n}</span>`
     : '—';
-  return `<tr class="history-row" data-idx="${idx}"><td>${sIdx(idx)}</td><td>${toggleStr}</td>${shortprop_tds(s)}<td class="left">${expr}</td><td>${valStr}</td><td>${cmp}</td></tr>`;
+  const gens = Array.from(s.gen_set).join(' ');
+  return `<tr class="history-row" data-idx="${idx}" data-gens="${gens}"><td>${sIdx(idx)}</td><td>${toggleStr}</td>${shortprop_tds(s)}<td class="left">${expr}</td><td>${valStr}</td><td>${cmp}</td></tr>`;
 }
 
 // Render a semigroup: update all UI tabs. Caller must call state_push first.
 function render(s, toggle = null) {
   currentGenSet = Array.from(s.gen_set);
   currentS = s;
+  gensInput.value = currentGenSet.join(', ');
   const idx = state_current_idx();
   const expr = state_get_eva_expr();
   const exprVal = eval_expr(expr, s);
@@ -179,7 +183,7 @@ function render(s, toggle = null) {
   graphUpto.value = s.m;
   document.getElementById('graph-upto-val').textContent = s.m;
   document.getElementById('graph-edges-text').value = js_graph_edges_text(s, s.m);
-  rebuildGraph(s, s.m);
+  rebuildGraph(s, s.m, true);
 
   // Cache WASM Vec getters — each call copies memory from WASM
   const blobs = Array.from(s.blob);
@@ -284,8 +288,9 @@ function render(s, toggle = null) {
   // Re-render 3D Kunz view if that tab is currently active.
   if (document.getElementById('tab-gapgraph').classList.contains('active')) { render3d(s, doToggle); }
 
-  document.getElementById('add-pf-btn').style.display = (s.type_t > 0 && s.f > 0) ? '' : 'none';
+  document.getElementById('add-pf-btn').style.display = (s.type_t > 1 && s.f > 0) ? '' : 'none';
   document.getElementById('add-blobs-btn').style.display = blobs.length > 0 ? '' : 'none';
+  document.getElementById('selfglue-btn').style.display = s.can_self_glue() ? '' : 'none';
 
   if (document.getElementById('tab-csv').classList.contains('active')) { buildCsv(); }
   if (document.getElementById('tab-latex').classList.contains('active')) { buildLatex(s); }
@@ -377,6 +382,7 @@ document.querySelector('#tab-history .history-table thead').innerHTML = PROP_THE
 
 setupGraphUpto(() => currentS);
 setupShowGaps(() => currentS, () => Number(document.getElementById('graph-upto').value));
+setupGraphToggle(val => doToggle(val));
 
 // Apéry-cell hover: highlight the matching row, column, and anti-diagonal in the Kunz matrix.
 // Delegates from #result (always in DOM) because #sg-grid-container is created by render().
@@ -561,29 +567,20 @@ document.getElementById('amdn-btn').addEventListener('click', guarded(() => {
   compute();
 }));
 
-document.getElementById('half-btn').addEventListener('click', guarded(() => {
-  if (!currentS) { return; }
-  const gens = Array.from(currentS.s_over_2());
-  if (gens.length === 0) { return; }
-  gensInput.value = gens.join(', ');
-  compute();
-}));
+function wireGenSetBtn(id, method) {
+  document.getElementById(id).addEventListener('click', guarded(() => {
+    if (!currentS) { return; }
+    const gens = Array.from(currentS[method]());
+    if (gens.length === 0) { return; }
+    gensInput.value = gens.join(', ');
+    compute();
+  }));
+}
 
-document.getElementById('add-pf-btn').addEventListener('click', guarded(() => {
-  if (!currentS) { return; }
-  const gens = Array.from(currentS.add_all_pf());
-  if (gens.length === 0) { return; }
-  gensInput.value = gens.join(', ');
-  compute();
-}));
-
-document.getElementById('add-blobs-btn').addEventListener('click', guarded(() => {
-  if (!currentS) { return; }
-  const gens = Array.from(currentS.add_reflected_gaps());
-  if (gens.length === 0) { return; }
-  gensInput.value = gens.join(', ');
-  compute();
-}));
+wireGenSetBtn('half-btn',      's_over_2');
+wireGenSetBtn('add-pf-btn',    'add_all_pf');
+wireGenSetBtn('add-blobs-btn', 'add_reflected_gaps');
+wireGenSetBtn('selfglue-btn',  'self_glue');
 
 document.getElementById('compute-btn').addEventListener('click', guardedCompute);
 document.getElementById('reset-btn').addEventListener('click', guarded(() => {

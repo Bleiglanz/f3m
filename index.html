@@ -43,6 +43,7 @@
     <button id="half-btn" class="btn-muted" title="Compute S/2 = { x : 2x ∈ S }">compute S/2</button>
     <button id="add-pf-btn" class="btn-muted" title="Add all pseudo-Frobenius numbers ≠ f as generators" style="display:none">add all PF &#x2260; f</button>
     <button id="add-blobs-btn" class="btn-muted" title="Add all reflected gaps as generators" style="display:none">add reflected gaps</button>
+    <button id="selfglue-btn" class="btn-muted" title="Self-glue: compute m·S + x·S where x is the first generator coprime to m" style="display:none">self glue</button>
   </div>
 
   <div class="checkbox-strip">
@@ -78,7 +79,7 @@
           <label>Upto <input type="range" id="graph-upto" min="0" max="0" value="0"> <span id="graph-upto-val"></span></label>
         </td></tr>
         <tr id="graph-row"><td colspan="15">
-          <div id="graph-resize-wrapper" style="width:400px;resize:horizontal;overflow:auto;display:inline-block;max-width:100%">
+          <div id="graph-resize-wrapper" style="width:100%;resize:horizontal;overflow:auto;display:inline-block;max-width:100%">
             <div id="graph-vis" style="width:100%;height:400px;border:1px solid #ccc;overflow:hidden"></div>
             <textarea id="graph-edges-text" rows="3" style="width:100%;box-sizing:border-box;font-family:monospace;resize:none" readonly></textarea>
           </div>
@@ -88,7 +89,9 @@
   </div>
 
   <div id="tab-gapgraph" class="tab-content">
-    <div id="sg-3d-container" style="width:100%;height:500px"></div>
+    <div id="sg-3d-wrapper" style="width:100%;resize:horizontal;overflow:auto;display:inline-block;max-width:100%">
+      <div id="sg-3d-container" style="width:100%;height:400px"></div>
+    </div>
   </div>
 
   <div id="tab-history" class="tab-content">
@@ -151,23 +154,37 @@
         </tbody>
       </table>
 
+      <h3>Extra Buttons</h3>
+      <p>These buttons appear below the toolbar when their action is applicable to the current semigroup.</p>
+      <table class="help-table">
+        <thead><tr><th>Button</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr><td>compute S/2</td><td>Replace generators with those of S/2 = { x : 2x &isin; S }.</td></tr>
+          <tr><td>add all PF &ne; f</td><td>Add every pseudo-Frobenius number other than f as a new generator (only shown when t &gt; 1).</td></tr>
+          <tr><td>add reflected gaps</td><td>Add all reflected gaps (n where both n and f&minus;n are gaps) as generators.</td></tr>
+          <tr><td>self glue</td><td>Self-gluing: compute m&middot;S + x&middot;S = &langle;m&middot;g, x&middot;g | g &isin; gen(S)&rangle; where x is the first generator with gcd(m,&thinsp;x)=1 (only shown when such x exists).</td></tr>
+        </tbody>
+      </table>
+
       <h3>Tabs</h3>
       <table class="help-table">
         <thead><tr><th>Tab</th><th>Content</th></tr></thead>
         <tbody>
           <tr><td>Semigroup</td><td>Structure grid, Kunz matrix, classification table, expression evaluator.</td></tr>
           <tr><td>History</td><td>All computed semigroups in a sortable summary table. Click a row number to restore that entry.</td></tr>
-          <tr><td>Graph</td><td>Cayley graph up to a configurable bound.</td></tr>
-          <tr><td>3dview</td><td>3D Kunz-coordinate view: x&nbsp;=&nbsp;residue, y&nbsp;=&nbsp;Kunz coord, z&nbsp;=&nbsp;multiples of m. Tiles = Ap&eacute;ry set (z=0), cubes below = gaps, cubes above = sporadic elements. Colors match the structure table.</td></tr>
+          <tr><td>Graph</td><td>Cayley graph up to a configurable bound. Click a node to toggle it. Drag the right edge to resize.</td></tr>
+          <tr><td>3dview</td><td>3D Kunz-coordinate view: x&nbsp;=&nbsp;residue, y&nbsp;=&nbsp;Kunz coord, z&nbsp;=&nbsp;multiples of m. Tiles = Ap&eacute;ry set (z=0), cubes below = gaps, cubes above = sporadic elements. Colors match the structure table. Hover a cube to see lines from n to f and from f to f&minus;n. Click a cube to toggle it. Drag the right edge to resize.</td></tr>
           <tr><td>Tilt</td><td>Sheared grid view with a tilt slider.</td></tr>
           <tr><td>GAP</td><td>Auto-generated <a href="https://gap-packages.github.io/numericalsgps/" target="_blank">GAP</a> verification script for all history entries. Copy button included.</td></tr>
-          <tr><td>.csv</td><td>History table in CSV format, ready to copy.</td></tr>
+          <tr><td>.csv</td><td>History table in CSV format, ready to copy. Includes a final <em>generators</em> column with the minimal generating set.</td></tr>
         </tbody>
       </table>
 
       <h3>Interactive Editing</h3>
       <ul>
         <li>Click any element in the structure grid to toggle it as a generator (add a gap / remove a generator).</li>
+        <li>Click any node in the Graph tab to toggle it.</li>
+        <li>Click any cube in the 3dview tab to toggle it.</li>
         <li>Click any Frobenius or pseudo-Frobenius span in the properties table to toggle it.</li>
         <li>Browser Back / Forward restores previous computations via the URL (<code>?g=&hellip;</code>).</li>
       </ul>

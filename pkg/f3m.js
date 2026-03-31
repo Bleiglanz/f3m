@@ -55,6 +55,14 @@ export class JsSemigroup {
         return v1;
     }
     /**
+     * Returns `true` if the semigroup has a generator coprime to m (i.e. self-gluing is possible).
+     * @returns {boolean}
+     */
+    can_self_glue() {
+        const ret = wasm.jssemigroup_can_self_glue(this.__wbg_ptr);
+        return ret !== 0;
+    }
+    /**
      * @returns {number}
      */
     get count_gap() {
@@ -143,6 +151,17 @@ export class JsSemigroup {
      */
     s_over_2() {
         const ret = wasm.jssemigroup_s_over_2(this.__wbg_ptr);
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * Returns the generators of the self-gluing of this semigroup (α = m, β = first
+     * generator coprime to m), or an empty vec if no such generator exists.
+     * @returns {Uint32Array}
+     */
+    self_glue() {
+        const ret = wasm.jssemigroup_self_glue(this.__wbg_ptr);
         var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
         wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
         return v1;

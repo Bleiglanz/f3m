@@ -7,9 +7,18 @@ export class JsSemigroup {
     [Symbol.dispose](): void;
     add_all_pf(): Uint32Array;
     add_reflected_gaps(): Uint32Array;
+    /**
+     * Returns `true` if the semigroup has a generator coprime to m (i.e. self-gluing is possible).
+     */
+    can_self_glue(): boolean;
     is_element(x: number): boolean;
     kunz(i: number, j: number): number;
     s_over_2(): Uint32Array;
+    /**
+     * Returns the generators of the self-gluing of this semigroup (α = m, β = first
+     * generator coprime to m), or an empty vec if no such generator exists.
+     */
+    self_glue(): Uint32Array;
     toggle(n: number): JsSemigroup;
     readonly apery_set: Uint32Array;
     readonly blob: Uint32Array;
@@ -194,6 +203,7 @@ export interface InitOutput {
     readonly jssemigroup_add_reflected_gaps: (a: number) => [number, number];
     readonly jssemigroup_apery_set: (a: number) => [number, number];
     readonly jssemigroup_blob: (a: number) => [number, number];
+    readonly jssemigroup_can_self_glue: (a: number) => number;
     readonly jssemigroup_count_gap: (a: number) => number;
     readonly jssemigroup_count_set: (a: number) => number;
     readonly jssemigroup_e: (a: number) => number;
@@ -206,12 +216,17 @@ export interface InitOutput {
     readonly jssemigroup_max_gen: (a: number) => number;
     readonly jssemigroup_pf: (a: number) => [number, number];
     readonly jssemigroup_s_over_2: (a: number) => [number, number];
+    readonly jssemigroup_self_glue: (a: number) => [number, number];
     readonly jssemigroup_special_pf: (a: number) => [number, number];
     readonly jssemigroup_special_pf_str: (a: number) => [number, number];
     readonly jssemigroup_toggle: (a: number, b: number) => number;
     readonly jssemigroup_type_t: (a: number) => number;
     readonly jssemigroup_wilf: (a: number) => number;
     readonly eval_expr: (a: number, b: number, c: number) => number;
+    readonly shortprop: (a: number) => [number, number];
+    readonly shortprop_tds: (a: number) => [number, number];
+    readonly tilt_table: (a: number, b: number) => [number, number];
+    readonly combined_table: (a: number, b: number, c: number, d: number) => [number, number];
     readonly js_graph_edge_pairs: (a: number, b: number) => [number, number];
     readonly js_graph_edges_text: (a: number, b: number) => [number, number];
     readonly js_graph_node_ids: (a: number, b: number) => [number, number];
@@ -233,10 +248,6 @@ export interface InitOutput {
     readonly state_current_idx: () => number;
     readonly state_set_current_idx: (a: number) => void;
     readonly state_len: () => number;
-    readonly tilt_table: (a: number, b: number) => [number, number];
-    readonly shortprop: (a: number) => [number, number];
-    readonly shortprop_tds: (a: number) => [number, number];
-    readonly combined_table: (a: number, b: number, c: number, d: number) => [number, number];
     readonly __wbindgen_externrefs: WebAssembly.Table;
     readonly __wbindgen_free: (a: number, b: number, c: number) => void;
     readonly __wbindgen_malloc: (a: number, b: number) => number;

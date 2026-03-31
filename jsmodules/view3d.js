@@ -7,6 +7,7 @@ let _3dGapMeshes = [];  // cube meshes classified as gaps (for show/hide)
 let _3dSMeshes = [];    // cube meshes classified as semigroup elements (for show/hide)
 // Persisted camera state so toggles/recomputes don't reset the viewpoint.
 let _3dCameraState = null; // { position, target, zoom }
+const _3dHoverLineMat = new THREE.LineBasicMaterial({ color: 0xff8888, linewidth: 2, depthTest: false });
 
 // CSS colors from style.css, mapped to structure-table classes.
 // bg = cube face color, fg = text color (used for Apéry tiles).
@@ -160,8 +161,8 @@ export function render3d(s, onToggle) {
     }
   }
 
-  const W = container.offsetWidth || 800;
-  const H = 500;
+  const W = container.offsetWidth || 600;
+  const H = W; // always square
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0xd0d0d0);
@@ -177,13 +178,31 @@ export function render3d(s, onToggle) {
   }
   const extent = Math.max(xMax, yMax, Math.abs(zMin), zMax, 4);
 
-  const camera = new THREE.PerspectiveCamera(50, W / H, 0.1, extent * 40);
+  const camera = new THREE.PerspectiveCamera(50, 1, 0.1, extent * 40);
   camera.up.set(0, 0, 1);
   camera.position.set(extent * 1.5, -extent * 1.5, extent * 1.2);
+
+  // ── Lighting ──────────────────────────────────────────────────────────────
+  scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+  const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
+  dirLight.position.set(extent * 2, -extent * 1.5, extent * 3);
+  dirLight.castShadow = true;
+  dirLight.shadow.mapSize.width = 1024;
+  dirLight.shadow.mapSize.height = 1024;
+  dirLight.shadow.camera.near = 0.5;
+  dirLight.shadow.camera.far = extent * 20;
+  const sc = extent * 2;
+  dirLight.shadow.camera.left = -sc;
+  dirLight.shadow.camera.right = sc;
+  dirLight.shadow.camera.top = sc;
+  dirLight.shadow.camera.bottom = -sc;
+  scene.add(dirLight);
 
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(W, H);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   container.appendChild(renderer.domElement);
   _3dRenderer = renderer;
 
@@ -258,7 +277,7 @@ export function render3d(s, onToggle) {
   function matFor(cls) {
     if (!matCache[cls]) {
       const c = COLORS[cls] || COLORS['sg-out'];
-      matCache[cls] = new THREE.MeshBasicMaterial({
+      matCache[cls] = new THREE.MeshLambertMaterial({
         color: new THREE.Color(c.bg), transparent: true, opacity: 0.85,
       });
     }
@@ -267,6 +286,8 @@ export function render3d(s, onToggle) {
 
   for (const c of cubes) {
     const mesh = new THREE.Mesh(boxGeo, matFor(c.cls));
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
     mesh.position.set(c.x + 0.5, c.y + 0.5, c.z);
     mesh.userData = { val: c.val, cls: c.cls };
     const gap = isGapClass(c.cls);
@@ -276,12 +297,43 @@ export function render3d(s, onToggle) {
     (gap ? _3dGapMeshes : _3dSMeshes).push(mesh);
   }
 
+  // ── Helper: 3D centre position of any integer value in Kunz coordinates ──
+  function posOf(val) {
+    const i = ((val % m) + m) % m;
+    const ki = (apery[i] - i) / m;
+    const z = (val - apery[i]) / m;
+    return new THREE.Vector3(i + 0.5, ki + 0.5, z);
+  }
+
   // ── Raycaster: hover highlight + tooltip + click-to-toggle ───────────────
   const raycaster = new THREE.Raycaster();
   const mouse = new THREE.Vector2();
   let hoveredMesh = null;
   let hoveredOriginalMat = null;
   const highlightMat = new THREE.MeshBasicMaterial({ color: 0xff8800, transparent: true, opacity: 0.95 });
+
+  // Thin lines shown while hovering: n→f and f→(f-n).
+  let hoverLines = [];
+
+  function clearHoverLines() {
+    for (const l of hoverLines) { scene.remove(l); l.geometry.dispose(); }
+    hoverLines = [];
+  }
+
+  function showHoverLines(n) {
+    clearHoverLines();
+    const posN = posOf(n);
+    const posF = posOf(f);
+    if (n !== f) {
+      const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([posN, posF]), _3dHoverLineMat);
+      scene.add(line); hoverLines.push(line);
+    }
+    const complement = f - n;
+    if (complement > 0) {
+      const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([posF, posOf(complement)]), _3dHoverLineMat);
+      scene.add(line); hoverLines.push(line);
+    }
+  }
 
   const tooltip = document.createElement('div');
   tooltip.style.cssText = 'position:absolute;pointer-events:none;background:#333;color:#fff;padding:2px 6px;border-radius:3px;font:bold 13px monospace;display:none;z-index:10';
@@ -304,6 +356,7 @@ export function render3d(s, onToggle) {
       hoveredMesh = null;
       hoveredOriginalMat = null;
     }
+    clearHoverLines();
     tooltip.style.display = 'none';
     renderer.domElement.style.cursor = '';
   }
@@ -328,6 +381,7 @@ export function render3d(s, onToggle) {
       tooltip.style.left = tx;
       tooltip.style.top = ty;
       renderer.domElement.style.cursor = 'pointer';
+      showHoverLines(hit.userData.val);
     }
   });
 
@@ -372,3 +426,15 @@ export function render3d(s, onToggle) {
   }
   animate();
 }
+
+// Keep the 3D canvas square and resize the renderer when the wrapper is dragged.
+new ResizeObserver(entries => {
+  const w = Math.round(entries[0].contentRect.width);
+  const container = document.getElementById('sg-3d-container');
+  container.style.height = `${w}px`;
+  if (_3dRenderer && _3dCamera) {
+    _3dRenderer.setSize(w, w);
+    _3dCamera.aspect = 1;
+    _3dCamera.updateProjectionMatrix();
+  }
+}).observe(document.getElementById('sg-3d-wrapper'));

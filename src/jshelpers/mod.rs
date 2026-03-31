@@ -175,6 +175,21 @@ impl JsSemigroup {
     pub fn add_reflected_gaps(&self) -> Vec<u32> {
         to_u32(&self.0.compute_add_reflected_gaps().gen_set)
     }
+
+    /// Returns `true` if the semigroup has a generator coprime to m (i.e. self-gluing is possible).
+    #[must_use]
+    pub fn can_self_glue(&self) -> bool {
+        crate::math::glue::can_self_glue(&self.0)
+    }
+
+    /// Returns the generators of the self-gluing of this semigroup (α = m, β = first
+    /// generator coprime to m), or an empty vec if no such generator exists.
+    #[must_use]
+    pub fn self_glue(&self) -> Vec<u32> {
+        crate::math::glue::self_glue(&self.0)
+            .map(|s| to_u32(&s.gen_set))
+            .unwrap_or_default()
+    }
 }
 
 /// Returns the set-containment relationship between two semigroups as a symbol:

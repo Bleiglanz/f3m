@@ -1,5 +1,6 @@
 #![warn(clippy::pedantic)]
 
+pub mod glue;
 mod graph;
 pub mod semigroup;
 

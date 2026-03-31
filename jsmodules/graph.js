@@ -34,8 +34,7 @@ const graphVisEl = document.getElementById('graph-vis');
 // Initialise the vis-network Hasse diagram (directed edges = covering relations).
 const graphNodes = new vis.DataSet([]);
 const graphEdges = new vis.DataSet([]);
-/* eslint-disable-next-line no-new */
-new vis.Network(
+const graphNetwork = new vis.Network(
   graphVisEl,
   { nodes: graphNodes, edges: graphEdges },
   { edges: { arrows: 'to' } }
@@ -62,7 +61,7 @@ function isVisible(s, n, showGaps, showS) {
 
 // Rebuild the graph for semigroup `s` up to value `upto`, respecting visibility toggles.
 // Edges whose endpoints are hidden are also suppressed.
-export function rebuildGraph(s, upto) {
+export function rebuildGraph(s, upto, andFit = false) {
   const showGaps = state_get_show_gaps();
   const showS = state_get_show_s();
   const nodeIds = js_graph_node_ids(s, upto);
@@ -76,6 +75,14 @@ export function rebuildGraph(s, upto) {
     if (visibleIds.has(from) && visibleIds.has(to))
       {graphEdges.add({ from, to });}
   }
+  if (andFit) { graphNetwork.once('stabilized', () => graphNetwork.fit()); }
+}
+
+// Wire node clicks to toggle the clicked value.
+export function setupGraphToggle(onToggle) {
+  graphNetwork.on('click', params => {
+    if (params.nodes.length === 1) { onToggle(params.nodes[0]); }
+  });
 }
 
 // Wire the "Upto" slider: redraws the graph and updates the edge-text textarea.

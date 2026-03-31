@@ -150,24 +150,32 @@ button:active { transform: scale(0.97); }
 
 .tab-btn {
   background: none;
-  color: var(--muted);
+  color: #666;
   border: none;
-  border-bottom: 2px solid transparent;
+  border-bottom: 3px solid transparent;
   border-radius: 0;
   padding: 0.5rem 1.2rem;
   margin-bottom: -2px;
   font-family: var(--sans);
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-weight: 500;
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s;
 }
 
 .tab-btn:hover { background: none; color: var(--text); }
-.tab-btn.active { color: var(--text); border-bottom-color: #2a2a2a; font-weight: 600; }
+.tab-btn.active { color: var(--text); border-bottom-color: #2563eb; font-weight: 700; }
 
 .tab-content { display: none; width: 100%; max-width: 860px; }
 .tab-content.active { display: block; }
+
+#tab-graph,
+#tab-gapgraph {
+  width: 95vw;
+  max-width: 95vw;
+  margin-left: -5vw;
+  padding-left: 1.5rem;
+}
 
 /* ─── Tables ────────────────────────────────────────────────────── */
 table {

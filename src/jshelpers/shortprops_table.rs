@@ -88,8 +88,19 @@ pub(super) fn shortprop_cells(sg: &Semigroup) -> String {
 pub fn shortprop(s: &JsSemigroup) -> String {
     format!(
         "<table class=\"shortprop-table\"><thead><tr>\
-         <th>m</th><th>f</th><th>e</th><th>g</th><th>\u{03C3}</th><th>b</th><th>t</th><th>Sym</th>\
-         <th>gen</th><th>PF</th><th>SPF</th><th>Wilf</th><th>1/e</th>\
+         <th title=\"Multiplicity: smallest positive element\">m</th>\
+         <th title=\"Frobenius number: largest gap\">f</th>\
+         <th title=\"Embedding dimension: number of minimal generators\">e</th>\
+         <th title=\"Genus: number of gaps\">g</th>\
+         <th title=\"Sporadic elements: elements of S below the conductor f+1\">\u{03C3}</th>\
+         <th title=\"Reflected gaps: gaps n where f\u{2212}n is also a gap\">b</th>\
+         <th title=\"Type: number of pseudo-Frobenius numbers\">t</th>\
+         <th title=\"Symmetric: t=1 and g=(f+1)/2\">Sym</th>\
+         <th title=\"Minimal generators\">gen</th>\
+         <th title=\"Pseudo-Frobenius numbers: maximals of \u{2124} \u{2216} S\">PF</th>\
+         <th title=\"Special pseudo-Frobenius: PF that are differences of generators\">SPF</th>\
+         <th title=\"Wilf quotient: \u{03C3}/(f+1) \u{2265} 1/e (conjecture)\">Wilf</th>\
+         <th title=\"Wilf conjecture lower bound: 1/e\">1/e</th>\
          </tr></thead><tbody><tr>{}</tr></tbody></table>",
         shortprop_cells(&s.0)
     )

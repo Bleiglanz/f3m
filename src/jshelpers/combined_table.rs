@@ -35,6 +35,8 @@ pub(crate) fn get_cls(
             "sg-gen"
         } else if n == apery_val {
             "sg-apery"
+        } else if n > f {
+            "sg-large"
         } else if n >= apery_val {
             "sg-in"
         } else if pf_set.contains(&n) && blobs.contains(&n) {

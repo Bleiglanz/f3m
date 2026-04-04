@@ -9,7 +9,7 @@ import init, {
 import { render3d } from './view3d.js';
 import { rebuildGraph, setupGraphUpto, setupShowGaps, setupGraphToggle } from './graph.js';
 
-const PROP_THEAD_TR = '<tr><th>#</th><th>toggle</th><th>m</th><th>f</th><th>e</th><th>g</th><th>\u03C3</th><th>b</th><th>t</th><th>Sym</th><th>gen</th><th>PF</th><th>SPF</th><th>Wilf</th><th>1/e</th><th>expr</th><th>value</th><th>&#8838;?</th></tr>';
+const PROP_THEAD_TR = '<tr><th title="Index and operation label">#</th><th title="Generator added (+) or removed (\u2212)">toggle</th><th title="Multiplicity: smallest positive element">m</th><th title="Frobenius number: largest gap">f</th><th title="Embedding dimension: number of minimal generators">e</th><th title="Genus: number of gaps">g</th><th title="Sporadic elements: elements of S below the conductor f+1">\u03C3</th><th title="Reflected gaps: gaps n where f\u2212n is also a gap">b</th><th title="Type: number of pseudo-Frobenius numbers">t</th><th title="Symmetric: t=1 and g=(f+1)/2">Sym</th><th title="Minimal generators">gen</th><th title="Pseudo-Frobenius numbers: maximals of \u2124 \u2216 S">PF</th><th title="Special pseudo-Frobenius: PF that are differences of generators">SPF</th><th title="Wilf quotient: \u03C3/(f+1) \u2265 1/e (conjecture)">Wilf</th><th title="Wilf conjecture lower bound: 1/e">1/e</th><th title="Expression evaluated for this semigroup">expr</th><th title="Result of the expression">value</th><th title="Set-containment relation with previous entry">&#8838;?</th></tr>';
 
 const PRIMES_LIST = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97];
 

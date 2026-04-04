@@ -4,9 +4,9 @@ use std::collections::HashSet;
 use std::fmt::Write as _;
 use wasm_bindgen::prelude::*;
 
-/// Wrap a classified number in a `<td>` containing a clickable `<span data-n>`.
-fn cell_td(cls: &str, n: usize) -> String {
-    format!("<td>{}</td>", super::span(cls, n, true))
+/// Wrap a classified number in a `<td>` with a residue attribute and a clickable `<span data-n>`.
+fn cell_td(cls: &str, n: usize, res: usize) -> String {
+    format!("<td data-res=\"{res}\">{}</td>", super::span(cls, n, true))
 }
 
 // Determine the CSS class of a cell.
@@ -67,8 +67,6 @@ pub fn combined_table(s: &JsSemigroup, offset: usize, tilt: i32, show_kunz: bool
     } else {
         (0, m as isize)
     };
-    let num_cols = (col_end - col_start).cast_unsigned();
-
     // Residue for each column (Euclidean mod, always in 0..m).
     #[allow(clippy::cast_possible_wrap)]
     let residues: Vec<usize> = (col_start..col_end)
@@ -95,6 +93,13 @@ pub fn combined_table(s: &JsSemigroup, offset: usize, tilt: i32, show_kunz: bool
     #[allow(clippy::format_collect)]
     let header_cells: String = residues.iter().map(|&r| format!("<th>{r}</th>")).collect();
     let header_row = format!("<tr>{header_cells}</tr>");
+    // Separator row between structure grid and Kunz: residue headers with data-k for hover
+    #[allow(clippy::format_collect)]
+    let sep_cells: String = perm
+        .iter()
+        .map(|&r| format!("<th class=\"residue-sep\" data-k=\"{r}\">{r}</th>"))
+        .collect();
+    let sep_row = format!("<tr class=\"residue-sep-row\">{sep_cells}</tr>");
 
     let mut html = String::from("<table class=\"sg-grid\"><thead>");
     html.push_str(&header_row);
@@ -111,7 +116,7 @@ pub fn combined_table(s: &JsSemigroup, offset: usize, tilt: i32, show_kunz: bool
     let end_row: isize = (f / m + 3) as isize;
     for row in (start_row..end_row).rev() {
         html.push_str("<tr>");
-        for col_idx in 0..num_cols {
+        for (col_idx, &res) in residues.iter().enumerate() {
             let col = col_start + col_idx.cast_signed();
             #[allow(clippy::cast_possible_wrap)]
             let n_signed: isize = row * m as isize + offset as isize + col - tilt as isize * row;
@@ -121,13 +126,13 @@ pub fn combined_table(s: &JsSemigroup, offset: usize, tilt: i32, show_kunz: bool
             }
             #[allow(clippy::cast_sign_loss)]
             let n = n_signed as usize;
-            html.push_str(&cell_td(cls_of(n, false), n));
+            html.push_str(&cell_td(cls_of(n, false), n, res));
         }
         html.push_str("</tr>");
     }
 
-    // Repeated header row as separator
-    html.push_str(&header_row);
+    // Residue separator row with hover support
+    html.push_str(&sep_row);
 
     // Apéry row — data-k carries the residue index for Kunz hover highlighting
     html.push_str("<tr class=\"apery-row\">");

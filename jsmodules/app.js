@@ -18,6 +18,7 @@ let currentGenSet = null;
 let currentS = null;
 let computing = false;
 let navigating = false;
+let _computeLabel = '⏎'; // label shown in # column of history
 const busyBanner = document.getElementById('busy-banner');
 
 // Display an error message in the error banner.
@@ -61,7 +62,8 @@ function buildLatexSource(s) {
   const pf = Array.from(s.pf);
   const g = s.count_gap;
   const c = s.f + 1;
-  const cg = s.count_set; // elements below conductor = c − g
+  const sigma = s.count_set; // σ: elements below conductor = c − g
+  const b = Array.from(s.blob).length; // reflected gap count
 
   const genStr = gens.join(',\\, ');
   const pfStr = pf.length ? `\\{${pf.join(',\\, ')}\\}` : '\\emptyset';
@@ -79,6 +81,8 @@ function buildLatexSource(s) {
     `e(S) &= ${s.e}      & \\text{embedding dimension} \\\\`,
     `g(S) &= ${g}        & \\text{genus } |\\mathbb{N}_0 \\setminus S| \\\\`,
     `c(S) &= ${c}        & \\text{conductor } (f+1) \\\\`,
+    `\\sigma(S) &= ${sigma} & \\text{elements below conductor } (c - g) \\\\`,
+    `b(S) &= ${b}        & \\text{reflected gaps } |\\{n : n \\notin S,\\, f{-}n \\notin S\\}| \\\\`,
     `t(S) &= ${s.type_t} & \\text{type } |\\mathrm{PF}(S)|`,
     `\\end{array}`,
   ].join('\n'));
@@ -92,7 +96,7 @@ function buildLatexSource(s) {
   }
 
   blocks.push(
-    `\\text{Wilf:}\\quad \\frac{c-g}{c} = \\frac{${cg}}{${c}} \\approx ${(cg / c).toFixed(4)} \\;\\geq\\; \\frac{1}{e} = \\frac{1}{${s.e}} \\approx ${(1 / s.e).toFixed(4)}`
+    `\\text{Wilf:}\\quad \\frac{\\sigma}{c} = \\frac{${sigma}}{${c}} \\approx ${(sigma / c).toFixed(4)} \\;\\geq\\; \\frac{1}{e} = \\frac{1}{${s.e}} \\approx ${(1 / s.e).toFixed(4)}`
   );
 
   return blocks.join('\n\n');
@@ -148,17 +152,17 @@ function buildCsv() {
 // Build a history table row for semigroup `s` at index `idx`.
 const sIdx = n => `S<sub>${n}</sub>`;
 
-function historyRow(s, idx, toggle, expr, value, cmp) {
+function historyRow(s, idx, label, toggle, expr, value, cmp) {
   const valStr = value ?? '—';
   const toggleStr = toggle
     ? `${sIdx(toggle.from)}${toggle.sign}<span class="${toggle.cls}">${toggle.n}</span>`
     : '—';
   const gens = Array.from(s.gen_set).join(' ');
-  return `<tr class="history-row" data-idx="${idx}" data-gens="${gens}"><td>${sIdx(idx)}</td><td>${toggleStr}</td>${shortprop_tds(s)}<td class="left">${expr}</td><td>${valStr}</td><td>${cmp}</td></tr>`;
+  return `<tr class="history-row" data-idx="${idx}" data-gens="${gens}"><td>${idx}:${label}</td><td>${toggleStr}</td>${shortprop_tds(s)}<td class="left">${expr}</td><td>${valStr}</td><td>${cmp}</td></tr>`;
 }
 
 // Render a semigroup: update all UI tabs. Caller must call state_push first.
-function render(s, toggle = null) {
+function render(s, toggle = null, label = '⏎') {
   currentGenSet = Array.from(s.gen_set);
   currentS = s;
   gensInput.value = currentGenSet.join(', ');
@@ -169,7 +173,7 @@ function render(s, toggle = null) {
   const cmp = cmpSourceIdx !== null
     ? `${sIdx(idx)}&nbsp;${state_cmp(idx, cmpSourceIdx)}&nbsp;${sIdx(cmpSourceIdx)}`
     : '—';
-  const rowHtml = historyRow(s, idx, toggle, expr, exprVal, cmp);
+  const rowHtml = historyRow(s, idx, label, toggle, expr, exprVal, cmp);
 
   // History tab
   document.getElementById('history-tbody').insertAdjacentHTML('beforeend', rowHtml);
@@ -188,28 +192,16 @@ function render(s, toggle = null) {
   // Cache WASM Vec getters — each call copies memory from WASM
   const blobs = Array.from(s.blob);
 
-  // Helper: value cell with a hover tooltip.
-  function tipCell(value, tipText) {
-    return `<td class="value has-tip">${value}<span class="tip">${tipText}</span></td>`;
-  }
-
-  const detailRows = [
-    [`<input type="text" id="eva-input" value="${expr}" style="width:100%" title="Ops: + - * /  (integer)&#10;e=emb.dim  g=gaps  f=Frobenius  t=type  m=mult&#10;s=σ (elts below c)  b=reflected gaps&#10;Q=largest gen  A=max Apéry (f+m)&#10;a[i]=Apéry[i]  q[i]=generator[i]">`,
-     `<td class="value" id="eva-result">${exprVal ?? '—'}</td>`],
-    ['Structure / <span class="has-tip">c<sub>ij</sub><span class="tip">apery(i) + apery(j) − apery((i+j) mod m) / m</span></span>',
-      `<td class="value sg-cell"><div class="sg-slider-row"><label>offset: <span id="sg-offset-val">0</span></label><input type="range" id="sg-offset" min="0" max="${s.m - 1}" value="0"></div><div id="sg-grid-container"></div></td>`],
-    ['Classification (0…f+m)', `<td class="value"><div id="classify">${js_classify_table(s)}</div></td>`, 'classify-row'],
-  ];
-
-  const rowsHtml = detailRows.map(([label, td, cls]) => `<tr${cls ? ` class="${cls}"` : ''}><td class="label">${label}</td>${td}</tr>`).join('');
-
   const resultEl = document.getElementById('result');
-  resultEl.innerHTML = `<table><tbody>${rowsHtml}</tbody></table>`;
+  resultEl.innerHTML =
+    `<div class="eva-row"><input type="text" id="eva-input" value="${expr}" title="Ops: + - * /  (integer)&#10;e=emb.dim  g=gaps  f=Frobenius  t=type  m=mult&#10;s=σ (elts below c)  b=reflected gaps&#10;Q=largest gen  A=max Apéry (f+m)&#10;a[i]=Apéry[i]  q[i]=generator[i]"><span id="eva-result">= ${exprVal ?? '—'}</span><span class="eva-spacer"></span><label>offset: <span id="sg-offset-val">0</span></label><input type="range" id="sg-offset" min="0" max="${s.m - 1}" value="0"></div>` +
+    `<div id="sg-grid-container"></div>` +
+    `<div id="classify" class="classify-row">${js_classify_table(s)}</div>`;
 
   // Live expression evaluator
   document.getElementById('eva-input').addEventListener('input', e => {
     state_set_eva_expr(e.target.value);
-    document.getElementById('eva-result').textContent = eval_expr(e.target.value, s) ?? '—';
+    document.getElementById('eva-result').textContent = `= ${eval_expr(e.target.value, s) ?? '—'}`;
   });
 
   const slider = document.getElementById('sg-offset');
@@ -223,7 +215,7 @@ function render(s, toggle = null) {
   });
 
   document.getElementById('tilt-controls').innerHTML =
-    `<div class="sg-slider-row"><label>tilt: <span id="tilt-tilt-val">0</span></label><input type="range" id="tilt-tilt" min="${-s.m}" max="${s.m}" value="0"></div>`;
+    `<div class="eva-row"><label>tilt: <span id="tilt-tilt-val">0</span></label><input type="range" id="tilt-tilt" min="${-s.m}" max="${s.m}" value="0"></div>`;
   const tiltInput = document.getElementById('tilt-tilt');
   const renderTiltGrid = () => {
     document.getElementById('tilt-grid-container').innerHTML = tilt_table(s, parseInt(tiltInput.value, 10));
@@ -302,7 +294,7 @@ function doToggle(val) {
   const toggle = { sign, cls: js_node_class(currentS, val), n: val, from: state_current_idx() };
   const canonical = newGens.join(', ');
   gensInput.value = canonical;
-  render(state_get(state_push(canonical)), toggle);
+  render(state_get(state_push(canonical)), toggle, `${sign}${val}`);
 }
 
 // Parse the generator input, push to Rust state, and render.
@@ -321,8 +313,10 @@ function compute() {
   gensInput.value = canonical;
 
   setBusy(true);
+  const label = _computeLabel;
+  _computeLabel = '⏎'; // reset for next manual compute
   try {
-    render(state_get(state_push(canonical)));
+    render(state_get(state_push(canonical)), null, label);
     if (!navigating) { history.pushState({ gens: canonical }, '', `?g=${encodeURIComponent(canonical)}`); }
   } catch (e) {
     showError(`Error: ${e.message ?? e}`);
@@ -380,30 +374,48 @@ setupGraphUpto(() => currentS);
 setupShowGaps(() => currentS, () => Number(document.getElementById('graph-upto').value));
 setupGraphToggle(val => doToggle(val));
 
-// Apéry-cell hover: highlight the matching row, column, and anti-diagonal in the Kunz matrix.
+// Apéry-cell / residue-sep hover: highlight Kunz matrix rows, columns, anti-diagonals.
+// Residue-sep hover also highlights column (m-k) mod m as a secondary highlight.
 // Delegates from #result (always in DOM) because #sg-grid-container is created by render().
 {
   const resultEl = document.getElementById('result');
   let activeK = null;
+  let activeSource = null; // 'apery' or 'sep'
 
   const clearHighlight = () => {
     if (activeK === null) { return; }
     activeK = null;
-    document.getElementById('sg-grid-container')
-      ?.querySelectorAll('.kunz-highlight')
-      .forEach(el => el.classList.remove('kunz-highlight'));
+    activeSource = null;
+    const grid = document.getElementById('sg-grid-container');
+    grid?.querySelectorAll('.kunz-highlight, .kunz-highlight-2')
+      .forEach(el => el.classList.remove('kunz-highlight', 'kunz-highlight-2'));
   };
 
   resultEl.addEventListener('mouseover', e => {
-    const td = e.target.closest('.apery-row td[data-k]');
-    const k = td ? td.dataset.k : null;
-    if (k === activeK) { return; }
+    const aperyTd = e.target.closest('.apery-row td[data-k]');
+    const sepTh = !aperyTd ? e.target.closest('.residue-sep[data-k]') : null;
+    const source = aperyTd ? 'apery' : (sepTh ? 'sep' : null);
+    const k = aperyTd ? aperyTd.dataset.k : (sepTh ? sepTh.dataset.k : null);
+    if (k === activeK && source === activeSource) { return; }
     clearHighlight();
-    if (k && state_get_show_kunz()) {
-      activeK = k;
-      document.getElementById('sg-grid-container')
-        ?.querySelectorAll(`td[data-kunz-i="${k}"], td[data-kunz-j="${k}"], td[data-kunz-sum="${k}"]`)
+    if (!k) { return; }
+    activeK = k;
+    activeSource = source;
+    const grid = document.getElementById('sg-grid-container');
+    if (!grid) { return; }
+    if (source === 'apery' && state_get_show_kunz()) {
+      grid.querySelectorAll(`td[data-kunz-i="${k}"], td[data-kunz-j="${k}"], td[data-kunz-sum="${k}"]`)
         .forEach(el => el.classList.add('kunz-highlight'));
+    } else if (source === 'sep') {
+      const m = currentS ? currentS.m : 0;
+      const f = currentS ? currentS.f : 0;
+      const mirror = ((f - Number(k)) % m + m) % m;
+      grid.querySelectorAll(`td[data-kunz-j="${k}"], td[data-res="${k}"]`)
+        .forEach(el => el.classList.add('kunz-highlight'));
+      if (mirror !== Number(k)) {
+        grid.querySelectorAll(`td[data-kunz-j="${mirror}"], td[data-res="${mirror}"]`)
+          .forEach(el => el.classList.add('kunz-highlight-2'));
+      }
     }
   });
 
@@ -461,7 +473,7 @@ document.getElementById('history-tbody').addEventListener('click', e => {
     const canonical = Array.from(s.gen_set).join(', ');
     gensInput.value = canonical;
     switchTab('s');
-    render(state_get(state_push(canonical)));
+    render(state_get(state_push(canonical)), null, '⏎');
     return;
   }
   const span = e.target.closest('span.sg-gen, span.sg-frob, span.sg-pf, span.sg-pf-blob');
@@ -502,11 +514,12 @@ const guardedCompute = guarded(compute);
 
 document.getElementById('random-btn').addEventListener('click', guarded(() => {
   gensInput.value = randNums().join(', ');
+  _computeLabel = 'Rnd';
   compute();
 }));
 
-document.getElementById('random3f-btn').addEventListener('click', guarded(() => randWithMultiplier(3)));
-document.getElementById('random2f-btn').addEventListener('click', guarded(() => randWithMultiplier(2)));
+document.getElementById('random3f-btn').addEventListener('click', guarded(() => { _computeLabel = 'Rnd3m'; randWithMultiplier(3); }));
+document.getElementById('random2f-btn').addEventListener('click', guarded(() => { _computeLabel = 'Rnd2m'; randWithMultiplier(2); }));
 
 // "Symmetric": retry random samples until a symmetric semigroup is found.
 document.getElementById('random-symmetric-btn').addEventListener('click', guarded(() => {
@@ -514,6 +527,7 @@ document.getElementById('random-symmetric-btn').addEventListener('click', guarde
     const nums = randNums();
     if (js_compute(nums.join(', ')).is_symmetric) { // peek without storing
       gensInput.value = nums.join(', ');
+      _computeLabel = 'Sym';
       compute();
       return;
     }
@@ -526,6 +540,7 @@ document.getElementById('random-primes-btn').addEventListener('click', guarded((
   const count = Math.floor(Math.random() * 5) + 4; // 4..8
   const chosen = PRIMES_LIST.slice().sort(() => Math.random() - 0.5).slice(0, count).sort((a, b) => a - b);
   gensInput.value = chosen.join(', ');
+  _computeLabel = 'P';
   compute();
 }));
 
@@ -537,6 +552,7 @@ document.getElementById('tmf-btn').addEventListener('click', guarded(() => {
   else if (nums.length === 1) { [m] = nums; f = 2 * m; }
   else { [m, f] = nums; }
   gensInput.value = [m, ...Array.from({ length: m }, (_, i) => f + 1 + i)].join(', ');
+  _computeLabel = `T(${m},${f})`;
   compute();
 }));
 
@@ -549,23 +565,29 @@ document.getElementById('amdn-btn').addEventListener('click', guarded(() => {
   else if (nums.length === 2) { [m, d] = nums; n = 3; }
   else { [m, d, n] = nums; }
   gensInput.value = Array.from({ length: n + 1 }, (_, i) => m + i * d).join(', ');
+  _computeLabel = `A(${m},${d},${n})`;
   compute();
 }));
 
-function wireGenSetBtn(id, method) {
+function wireGenSetBtn(id, method, label, beforeCompute) {
   document.getElementById(id).addEventListener('click', guarded(() => {
     if (!currentS) { return; }
     const gens = Array.from(currentS[method]());
     if (gens.length === 0) { return; }
     gensInput.value = gens.join(', ');
+    _computeLabel = label;
+    if (beforeCompute) { beforeCompute(); }
     compute();
   }));
 }
 
-wireGenSetBtn('half-btn',      's_over_2');
-wireGenSetBtn('add-pf-btn',    'add_all_pf');
-wireGenSetBtn('add-blobs-btn', 'add_reflected_gaps');
-wireGenSetBtn('selfglue-btn',  'self_glue');
+wireGenSetBtn('half-btn',      's_over_2',           'S/2');
+wireGenSetBtn('add-pf-btn',    'add_all_pf',         '+PF');
+wireGenSetBtn('add-blobs-btn', 'add_reflected_gaps',  '+refl');
+wireGenSetBtn('selfglue-btn',  'self_glue',           'glue', () => {
+  state_set_show_kunz(false);
+  document.getElementById('show-kunz').checked = false;
+});
 
 document.getElementById('compute-btn').addEventListener('click', guardedCompute);
 document.getElementById('reset-btn').addEventListener('click', guarded(() => {

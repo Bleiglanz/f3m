@@ -5,6 +5,12 @@ let _3dCamera = null;    // current PerspectiveCamera (for saving state on teard
 let _3dControls = null;  // current OrbitControls
 let _3dGapMeshes = [];  // cube meshes classified as gaps (for show/hide)
 let _3dSMeshes = [];    // cube meshes classified as semigroup elements (for show/hide)
+
+// ── Flatten animation state ──────────────────────────────────────��──────────
+// States: 'kunz' (3D), 'to-flat', 'flat', 'to-kunz'
+let _3dFlatState = 'kunz';
+let _3dFlatT = 0;           // progress 0→1
+const FLAT_DURATION = 1.2;  // seconds
 // Persisted camera state so toggles/recomputes don't reset the viewpoint.
 let _3dCameraState = null; // { position, target, zoom }
 const _3dHoverLineMat = new THREE.LineBasicMaterial({ color: 0xff8888, linewidth: 2, depthTest: false });
@@ -101,6 +107,11 @@ function textSprite(text, color, size) {
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture }));
   sprite.scale.set(size * 2, size * 0.5, 1);
   return sprite;
+}
+
+// Flat grid position for a value: column = residue, row = quotient.
+function flatPosOf(val, m) {
+  return new THREE.Vector3(val % m + 0.5, Math.floor(val / m) + 0.5, 0);
 }
 
 // (Re-)render the 3D Kunz-coordinate view for any numerical semigroup.
@@ -262,7 +273,9 @@ export function render3d(s, onToggle) {
 
   for (const p of aperyPoints) {
     const tile = aperyTile(String(p.val), p.x, p.y, p.cls);
-    tile.userData = { val: p.val, cls: p.cls };
+    const kunzPos = new THREE.Vector3(p.x + 0.5, p.y + 0.5, 0);
+    const flatPos = flatPosOf(p.val, m);
+    tile.userData = { val: p.val, cls: p.cls, kunzPos, flatPos, isCube: false };
     const gap = isGapClass(p.cls);
     tile.visible = gap ? showGaps : showS;
     scene.add(tile);
@@ -289,7 +302,9 @@ export function render3d(s, onToggle) {
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     mesh.position.set(c.x + 0.5, c.y + 0.5, c.z);
-    mesh.userData = { val: c.val, cls: c.cls };
+    const kunzPos = new THREE.Vector3(c.x + 0.5, c.y + 0.5, c.z);
+    const flatPos = flatPosOf(c.val, m);
+    mesh.userData = { val: c.val, cls: c.cls, kunzPos, flatPos, isCube: true };
     const gap = isGapClass(c.cls);
     mesh.visible = gap ? showGaps : showS;
     scene.add(mesh);
@@ -400,7 +415,15 @@ export function render3d(s, onToggle) {
     pointerDownPos = null;
     if (dx * dx + dy * dy > DRAG_THRESHOLD_SQ) { return; }
     const hit = hitTest(event);
-    if (hit && hit.userData.val != null && onToggle) { onToggle(hit.userData.val); }
+    if (hit && hit.userData.val != null && onToggle) {
+      onToggle(hit.userData.val);
+    } else if (!hit) {
+      // Empty-space click: toggle flatten animation
+      if (_3dFlatState === 'kunz') { _3dFlatState = 'to-flat'; _3dFlatT = 0; }
+      else if (_3dFlatState === 'flat') { _3dFlatState = 'to-kunz'; _3dFlatT = 0; }
+      else if (_3dFlatState === 'to-flat') { _3dFlatState = 'to-kunz'; _3dFlatT = 1 - _3dFlatT; }
+      else if (_3dFlatState === 'to-kunz') { _3dFlatState = 'to-flat'; _3dFlatT = 1 - _3dFlatT; }
+    }
   });
 
   // ── Controls & animation loop ────────────────────────────────────────────
@@ -419,12 +442,40 @@ export function render3d(s, onToggle) {
   _3dCamera = camera;
   _3dControls = controls;
 
-  function animate() {
+  // Reset flatten state on each render3d call
+  _3dFlatState = 'kunz';
+  _3dFlatT = 0;
+  let lastTime = performance.now();
+
+  function animate(now) {
     _3dAnimId = requestAnimationFrame(animate);
+    const dt = (now - lastTime) / 1000;
+    lastTime = now;
+
+    // Flatten/unflatten animation
+    if (_3dFlatState === 'to-flat' || _3dFlatState === 'to-kunz') {
+      _3dFlatT = Math.min(1, _3dFlatT + dt / FLAT_DURATION);
+      // Smooth easing (ease in-out)
+      const ease = _3dFlatT < 0.5
+        ? 2 * _3dFlatT * _3dFlatT
+        : 1 - 2 * (1 - _3dFlatT) * (1 - _3dFlatT);
+      const t = _3dFlatState === 'to-flat' ? ease : 1 - ease;
+      for (const mesh of clickable) {
+        const {kunzPos, flatPos, isCube} = mesh.userData;
+        mesh.position.lerpVectors(kunzPos, flatPos, t);
+        // Cubes shrink z-height to a thin disc when flat
+        if (isCube) { mesh.scale.z = 1 - t * 0.95; }
+      }
+      if (_3dFlatT >= 1) {
+        _3dFlatState = _3dFlatState === 'to-flat' ? 'flat' : 'kunz';
+        _3dFlatT = 0;
+      }
+    }
+
     controls.update();
     renderer.render(scene, camera);
   }
-  animate();
+  animate(performance.now());
 }
 
 // Keep the 3D canvas square and resize the renderer when the wrapper is dragged.

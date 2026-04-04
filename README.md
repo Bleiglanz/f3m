@@ -36,6 +36,8 @@ A color-coded layout of elements and gaps, with an Apéry row and Kunz coefficie
 | `sg-pf` | Pseudo-Frobenius number |
 | `sg-in` | Element of the semigroup |
 | `sg-out` | Gap |
+| `sg-blob` | Reflected gap (both n and f−n are gaps) |
+| `sg-pf-blob` | Pseudo-Frobenius number that is also a reflected gap |
 
 ### Tabs
 
@@ -44,10 +46,12 @@ A color-coded layout of elements and gaps, with an Apéry row and Kunz coefficie
 | Semigroup | Structure grid, Kunz matrix, classification table, expression evaluator |
 | History | All computed semigroups in a sortable summary table |
 | Graph | Cayley graph up to a configurable bound; click a node to toggle it |
-| 3dview | 3D Kunz-coordinate view; hover a cube to see lines n→f and f→(f−n); click to toggle; resizable |
+| 3dview | 3D Kunz-coordinate view; hover a cube to see lines n→f and f→(f−n); click to toggle; click empty space to flatten/unflatten; resizable |
 | Tilt | Sheared grid view with tilt slider |
 | GAP | Auto-generated [GAP](https://gap-packages.github.io/numericalsgps/) verification script |
 | .csv | History table in CSV format with a final *generators* column |
+| LaTeX | Editable LaTeX source with live KaTeX preview of semigroup properties |
+| Help | Interactive reference with current semigroup details |
 
 ### Toolbar buttons
 
@@ -78,7 +82,7 @@ These appear in the toolbar (after the separator) when applicable:
 
 Every computed semigroup is appended to a summary table with rows labelled S₀, S₁, … The last column shows the set-containment relation (⊂, =, ⊃, ?) between the new entry and the previous one. Click a row number to restore that semigroup as the current input.
 
-Summary columns: **m** multiplicity, **f** Frobenius number, **e** embedding dimension, **g** genus (gaps), **σ** number of semigroup elements below the conductor, **b** number of reflected gaps, **t** type, **Sym** symmetric?, **gen** generators, **PF** pseudo-Frobenius numbers, **SPF** special pseudo-Frobenius, **Wilf** Wilf quotient σ/(f+1).
+Summary columns: **#** index:label, **toggle** set operation, **m** multiplicity, **f** Frobenius number, **e** embedding dimension, **g** genus (gaps), **σ** semigroup elements below the conductor, **b** reflected gaps, **t** type, **Sym** symmetric?, **gen** generators, **PF** pseudo-Frobenius numbers, **SPF** special pseudo-Frobenius, **Wilf** Wilf quotient σ/(f+1), **1/e** Wilf conjecture lower bound, **expr** expression, **value** evaluated result, **⊆?** set-containment relation.
 
 The GAP tab accumulates a full [GAP](https://gap-packages.github.io/numericalsgps/) script for all entries that can be verified with the `NumericalSgps` package. A **Copy** button copies it to the clipboard.
 
@@ -86,7 +90,7 @@ The GAP tab accumulates a full [GAP](https://gap-packages.github.io/numericalsgp
 
 - Click any element in the structure grid to toggle it as a generator (add gap / remove generator).
 - Click any node in the Graph tab to toggle it.
-- Click any cube in the 3dview tab to toggle it.
+- Click any cube in the 3dview tab to toggle it. Click empty space to flatten/unflatten the view.
 - Click any Frobenius or PF span in the properties table to toggle it.
 - Browser Back / Forward restores previous computations via the URL (`?g=…`).
 
@@ -105,6 +109,8 @@ The properties table contains an input field that evaluates an arithmetic expres
 | `e` | Embedding dimension |
 | `g` | Number of gaps (genus) |
 | `t` | Type |
+| `s` | σ — semigroup elements below the conductor |
+| `b` | Number of reflected gaps |
 | `Q` | Largest minimal generator (denoted *ae* in the literature) |
 | `A` | Largest Apéry element (= f + m) |
 

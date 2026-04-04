@@ -272,37 +272,46 @@ span[data-remove-gen]     { cursor: pointer; }
 .apery-table td.sg-frob  { background: #ffd6d3; color: #7a1008; }
 
 /* ─── Structure/Kunz Grid ───────────────────────────────────────── */
-.sg-cell { padding: 0.4rem 1rem; }
 
-.sg-slider-row {
+.eva-row {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
   margin-bottom: 0.5rem;
   font-family: var(--mono);
   font-size: 0.82rem;
   color: var(--label);
 }
+.eva-row input[type="text"] {
+  width: 12em;
+  padding: 0.25rem 0.5rem;
+  font-family: var(--mono);
+  font-size: 0.82rem;
+}
+#eva-result {
+  font-weight: 600;
+  white-space: nowrap;
+}
+.eva-spacer { flex: 1; }
 
-.sg-slider-row input[type="range"] {
-  flex: 1;
+.eva-row input[type="range"] {
   max-width: 180px;
   appearance: none;
   -webkit-appearance: none;
   background: transparent;
   height: 1.2em;
 }
-.sg-slider-row input[type="range"]::-webkit-slider-runnable-track {
+.eva-row input[type="range"]::-webkit-slider-runnable-track {
   height: 2px;
   background: var(--border);
   border-radius: 1px;
 }
-.sg-slider-row input[type="range"]::-moz-range-track {
+.eva-row input[type="range"]::-moz-range-track {
   height: 2px;
   background: var(--border);
   border-radius: 1px;
 }
-.sg-slider-row input[type="range"]::-webkit-slider-thumb {
+.eva-row input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 14px;
   height: 14px;
@@ -311,7 +320,7 @@ span[data-remove-gen]     { cursor: pointer; }
   margin-top: -6px;
   cursor: pointer;
 }
-.sg-slider-row input[type="range"]::-moz-range-thumb {
+.eva-row input[type="range"]::-moz-range-thumb {
   width: 14px;
   height: 14px;
   border-radius: 50%;
@@ -344,6 +353,9 @@ span[data-remove-gen]     { cursor: pointer; }
 .sg-grid span[data-n]:hover { filter: brightness(0.88); }
 
 .sg-grid td.kunz-highlight { background: rgba(255, 150, 30, 0.22) !important; }
+.sg-grid td.kunz-highlight-2 { background: rgba(30, 130, 255, 0.18) !important; }
+.residue-sep-row th { cursor: default; }
+.residue-sep-row th:hover { background: rgba(255, 150, 30, 0.25); }
 
 .sg-grid td:has(span.sg-in),
 .sg-grid td:has(span.sg-gen),
@@ -499,7 +511,7 @@ body.hide-s .sg-grid span.sg-gen,
 body.hide-s .sg-grid span.sg-apery,
 body.hide-s .sg-grid span.sg-large { opacity: 0; }
 
-body.hide-classification tr.classify-row { display: none; }
+body.hide-classification .classify-row { display: none; }
 
 /* ─── Checkbox Strip ────────────────────────────────────────────── */
 .checkbox-strip {
@@ -720,5 +732,5 @@ footer a:hover { color: var(--text); }
   td.value { font-size: 0.85rem; }
 
   .has-tip .tip { max-width: min(88vw, 320px); }
-  .sg-slider-row input[type="range"] { max-width: 120px; }
+  .eva-row input[type="range"] { max-width: 120px; }
 }

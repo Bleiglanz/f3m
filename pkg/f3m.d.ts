@@ -48,7 +48,8 @@ export function combined_table(s: JsSemigroup, offset: number, tilt: number, sho
  * Replace a[expr], q[expr] and scalars in `expr` with semigroup values:
  *   a[i] → i-th Apéry number (0 if i≥m),  q[i] → i-th generator (0 if i≥e)
  *   e=embedding dim, g=gaps, f=Frobenius, t=type, m=multiplicity,
- *   Q=largest generator (max gen), A=max Apéry element (= f+m)
+ *   Q=largest generator (max gen), A=max Apéry element (= f+m),
+ *   s=σ (elements below conductor), b=reflected gap count
  * Index expressions are evaluated recursively. Returns None on any error.
  */
 export function eval_expr(expr: string, s: JsSemigroup): number | undefined;
@@ -223,10 +224,9 @@ export interface InitOutput {
     readonly jssemigroup_type_t: (a: number) => number;
     readonly jssemigroup_wilf: (a: number) => number;
     readonly eval_expr: (a: number, b: number, c: number) => number;
+    readonly tilt_table: (a: number, b: number) => [number, number];
     readonly shortprop: (a: number) => [number, number];
     readonly shortprop_tds: (a: number) => [number, number];
-    readonly tilt_table: (a: number, b: number) => [number, number];
-    readonly combined_table: (a: number, b: number, c: number, d: number) => [number, number];
     readonly js_graph_edge_pairs: (a: number, b: number) => [number, number];
     readonly js_graph_edges_text: (a: number, b: number) => [number, number];
     readonly js_graph_node_ids: (a: number, b: number) => [number, number];
@@ -248,6 +248,7 @@ export interface InitOutput {
     readonly state_current_idx: () => number;
     readonly state_set_current_idx: (a: number) => void;
     readonly state_len: () => number;
+    readonly combined_table: (a: number, b: number, c: number, d: number) => [number, number];
     readonly __wbindgen_externrefs: WebAssembly.Table;
     readonly __wbindgen_free: (a: number, b: number, c: number) => void;
     readonly __wbindgen_malloc: (a: number, b: number) => number;

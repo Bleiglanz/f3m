@@ -36,9 +36,10 @@ fn popup_cell(left: bool, count: usize, content: &str) -> String {
     )
 }
 
-/// Render the ten data `<td>` cells shared by the compact summary row and history table rows:
-/// m, f, e, g, c-g, t, Sym, gen, PF, SPF — in that order.
+/// Render the data `<td>` cells shared by the compact summary row and history table rows:
+/// m, f, e, g, σ, b, t, Sym, gen, PF, SPF, Wilf — in that order.
 /// gen, PF and (when non-zero) SPF show counts with a hover popup listing the actual values.
+#[allow(clippy::cast_precision_loss)]
 pub(super) fn shortprop_cells(sg: &Semigroup) -> String {
     let ((pf, t), (spf_vec, st)) = sg.pseudo_and_special();
     let fmt_spans = |items: &[usize], cls: &str| -> String {
@@ -59,20 +60,25 @@ pub(super) fn shortprop_cells(sg: &Semigroup) -> String {
     } else {
         "<td>0</td>".to_string()
     };
+    let b = sg.blob().len();
     format!(
         "<td>{m}</td><td>{f}</td><td>{e}</td><td>{g}</td><td>{cg}</td>\
-         <td>{t}</td><td>{sym}</td>{gen_td}{pf_td}{spf_td}",
+         <td>{b}</td><td>{t}</td><td>{sym}</td>{gen_td}{pf_td}{spf_td}\
+         <td>{wilf:.4}</td><td>{inv_e:.4}</td>",
         m = sg.m,
         f = fmt_spans(&[sg.f], "sg-frob"),
         e = sg.e,
         g = sg.count_gap,
         cg = sg.count_set,
+        b = b,
         t = t,
         sym = if sg.is_symmetric() {
             "\u{2705}"
         } else {
             "\u{1F6AB}"
         },
+        wilf = sg.wilf(),
+        inv_e = 1.0 / sg.e as f64,
     )
 }
 
@@ -82,8 +88,8 @@ pub(super) fn shortprop_cells(sg: &Semigroup) -> String {
 pub fn shortprop(s: &JsSemigroup) -> String {
     format!(
         "<table class=\"shortprop-table\"><thead><tr>\
-         <th>m</th><th>f</th><th>e</th><th>g</th><th>c-g</th><th>t</th><th>Sym</th>\
-         <th>gen</th><th>PF</th><th>SPF</th>\
+         <th>m</th><th>f</th><th>e</th><th>g</th><th>\u{03C3}</th><th>b</th><th>t</th><th>Sym</th>\
+         <th>gen</th><th>PF</th><th>SPF</th><th>Wilf</th><th>1/e</th>\
          </tr></thead><tbody><tr>{}</tr></tbody></table>",
         shortprop_cells(&s.0)
     )

@@ -237,7 +237,8 @@ export function combined_table(s, offset, tilt, show_kunz) {
  * Replace a[expr], q[expr] and scalars in `expr` with semigroup values:
  *   a[i] → i-th Apéry number (0 if i≥m),  q[i] → i-th generator (0 if i≥e)
  *   e=embedding dim, g=gaps, f=Frobenius, t=type, m=multiplicity,
- *   Q=largest generator (max gen), A=max Apéry element (= f+m)
+ *   Q=largest generator (max gen), A=max Apéry element (= f+m),
+ *   s=σ (elements below conductor), b=reflected gap count
  * Index expressions are evaluated recursively. Returns None on any error.
  * @param {string} expr
  * @param {JsSemigroup} s

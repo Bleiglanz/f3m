@@ -79,5 +79,42 @@ if there are two numbers: let the new input be <m,km+1,km+2,...,km+m-1>, do this
 
 34) [DONE] the hover divs for pf and spf do not work correctly, should be identical in shortprops and history, hover should appear fast (0.1ms) - the div might be bigger
 
+replace the "c-g" in the shortprops header by a greek sigma U+03C3
+
+next to the "c-g" insert a colum "b" - it shows the number of reflected elements (remove the line from the structure table)
+
+also remove the largest generator line from the property table
+
+the reset button should simply clear the input box
+
+after the "enter" and "reset" we should start a newline for all the generating buttons
+
+also remove the embedding dimension line from the structure table
+
+add a last column "Wilf" to the shortprops table and histry that show the Wilf quotient
+
+
+
+
+
+
+Animation: suppose the user clicks somewhere in the 3dview (in the empty)
+
+an animation should start that moves every cube to its box in the plane (meaning the number n=kunz(n) * m + residue(n) represented in the plane)
+
+the speed should be so that all cubes arrive at the same time
+
+while they move, there height goes linearly to zero
+
+another click in the empty should reverse this animation
+
+and a click while the animation is running should stop it and move everything back to original
+
+
+
+
+
+
+
 
 

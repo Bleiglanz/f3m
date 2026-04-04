@@ -60,6 +60,13 @@ p.subtitle {
   width: 100%;
   max-width: 760px;
 }
+.input-row + .gen-row {
+  margin-top: -1rem;
+}
+.gen-row button {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.8rem;
+}
 
 input[type="text"] {
   flex: 1;
@@ -98,18 +105,15 @@ button {
 button:hover { background: #444; }
 button:active { transform: scale(0.97); }
 
-.btn-muted {
+.btn-sep {
+  width: 1px;
+  align-self: stretch;
+  background: var(--border);
+}
+.btn-mod {
   background: #9a9a9a;
-  font-size: 0.78rem;
-  padding: 0.3rem 0.7rem;
 }
-.btn-muted:hover { background: #777; }
-
-.extra-btns-row {
-  display: flex;
-  gap: 0.4rem;
-  margin-bottom: 0.5rem;
-}
+.btn-mod:hover { background: #777; }
 
 /* ─── Status Banners ────────────────────────────────────────────── */
 #busy-banner {

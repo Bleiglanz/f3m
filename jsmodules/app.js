@@ -9,7 +9,7 @@ import init, {
 import { render3d } from './view3d.js';
 import { rebuildGraph, setupGraphUpto, setupShowGaps, setupGraphToggle } from './graph.js';
 
-const PROP_THEAD_TR = '<tr><th>#</th><th>toggle</th><th>m</th><th>f</th><th>e</th><th>g</th><th style="white-space:nowrap">c&#8209;g</th><th>t</th><th>Sym</th><th>gen</th><th>PF</th><th>SPF</th><th>expr</th><th>value</th><th>&#8838;?</th></tr>';
+const PROP_THEAD_TR = '<tr><th>#</th><th>toggle</th><th>m</th><th>f</th><th>e</th><th>g</th><th>\u03C3</th><th>b</th><th>t</th><th>Sym</th><th>gen</th><th>PF</th><th>SPF</th><th>Wilf</th><th>1/e</th><th>expr</th><th>value</th><th>&#8838;?</th></tr>';
 
 const PRIMES_LIST = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97];
 
@@ -135,7 +135,7 @@ function cellText(td) {
 
 // Build CSV text from the current history table and write it to #csv-output.
 function buildCsv() {
-  const CSV_HEADER = '#,toggle,m,f,e,g,c-g,t,Sym,gen,PF,SPF,expr,value,⊆?,generators';
+  const CSV_HEADER = '#,toggle,m,f,e,g,σ,b,t,Sym,gen,PF,SPF,Wilf,1/e,expr,value,⊆?,generators';
   const rows = Array.from(document.querySelectorAll('#history-tbody tr'));
   const lines = rows.map(tr => {
     const cells = Array.from(tr.cells).map(td => csvField(cellText(td))).join(',');
@@ -194,12 +194,8 @@ function render(s, toggle = null) {
   }
 
   const detailRows = [
-    ['Wilf&nbsp;sporadic/(f+1)', `<td class="value">${s.wilf.toFixed(4)} &gt;= ${(1 / s.e).toFixed(4)}</td>`],
-    ['Embedding&nbsp;dimension&nbsp;(e)', `<td class="value">${s.e}</td>`],
-    [`<input type="text" id="eva-input" value="${expr}" style="width:100%" title="Ops: + - * /  (integer)&#10;e=emb.dim  g=gaps  f=Frobenius  t=type  m=mult&#10;Q=largest gen  A=max Apéry (f+m)&#10;a[i]=Apéry[i]  q[i]=generator[i]">`,
+    [`<input type="text" id="eva-input" value="${expr}" style="width:100%" title="Ops: + - * /  (integer)&#10;e=emb.dim  g=gaps  f=Frobenius  t=type  m=mult&#10;s=σ (elts below c)  b=reflected gaps&#10;Q=largest gen  A=max Apéry (f+m)&#10;a[i]=Apéry[i]  q[i]=generator[i]">`,
      `<td class="value" id="eva-result">${exprVal ?? '—'}</td>`],
-    ['# reflected&nbsp;gaps', tipCell(blobs.length, blobs.join(', '))],
-    ['Largest generator (ae)', `<td class="value"><span class="sg-gen">${s.max_gen}</span></td>`],
     ['Structure / <span class="has-tip">c<sub>ij</sub><span class="tip">apery(i) + apery(j) − apery((i+j) mod m) / m</span></span>',
       `<td class="value sg-cell"><div class="sg-slider-row"><label>offset: <span id="sg-offset-val">0</span></label><input type="range" id="sg-offset" min="0" max="${s.m - 1}" value="0"></div><div id="sg-grid-container"></div></td>`],
     ['Classification (0…f+m)', `<td class="value"><div id="classify">${js_classify_table(s)}</div></td>`, 'classify-row'],
@@ -533,17 +529,6 @@ document.getElementById('random-primes-btn').addEventListener('click', guarded((
   compute();
 }));
 
-// "H(m,k)": generate semigroup <m, km+1, km+2, ..., km+m-1>.
-document.getElementById('hmk-btn').addEventListener('click', guarded(() => {
-  const nums = parseGens(gensInput.value);
-  let m, k;
-  if (nums.length === 0) { m = 2; k = 3; }
-  else if (nums.length === 1) { [m] = nums; k = 1; }
-  else { [m, k] = nums; }
-  gensInput.value = [m, ...Array.from({ length: m - 1 }, (_, i) => k * m + 1 + i)].join(', ');
-  compute();
-}));
-
 // "T(m,f)": generate semigroup <m, f+1, f+2, ..., f+m>; default f=2m when only m given.
 document.getElementById('tmf-btn').addEventListener('click', guarded(() => {
   const nums = parseGens(gensInput.value);
@@ -584,8 +569,7 @@ wireGenSetBtn('selfglue-btn',  'self_glue');
 
 document.getElementById('compute-btn').addEventListener('click', guardedCompute);
 document.getElementById('reset-btn').addEventListener('click', guarded(() => {
-  gensInput.value = '6, 9, 20';
-  compute();
+  gensInput.value = '';
 }));
 gensInput.addEventListener('keydown', e => { if (e.key === 'Enter') { guardedCompute(); } });
 

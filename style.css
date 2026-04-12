@@ -172,6 +172,7 @@ button:active { transform: scale(0.97); }
 
 .tab-content { display: none; width: 100%; max-width: 860px; }
 .tab-content.active { display: block; }
+#tab-s { max-width: 95vw; }
 
 #tab-graph,
 #tab-gapgraph {
@@ -333,19 +334,20 @@ span[data-remove-gen]     { cursor: pointer; }
   border-collapse: collapse;
   font-size: 0.78rem;
   font-family: var(--mono);
+  width: auto;
 }
 
 .sg-grid td {
-  width: 2.4em;
   height: 2em;
   text-align: center;
   border: 1px solid #ccc;
   padding: 0;
+  white-space: nowrap;
 }
 
 .sg-grid span[data-n] {
   display: block;
-  padding: 0.2rem 0.3rem;
+  padding: 0.2rem 0.15rem;
   cursor: pointer;
   transition: filter 0.1s;
 }

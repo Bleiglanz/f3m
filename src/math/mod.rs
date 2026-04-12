@@ -36,7 +36,7 @@ pub fn gcd_vec(numbers: &[usize]) -> usize {
 /// # Panics
 /// Panics if `input` is empty or all-zero (no valid multiplicity).
 #[must_use]
-#[allow(clippy::cast_possible_wrap)] // window stores usize values as isize sentinels
+#[allow(clippy::cast_possible_wrap, clippy::too_many_lines)]
 pub fn compute(input: &[usize]) -> Semigroup {
     let d = gcd_vec(input);
     let mut inputnumbers: Vec<usize> = input.iter().map(|x| x / d).collect();
@@ -131,22 +131,29 @@ pub fn compute(input: &[usize]) -> Semigroup {
         !element(n) && genset.iter().all(|a|element(*a+n))
     };
 
-    let refl_gap_count = (1..max_apery-m).filter(|x| reflected_gap(*x)).count();
+    let reflected_gap_count = (1..max_apery-m).filter(|x| reflected_gap(*x)).count();
 
     let ra = aperyset[1..].iter().filter(|x|  reflected_gap(**x-m)).count();
 
     let pf_set:Vec<usize> = aperyset[1..].iter().filter(|x|pseudo_frobenius(**x-m)).map(|x|*x-m).collect();
 
     let type_count:usize = pf_set.len();
+    
+    let is_fundamental_gap = |n:usize|-> bool {
+        !element(n) && (2..=max_apery/n).all(|x|element(x*n))
+    };
 
+    let fg = (1..max_apery-m).filter(|x| is_fundamental_gap(*x)).count();
+    
     Semigroup {
         e: minimal_generators,
         f: max_apery - m,
         m,
         t: type_count,
-        r: refl_gap_count,
+        r: reflected_gap_count,
         ae: max_atom,
         ra,
+        fg,
         count_set: count_set - m,
         count_gap: (sum_apery - ((m - 1) * m) / 2) / m,
         max_gen: *genset.iter().max().unwrap(),

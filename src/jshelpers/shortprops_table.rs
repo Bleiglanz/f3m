@@ -37,7 +37,7 @@ fn popup_cell(left: bool, count: usize, content: &str) -> String {
 }
 
 /// Render the data `<td>` cells shared by the compact summary row and history table rows:
-/// m, f, e, g, σ, r, t, Sym, gen, PF, SPF, Wilf — in that order.
+/// m, f, e, g, σ, r, ra, fg, t, Sym, gen, PF, SPF, Wilf — in that order.
 /// gen, PF and (when non-zero) SPF show counts with a hover popup listing the actual values.
 #[allow(clippy::cast_precision_loss)]
 pub(super) fn shortprop_cells(sg: &Semigroup) -> String {
@@ -63,7 +63,8 @@ pub(super) fn shortprop_cells(sg: &Semigroup) -> String {
     let r = sg.r;
     format!(
         "<td>{m}</td><td>{f}</td><td>{e}</td><td>{g}</td><td>{cg}</td>\
-         <td>{r}</td><td>{t}</td><td>{sym}</td>{gen_td}{pf_td}{spf_td}\
+         <td>{r}</td><td>{ra}</td><td>{fg}</td><td>{t}</td><td>{sym}</td>\
+         {gen_td}{pf_td}{spf_td}\
          <td>{wilf:.4}</td><td>{inv_e:.4}</td>",
         m = sg.m,
         f = fmt_spans(&[sg.f], "sg-frob"),
@@ -71,6 +72,8 @@ pub(super) fn shortprop_cells(sg: &Semigroup) -> String {
         g = sg.count_gap,
         cg = sg.count_set,
         r = r,
+        ra = sg.ra,
+        fg = sg.fg,
         t = t,
         sym = if sg.is_symmetric() {
             "\u{2705}"
@@ -94,6 +97,8 @@ pub fn shortprop(s: &JsSemigroup) -> String {
          <th title=\"Genus: number of gaps\">g</th>\
          <th title=\"Sporadic elements: elements of S below the conductor f+1\">\u{03C3}</th>\
          <th title=\"Reflected gaps: gaps n where f\u{2212}n is also a gap\">r</th>\
+         <th title=\"Reflected Ap\u{00E9}ry: Ap\u{00E9}ry elements w where w\u{2212}m is a reflected gap\">ra</th>\
+         <th title=\"Fundamental gaps: gaps not expressible as sum of two smaller gaps\">fg</th>\
          <th title=\"Type: number of pseudo-Frobenius numbers\">t</th>\
          <th title=\"Symmetric: t=1 and g=(f+1)/2\">Sym</th>\
          <th title=\"Minimal generators\">gen</th>\

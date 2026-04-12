@@ -206,7 +206,8 @@ pub fn js_cmp_semigroups(s1: &JsSemigroup, s2: &JsSemigroup) -> String {
 }
 
 /// Returns an HTML table mapping each integer 0..=f+m to its classification,
-/// with a third "Diff" column showing SPF generator-difference expressions.
+/// with a "Diff" column showing all representations of n as a difference of
+/// two Apéry elements: `w_i` − `w_j` = n.
 #[wasm_bindgen]
 #[must_use]
 pub fn js_classify_table(s: &JsSemigroup) -> String {
@@ -227,12 +228,30 @@ pub fn js_classify_table(s: &JsSemigroup) -> String {
         )
     };
 
-    // Build a map from SPF value → diff expression string (e.g. "=11-4=13-6")
-    let (_, (spf, _)) = sg.pseudo_and_special();
-    let mut spf_diff: HashMap<usize, String> = HashMap::new();
-    for &(diff, (i, j)) in &spf {
-        let entry = spf_diff.entry(diff).or_default();
-        entry.push_str(&spf_pair(sg.gen_set[i], sg.gen_set[j], true));
+    // Build a map: difference → list of "w_i−w_j" expression strings.
+    // Skip j=0 (trivial w_i−0 = w_i). Use sg-gen style for Apéry elements
+    // that are also minimal generators.
+    let ap = &sg.apery_set;
+    let ap_cls = |v: usize| {
+        if sets.gens.contains(&v) { "sg-gen" } else { "sg-apery" }
+    };
+    let mut apery_diffs: HashMap<usize, String> = HashMap::new();
+    for (i, &wi) in ap.iter().enumerate().skip(1) {
+        for (j, &wj) in ap.iter().enumerate().skip(1) {
+            if i != j && wi > wj {
+                let diff = wi - wj;
+                let entry = apery_diffs.entry(diff).or_default();
+                if !entry.is_empty() {
+                    entry.push(' ');
+                }
+                let _ = write!(
+                    entry,
+                    "{}−{}",
+                    span(ap_cls(wi), wi, false),
+                    span(ap_cls(wj), wj, false),
+                );
+            }
+        }
     }
 
     let mut out = String::from(
@@ -254,14 +273,31 @@ pub fn js_classify_table(s: &JsSemigroup) -> String {
             "reflected gap" => "cl-reflect",
             _ => "cl-gap",
         };
-        let diff_cell = spf_diff.get(&n).map_or("", String::as_str);
+        let diff_cell = apery_diffs.get(&n).map_or("", String::as_str);
         let _ = write!(
             out,
-            "<tr><td class=\"cl-n\">{n_span}</td><td class=\"{cls}\">{label}</td><td class=\"cl-diff\">{diff_cell}</td></tr>",
+            "<tr><td class=\"cl-n\">{n_span}</td><td class=\"{cls}\">{label}</td>\
+             <td class=\"cl-diff\">{diff_cell}</td></tr>",
         );
     }
     out.push_str("</tbody></table>");
     out
+}
+
+/// Return `p_n` and all primes > `p_n` up to `5·p_n` (1-indexed: n=1 → `p_1`=2).
+#[wasm_bindgen]
+#[must_use]
+#[allow(clippy::cast_possible_truncation)]
+pub fn js_rolf_primes(n: usize) -> Vec<u32> {
+    let idx = n.max(1);
+    let upper = primal::estimate_nth_prime(idx as u64).1 as usize;
+    let sieve = primal::Sieve::new(upper * 5);
+    let pn = sieve.primes_from(0).nth(idx - 1).unwrap_or(2);
+    sieve
+        .primes_from(pn)
+        .take_while(|&p| p <= 5 * pn)
+        .map(|p| p as u32)
+        .collect()
 }
 
 /// Return the GAP assertion block for a single semigroup, numbered `idx`.

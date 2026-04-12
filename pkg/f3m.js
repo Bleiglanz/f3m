@@ -238,7 +238,7 @@ export function combined_table(s, offset, tilt, show_kunz) {
  *   a[i] → i-th Apéry number (0 if i≥m),  q[i] → i-th generator (0 if i≥e)
  *   e=embedding dim, g=gaps, f=Frobenius, t=type, m=multiplicity,
  *   Q=largest generator (max gen), A=max Apéry element (= f+m),
- *   s=σ (elements below conductor), b=reflected gap count
+ *   s=σ (elements below conductor), r=reflected gap count
  * Index expressions are evaluated recursively. Returns None on any error.
  * @param {string} expr
  * @param {JsSemigroup} s
@@ -286,7 +286,8 @@ export function gap_header() {
 
 /**
  * Returns an HTML table mapping each integer 0..=f+m to its classification,
- * with a third "Diff" column showing SPF generator-difference expressions.
+ * with a "Diff" column showing all representations of n as a difference of
+ * two Apéry elements: `w_i` − `w_j` = n.
  * @param {JsSemigroup} s
  * @returns {string}
  */
@@ -423,6 +424,18 @@ export function js_node_class(s, n) {
     } finally {
         wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
     }
+}
+
+/**
+ * Return `p_n` and all primes > `p_n` up to `5·p_n` (1-indexed: n=1 → `p_1`=2).
+ * @param {number} n
+ * @returns {Uint32Array}
+ */
+export function js_rolf_primes(n) {
+    const ret = wasm.js_rolf_primes(n);
+    var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+    return v1;
 }
 
 /**

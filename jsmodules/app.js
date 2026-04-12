@@ -1,7 +1,7 @@
 import init, {
   js_compute, combined_table, tilt_table, shortprop_tds, eval_expr,
-  js_graph_edges_text, js_node_class, js_classify_table,
-  state_push, state_get, state_current_idx, state_set_current_idx,
+  js_graph_edges_text, js_node_class, js_classify_table, js_rolf_primes,
+  state_push, state_get, state_len, state_current_idx, state_set_current_idx,
   state_get_eva_expr, state_set_eva_expr, state_gap_output, state_cmp,
   state_get_show_kunz, state_set_show_kunz,
   state_set_show_classification,
@@ -9,7 +9,7 @@ import init, {
 import { render3d } from './view3d.js';
 import { rebuildGraph, setupGraphUpto, setupShowGaps, setupGraphToggle } from './graph.js';
 
-const PROP_THEAD_TR = '<tr><th title="Index and operation label">#</th><th title="Generator added (+) or removed (\u2212)">toggle</th><th title="Multiplicity: smallest positive element">m</th><th title="Frobenius number: largest gap">f</th><th title="Embedding dimension: number of minimal generators">e</th><th title="Genus: number of gaps">g</th><th title="Sporadic elements: elements of S below the conductor f+1">\u03C3</th><th title="Reflected gaps: gaps n where f\u2212n is also a gap">r</th><th title="Type: number of pseudo-Frobenius numbers">t</th><th title="Symmetric: t=1 and g=(f+1)/2">Sym</th><th title="Minimal generators">gen</th><th title="Pseudo-Frobenius numbers: maximals of \u2124 \u2216 S">PF</th><th title="Special pseudo-Frobenius: PF that are differences of generators">SPF</th><th title="Wilf quotient: \u03C3/(f+1) \u2265 1/e (conjecture)">Wilf</th><th title="Wilf conjecture lower bound: 1/e">1/e</th><th title="Expression evaluated for this semigroup">expr</th><th title="Result of the expression">value</th><th title="Set-containment relation with previous entry">&#8838;?</th></tr>';
+const PROP_THEAD_TR = '<tr><th title="Index and operation label">#</th><th title="Generator added (+) or removed (\u2212)">toggle</th><th title="Multiplicity: smallest positive element">m</th><th title="Frobenius number: largest gap">f</th><th title="Embedding dimension: number of minimal generators">e</th><th title="Genus: number of gaps">g</th><th title="Sporadic elements: elements of S below the conductor f+1">\u03C3</th><th title="Reflected gaps: gaps n where f\u2212n is also a gap">r</th><th title="Reflected Ap\u00E9ry: Ap\u00E9ry elements w where w\u2212m is a reflected gap">ra</th><th title="Fundamental gaps: gaps not expressible as sum of two smaller gaps">fg</th><th title="Type: number of pseudo-Frobenius numbers">t</th><th title="Symmetric: t=1 and g=(f+1)/2">Sym</th><th title="Minimal generators">gen</th><th title="Pseudo-Frobenius numbers: maximals of \u2124 \u2216 S">PF</th><th title="Special pseudo-Frobenius: PF that are differences of generators">SPF</th><th title="Wilf quotient: \u03C3/(f+1) \u2265 1/e (conjecture)">Wilf</th><th title="Wilf conjecture lower bound: 1/e">1/e</th><th title="Expression evaluated for this semigroup">expr</th><th title="Result of the expression">value</th><th title="Set-containment relation with previous entry">&#8838;?</th></tr>';
 
 const PRIMES_LIST = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97];
 
@@ -139,7 +139,7 @@ function cellText(td) {
 
 // Build CSV text from the current history table and write it to #csv-output.
 function buildCsv() {
-  const CSV_HEADER = '#,toggle,m,f,e,g,σ,r,t,Sym,gen,PF,SPF,Wilf,1/e,expr,value,⊆?,generators';
+  const CSV_HEADER = '#,toggle,m,f,e,g,σ,r,ra,fg,t,Sym,gen,PF,SPF,Wilf,1/e,expr,value,⊆?,generators';
   const rows = Array.from(document.querySelectorAll('#history-tbody tr'));
   const lines = rows.map(tr => {
     const cells = Array.from(tr.cells).map(td => csvField(cellText(td))).join(',');
@@ -175,9 +175,15 @@ function render(s, toggle = null, label = '⏎') {
     : '—';
   const rowHtml = historyRow(s, idx, label, toggle, expr, exprVal, cmp);
 
-  // History tab
-  document.getElementById('history-tbody').insertAdjacentHTML('beforeend', rowHtml);
-  document.getElementById('history-gap').textContent = state_gap_output();
+  // History tab — skip append when restoring via back/forward
+  if (!navigating) {
+    const histTbody = document.getElementById('history-tbody');
+    if (idx > 0 && idx % 10 === 0) {
+      histTbody.insertAdjacentHTML('beforeend', PROP_THEAD_TR);
+    }
+    histTbody.insertAdjacentHTML('beforeend', rowHtml);
+    document.getElementById('history-gap').textContent = state_gap_output();
+  }
 
   // Top property row + graph tab
   document.getElementById('current-prop-tbody').innerHTML = rowHtml;
@@ -294,7 +300,9 @@ function doToggle(val) {
   const toggle = { sign, cls: js_node_class(currentS, val), n: val, from: state_current_idx() };
   const canonical = newGens.join(', ');
   gensInput.value = canonical;
-  render(state_get(state_push(canonical)), toggle, `${sign}${val}`);
+  const idx = state_push(canonical);
+  render(state_get(idx), toggle, `${sign}${val}`);
+  history.pushState({ gens: canonical, idx }, '', `?g=${encodeURIComponent(canonical)}`);
 }
 
 // Parse the generator input, push to Rust state, and render.
@@ -316,8 +324,9 @@ function compute() {
   const label = _computeLabel;
   _computeLabel = '⏎'; // reset for next manual compute
   try {
-    render(state_get(state_push(canonical)), null, label);
-    if (!navigating) { history.pushState({ gens: canonical }, '', `?g=${encodeURIComponent(canonical)}`); }
+    const idx = state_push(canonical);
+    render(state_get(idx), null, label);
+    if (!navigating) { history.pushState({ gens: canonical, idx }, '', `?g=${encodeURIComponent(canonical)}`); }
   } catch (e) {
     showError(`Error: ${e.message ?? e}`);
   } finally {
@@ -473,7 +482,9 @@ document.getElementById('history-tbody').addEventListener('click', e => {
     const canonical = Array.from(s.gen_set).join(', ');
     gensInput.value = canonical;
     switchTab('s');
-    render(state_get(state_push(canonical)), null, '⏎');
+    const newIdx = state_push(canonical);
+    render(state_get(newIdx), null, '⏎');
+    history.pushState({ gens: canonical, idx: newIdx }, '', `?g=${encodeURIComponent(canonical)}`);
     return;
   }
   const span = e.target.closest('span.sg-gen, span.sg-frob, span.sg-pf, span.sg-pf-blob');
@@ -484,9 +495,15 @@ document.getElementById('history-tbody').addEventListener('click', e => {
   doToggle(parseInt(span.textContent, 10));
 });
 
-// Browser back/forward: restore the generator set from history state.
+// Browser back/forward: restore from WASM history index if available,
+// otherwise recompute from generators (e.g. on page reload).
 window.addEventListener('popstate', e => {
-  if (e.state?.gens) {
+  if (e.state?.idx != null && e.state.idx < state_len()) {
+    state_set_current_idx(e.state.idx);
+    navigating = true;
+    render(state_get(e.state.idx));
+    navigating = false;
+  } else if (e.state?.gens) {
     gensInput.value = e.state.gens;
     navigating = true;
     compute();
@@ -569,6 +586,51 @@ document.getElementById('amdn-btn').addEventListener('click', guarded(() => {
   compute();
 }));
 
+// "Rolf": p_n and all primes > p_n up to 5·p_n.
+// If input contains "->", parse as "n->m" and compute Rolf for each index n..m.
+document.getElementById('rolf-btn').addEventListener('click', guarded(() => {
+  const raw = gensInput.value.trim();
+  const arrow = raw.match(/^(\d+)\s*->\s*(\d+)$/);
+  if (arrow) {
+    const from = parseInt(arrow[1], 10);
+    const to = parseInt(arrow[2], 10);
+    const step = from <= to ? 1 : -1;
+    setBusy(true);
+    try {
+      let lastIdx, lastCanonical;
+      for (let i = from; ; i += step) {
+        const primes = Array.from(js_rolf_primes(i));
+        lastCanonical = primes.join(', ');
+        lastIdx = state_push(lastCanonical);
+        // Append history row without full render for intermediate entries
+        if (i !== to) {
+          const s = state_get(lastIdx);
+          const histTbody = document.getElementById('history-tbody');
+          if (lastIdx > 0 && lastIdx % 10 === 0) {
+            histTbody.insertAdjacentHTML('beforeend', PROP_THEAD_TR);
+          }
+          histTbody.insertAdjacentHTML('beforeend', historyRow(s, lastIdx, `Rolf(${i})`, null, state_get_eva_expr(), eval_expr(state_get_eva_expr(), s), '—'));
+        }
+        if (i === to) { break; }
+      }
+      gensInput.value = lastCanonical;
+      render(state_get(lastIdx), null, `Rolf(${to})`);
+      history.pushState({ gens: lastCanonical, idx: lastIdx }, '', `?g=${encodeURIComponent(lastCanonical)}`);
+    } catch (e) {
+      showError(`Error: ${e.message ?? e}`);
+    } finally {
+      setBusy(false);
+    }
+  } else {
+    const nums = parseGens(raw);
+    const n = nums.length > 0 ? nums[0] : 3;
+    const primes = Array.from(js_rolf_primes(n));
+    gensInput.value = primes.join(', ');
+    _computeLabel = `Rolf(${n})`;
+    compute();
+  }
+}));
+
 function wireGenSetBtn(id, method, label, beforeCompute) {
   document.getElementById(id).addEventListener('click', guarded(() => {
     if (!currentS) { return; }
@@ -599,6 +661,7 @@ gensInput.addEventListener('keydown', e => { if (e.key === 'Enter') { guardedCom
 const urlGens = new URLSearchParams(location.search).get('g');
 if (urlGens) {
   gensInput.value = urlGens;
-  history.replaceState({ gens: urlGens }, '', location.href);
 }
 compute();
+// Store the initial history index so back/forward can find it.
+history.replaceState({ gens: gensInput.value, idx: state_current_idx() }, '', location.href);

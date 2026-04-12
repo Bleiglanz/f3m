@@ -49,7 +49,7 @@ export function combined_table(s: JsSemigroup, offset: number, tilt: number, sho
  *   a[i] → i-th Apéry number (0 if i≥m),  q[i] → i-th generator (0 if i≥e)
  *   e=embedding dim, g=gaps, f=Frobenius, t=type, m=multiplicity,
  *   Q=largest generator (max gen), A=max Apéry element (= f+m),
- *   s=σ (elements below conductor), b=reflected gap count
+ *   s=σ (elements below conductor), r=reflected gap count
  * Index expressions are evaluated recursively. Returns None on any error.
  */
 export function eval_expr(expr: string, s: JsSemigroup): number | undefined;
@@ -60,7 +60,8 @@ export function gap_header(): string;
 
 /**
  * Returns an HTML table mapping each integer 0..=f+m to its classification,
- * with a third "Diff" column showing SPF generator-difference expressions.
+ * with a "Diff" column showing all representations of n as a difference of
+ * two Apéry elements: `w_i` − `w_j` = n.
  */
 export function js_classify_table(s: JsSemigroup): string;
 
@@ -96,6 +97,11 @@ export function js_graph_node_ids(s: JsSemigroup, upto: number): Uint32Array;
  * CSS class name for node `n` using the same classification as the combined table.
  */
 export function js_node_class(s: JsSemigroup, n: number): string;
+
+/**
+ * Return `p_n` and all primes > `p_n` up to `5·p_n` (1-indexed: n=1 → `p_1`=2).
+ */
+export function js_rolf_primes(n: number): Uint32Array;
 
 /**
  * Compact summary row for the properties table: nested table with header + one data row.
@@ -200,6 +206,7 @@ export interface InitOutput {
     readonly js_cmp_semigroups: (a: number, b: number) => [number, number];
     readonly js_compute: (a: number, b: number) => number;
     readonly js_gap_block: (a: number, b: number) => [number, number];
+    readonly js_rolf_primes: (a: number) => [number, number];
     readonly jssemigroup_add_all_pf: (a: number) => [number, number];
     readonly jssemigroup_add_reflected_gaps: (a: number) => [number, number];
     readonly jssemigroup_apery_set: (a: number) => [number, number];
@@ -224,6 +231,8 @@ export interface InitOutput {
     readonly jssemigroup_type_t: (a: number) => number;
     readonly jssemigroup_wilf: (a: number) => number;
     readonly eval_expr: (a: number, b: number, c: number) => number;
+    readonly shortprop: (a: number) => [number, number];
+    readonly shortprop_tds: (a: number) => [number, number];
     readonly tilt_table: (a: number, b: number) => [number, number];
     readonly js_graph_edge_pairs: (a: number, b: number) => [number, number];
     readonly js_graph_edges_text: (a: number, b: number) => [number, number];
@@ -247,8 +256,6 @@ export interface InitOutput {
     readonly state_set_current_idx: (a: number) => void;
     readonly state_len: () => number;
     readonly combined_table: (a: number, b: number, c: number, d: number) => [number, number];
-    readonly shortprop: (a: number) => [number, number];
-    readonly shortprop_tds: (a: number) => [number, number];
     readonly __wbindgen_externrefs: WebAssembly.Table;
     readonly __wbindgen_free: (a: number, b: number, c: number) => void;
     readonly __wbindgen_malloc: (a: number, b: number) => number;

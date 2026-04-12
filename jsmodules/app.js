@@ -9,7 +9,7 @@ import init, {
 import { render3d } from './view3d.js';
 import { rebuildGraph, setupGraphUpto, setupShowGaps, setupGraphToggle } from './graph.js';
 
-const PROP_THEAD_TR = '<tr><th title="Index and operation label">#</th><th title="Generator added (+) or removed (\u2212)">toggle</th><th title="Multiplicity: smallest positive element">m</th><th title="Frobenius number: largest gap">f</th><th title="Embedding dimension: number of minimal generators">e</th><th title="Genus: number of gaps">g</th><th title="Sporadic elements: elements of S below the conductor f+1">\u03C3</th><th title="Reflected gaps: gaps n where f\u2212n is also a gap">b</th><th title="Type: number of pseudo-Frobenius numbers">t</th><th title="Symmetric: t=1 and g=(f+1)/2">Sym</th><th title="Minimal generators">gen</th><th title="Pseudo-Frobenius numbers: maximals of \u2124 \u2216 S">PF</th><th title="Special pseudo-Frobenius: PF that are differences of generators">SPF</th><th title="Wilf quotient: \u03C3/(f+1) \u2265 1/e (conjecture)">Wilf</th><th title="Wilf conjecture lower bound: 1/e">1/e</th><th title="Expression evaluated for this semigroup">expr</th><th title="Result of the expression">value</th><th title="Set-containment relation with previous entry">&#8838;?</th></tr>';
+const PROP_THEAD_TR = '<tr><th title="Index and operation label">#</th><th title="Generator added (+) or removed (\u2212)">toggle</th><th title="Multiplicity: smallest positive element">m</th><th title="Frobenius number: largest gap">f</th><th title="Embedding dimension: number of minimal generators">e</th><th title="Genus: number of gaps">g</th><th title="Sporadic elements: elements of S below the conductor f+1">\u03C3</th><th title="Reflected gaps: gaps n where f\u2212n is also a gap">r</th><th title="Type: number of pseudo-Frobenius numbers">t</th><th title="Symmetric: t=1 and g=(f+1)/2">Sym</th><th title="Minimal generators">gen</th><th title="Pseudo-Frobenius numbers: maximals of \u2124 \u2216 S">PF</th><th title="Special pseudo-Frobenius: PF that are differences of generators">SPF</th><th title="Wilf quotient: \u03C3/(f+1) \u2265 1/e (conjecture)">Wilf</th><th title="Wilf conjecture lower bound: 1/e">1/e</th><th title="Expression evaluated for this semigroup">expr</th><th title="Result of the expression">value</th><th title="Set-containment relation with previous entry">&#8838;?</th></tr>';
 
 const PRIMES_LIST = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97];
 
@@ -63,7 +63,7 @@ function buildLatexSource(s) {
   const g = s.count_gap;
   const c = s.f + 1;
   const sigma = s.count_set; // σ: elements below conductor = c − g
-  const b = Array.from(s.blob).length; // reflected gap count
+  const r = Array.from(s.blob).length; // reflected gap count
 
   const genStr = gens.join(',\\, ');
   const pfStr = pf.length ? `\\{${pf.join(',\\, ')}\\}` : '\\emptyset';
@@ -82,7 +82,7 @@ function buildLatexSource(s) {
     `g(S) &= ${g}        & \\text{genus } |\\mathbb{N}_0 \\setminus S| \\\\`,
     `c(S) &= ${c}        & \\text{conductor } (f+1) \\\\`,
     `\\sigma(S) &= ${sigma} & \\text{elements below conductor } (c - g) \\\\`,
-    `b(S) &= ${b}        & \\text{reflected gaps } |\\{n : n \\notin S,\\, f{-}n \\notin S\\}| \\\\`,
+    `r(S) &= ${r}        & \\text{reflected gaps } |\\{n : n \\notin S,\\, f{-}n \\notin S\\}| \\\\`,
     `t(S) &= ${s.type_t} & \\text{type } |\\mathrm{PF}(S)|`,
     `\\end{array}`,
   ].join('\n'));
@@ -139,7 +139,7 @@ function cellText(td) {
 
 // Build CSV text from the current history table and write it to #csv-output.
 function buildCsv() {
-  const CSV_HEADER = '#,toggle,m,f,e,g,σ,b,t,Sym,gen,PF,SPF,Wilf,1/e,expr,value,⊆?,generators';
+  const CSV_HEADER = '#,toggle,m,f,e,g,σ,r,t,Sym,gen,PF,SPF,Wilf,1/e,expr,value,⊆?,generators';
   const rows = Array.from(document.querySelectorAll('#history-tbody tr'));
   const lines = rows.map(tr => {
     const cells = Array.from(tr.cells).map(td => csvField(cellText(td))).join(',');
@@ -194,7 +194,7 @@ function render(s, toggle = null, label = '⏎') {
 
   const resultEl = document.getElementById('result');
   resultEl.innerHTML =
-    `<div class="eva-row"><input type="text" id="eva-input" value="${expr}" title="Ops: + - * /  (integer)&#10;e=emb.dim  g=gaps  f=Frobenius  t=type  m=mult&#10;s=σ (elts below c)  b=reflected gaps&#10;Q=largest gen  A=max Apéry (f+m)&#10;a[i]=Apéry[i]  q[i]=generator[i]"><span id="eva-result">= ${exprVal ?? '—'}</span><span class="eva-spacer"></span><label>offset: <span id="sg-offset-val">0</span></label><input type="range" id="sg-offset" min="0" max="${s.m - 1}" value="0"></div>` +
+    `<div class="eva-row"><input type="text" id="eva-input" value="${expr}" title="Ops: + - * /  (integer)&#10;e=emb.dim  g=gaps  f=Frobenius  t=type  m=mult&#10;s=σ (elts below c)  r=reflected gaps&#10;Q=largest gen  A=max Apéry (f+m)&#10;a[i]=Apéry[i]  q[i]=generator[i]"><span id="eva-result">= ${exprVal ?? '—'}</span><span class="eva-spacer"></span><label>offset: <span id="sg-offset-val">0</span></label><input type="range" id="sg-offset" min="0" max="${s.m - 1}" value="0"></div>` +
     `<div id="sg-grid-container"></div>` +
     `<div id="classify" class="classify-row">${js_classify_table(s)}</div>`;
 

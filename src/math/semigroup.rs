@@ -12,6 +12,14 @@ pub struct Semigroup {
     pub f: usize,
     /// Multiplicity: smallest positive element of S (= smallest generator).
     pub m: usize,
+    /// t = the type of S, the number of pseudo-Frobenius elements t=#PF(S)
+    pub t: usize,
+    /// r the number of reflected gaps, r=#RG(S) the number of gaps L such that f-L is a gap
+    pub r: usize,
+    /// ae = the largest minimal generator, max of `gen_set`
+    pub ae:usize,
+    /// ra = number of apery-elements w such that w-m is a reflected gap
+    pub ra:usize,
     /// Number of elements of S in the range (0, f] — the "sporadic" elements (= f+1 - genus).
     pub count_set: usize,
     /// Genus: number of gaps (positive integers not in S).
@@ -22,6 +30,8 @@ pub struct Semigroup {
     pub gen_set: Vec<usize>,
     /// Apéry set w.r.t. m: `apery_set`[i] is the smallest element of S congruent to i mod m.
     pub apery_set: Vec<usize>,
+    /// Pseudo-Frobenius elements, PF(S) are gaps L such that L+S_+ is contained in S
+    pub pf_set:Vec<usize>,
 }
 
 /// Two semigroups are equal iff they have the same generators, Frobenius number,
@@ -32,8 +42,8 @@ impl PartialEq for Semigroup {
     }
 }
 
+/// Eq is empty, just a marker
 impl Eq for Semigroup {}
-
 /// Partial order by set containment: S1 ≤ S2 iff every element of S1 is also in S2.
 /// Returns `None` when neither semigroup is a subset of the other.
 impl PartialOrd for Semigroup {
@@ -122,13 +132,7 @@ impl Semigroup {
         (Vec<usize>, usize),                   // PF and its length
         (Vec<(usize, (usize, usize))>, usize), // SPF with what diff it is and the length of SPF
     ) {
-        let mut pf: Vec<usize> = self
-            .blob()
-            .into_iter()
-            .filter(|&g| self.gen_set.iter().all(|&a| self.element(a + g)))
-            .collect();
-        pf.push(self.f);
-
+        let pf = self.pf_set.clone();
         let t = pf.len();
         let normal_pseudofrobenius = (pf, t);
 

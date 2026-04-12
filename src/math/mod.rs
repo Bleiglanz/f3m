@@ -119,15 +119,40 @@ pub fn compute(input: &[usize]) -> Semigroup {
     genset.sort_unstable();
     assert_eq!(aperyset.len(), m);
 
+    let element = |n:usize| -> bool {
+        n >= aperyset[n%m]
+    };
+
+    let reflected_gap = |n:usize| -> bool {
+        !element(n) && !element(max_apery-m-n)
+    };
+
+    let pseudo_frobenius = |n:usize|-> bool {
+        !element(n) && genset.iter().all(|a|element(*a+n))
+    };
+
+    let refl_gap_count = (1..max_apery-m).filter(|x| reflected_gap(*x)).count();
+
+    let ra = aperyset[1..].iter().filter(|x|  reflected_gap(**x-m)).count();
+
+    let pf_set:Vec<usize> = aperyset[1..].iter().filter(|x|pseudo_frobenius(**x-m)).map(|x|*x-m).collect();
+
+    let type_count:usize = pf_set.len();
+
     Semigroup {
         e: minimal_generators,
         f: max_apery - m,
         m,
+        t: type_count,
+        r: refl_gap_count,
+        ae: max_atom,
+        ra,
         count_set: count_set - m,
         count_gap: (sum_apery - ((m - 1) * m) / 2) / m,
         max_gen: *genset.iter().max().unwrap(),
         gen_set: genset,
         apery_set: aperyset,
+        pf_set,
     }
 }
 

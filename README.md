@@ -82,7 +82,7 @@ These appear in the toolbar (after the separator) when applicable:
 
 Every computed semigroup is appended to a summary table with rows labelled S₀, S₁, … The last column shows the set-containment relation (⊂, =, ⊃, ?) between the new entry and the previous one. Click a row number to restore that semigroup as the current input.
 
-Summary columns: **#** index:label, **toggle** set operation, **m** multiplicity, **f** Frobenius number, **e** embedding dimension, **g** genus (gaps), **σ** semigroup elements below the conductor, **b** reflected gaps, **t** type, **Sym** symmetric?, **gen** generators, **PF** pseudo-Frobenius numbers, **SPF** special pseudo-Frobenius, **Wilf** Wilf quotient σ/(f+1), **1/e** Wilf conjecture lower bound, **expr** expression, **value** evaluated result, **⊆?** set-containment relation.
+Summary columns: **#** index:label, **toggle** set operation, **m** multiplicity, **f** Frobenius number, **e** embedding dimension, **g** genus (gaps), **σ** semigroup elements below the conductor, **r** reflected gaps, **t** type, **Sym** symmetric?, **gen** generators, **PF** pseudo-Frobenius numbers, **SPF** special pseudo-Frobenius, **Wilf** Wilf quotient σ/(f+1), **1/e** Wilf conjecture lower bound, **expr** expression, **value** evaluated result, **⊆?** set-containment relation.
 
 The GAP tab accumulates a full [GAP](https://gap-packages.github.io/numericalsgps/) script for all entries that can be verified with the `NumericalSgps` package. A **Copy** button copies it to the clipboard.
 
@@ -110,7 +110,7 @@ The properties table contains an input field that evaluates an arithmetic expres
 | `g` | Number of gaps (genus) |
 | `t` | Type |
 | `s` | σ — semigroup elements below the conductor |
-| `b` | Number of reflected gaps |
+| `r` | Number of reflected gaps |
 | `Q` | Largest minimal generator (denoted *ae* in the literature) |
 | `A` | Largest Apéry element (= f + m) |
 

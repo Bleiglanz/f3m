@@ -16,7 +16,7 @@ pub(super) struct EvalCtx<'a> {
     m: usize,
     max_gen: usize,
     sigma: usize, // σ: semigroup elements below conductor (count_set)
-    b: usize,     // reflected gap count
+    r: usize,     // reflected gap count
 }
 
 impl EvalCtx<'_> {
@@ -78,7 +78,7 @@ impl EvalCtx<'_> {
             .replace('Q', &self.max_gen.to_string())
             .replace('A', &(self.f + self.m).to_string())
             .replace('s', &self.sigma.to_string())
-            .replace('b', &self.b.to_string())
+            .replace('r', &self.r.to_string())
             .replace('m', &self.m.to_string());
         eva::eval(&s).ok()
     }
@@ -106,24 +106,23 @@ impl EvalCtx<'_> {
 ///   a[i] → i-th Apéry number (0 if i≥m),  q[i] → i-th generator (0 if i≥e)
 ///   e=embedding dim, g=gaps, f=Frobenius, t=type, m=multiplicity,
 ///   Q=largest generator (max gen), A=max Apéry element (= f+m),
-///   s=σ (elements below conductor), b=reflected gap count
+///   s=σ (elements below conductor), r=reflected gap count
 /// Index expressions are evaluated recursively. Returns None on any error.
 #[wasm_bindgen]
 #[must_use]
 pub fn eval_expr(expr: &str, s: &JsSemigroup) -> Option<usize> {
     let sg = &s.0;
-    let ((_, t), _) = sg.pseudo_and_special();
     let ctx = EvalCtx {
         apery: &sg.apery_set,
         gen_set: &sg.gen_set,
         e: sg.e,
         g: sg.count_gap,
         f: sg.f,
-        t,
+        t: sg.t,
         m: sg.m,
         max_gen: sg.max_gen,
         sigma: sg.count_set,
-        b: sg.blob().len(),
+        r: sg.r,
     };
     ctx.eval(expr)
 }

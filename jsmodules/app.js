@@ -1,6 +1,6 @@
 import init, {
   js_compute, combined_table, tilt_table, shortprop_tds, eval_expr,
-  js_graph_edges_text, js_node_class, js_classify_table, js_rolf_primes,
+  js_graph_edges_text, js_node_class, js_classify_table, js_diagonals_table, js_rolf_primes,
   state_push, state_get, state_len, state_current_idx, state_set_current_idx,
   state_get_eva_expr, state_set_eva_expr, state_gap_output, state_cmp,
   state_get_show_kunz, state_set_show_kunz,
@@ -232,6 +232,10 @@ function render(s, toggle = null, label = '⏎') {
     renderTiltGrid();
   });
 
+  if (document.getElementById('tab-diagonals').classList.contains('active')) {
+    renderDiagonals(s);
+  }
+
   // Sortable classify-table: clicking a <th> sorts by that column.
   document.querySelectorAll('#classify .classify-table th').forEach((th, col) => {
     th.addEventListener('click', () => {
@@ -348,6 +352,10 @@ function randWithMultiplier(k) {
   compute();
 }
 
+function renderDiagonals(s) {
+  document.getElementById('diagonals-container').innerHTML = js_diagonals_table(s);
+}
+
 // Activate the named tab and deactivate all others; trigger 3D render if needed.
 function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
@@ -355,6 +363,7 @@ function switchTab(name) {
   if (name === 'gapgraph' && currentS) { render3d(currentS, doToggle); }
   if (name === 'csv') { buildCsv(); }
   if (name === 'latex' && currentS) { buildLatex(currentS); }
+  if (name === 'diagonals' && currentS) { renderDiagonals(currentS); }
 }
 document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
 

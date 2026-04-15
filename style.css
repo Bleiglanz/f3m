@@ -515,6 +515,9 @@ body.hide-s .sg-grid span.sg-large { opacity: 0; }
 
 body.hide-classification .classify-row { display: none; }
 
+.diagonals-pane { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+.diagonals-table { background: var(--surface); }
+
 /* ─── Checkbox Strip ────────────────────────────────────────────── */
 .checkbox-strip {
   display: flex;

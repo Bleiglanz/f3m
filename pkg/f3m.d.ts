@@ -74,6 +74,12 @@ export function js_cmp_semigroups(s1: JsSemigroup, s2: JsSemigroup): string;
 export function js_compute(input: string): JsSemigroup;
 
 /**
+ * Returns two HTML tables (side-by-side) listing `diag(i)` and `main_diag(i)`
+ * for `i = 0..m-1`, each followed by a bold Σ row.
+ */
+export function js_diagonals_table(s: JsSemigroup): string;
+
+/**
  * Return the GAP assertion block for a single semigroup, numbered `idx`.
  */
 export function js_gap_block(s: JsSemigroup, idx: number): string;
@@ -205,6 +211,7 @@ export interface InitOutput {
     readonly js_classify_table: (a: number) => [number, number];
     readonly js_cmp_semigroups: (a: number, b: number) => [number, number];
     readonly js_compute: (a: number, b: number) => number;
+    readonly js_diagonals_table: (a: number) => [number, number];
     readonly js_gap_block: (a: number, b: number) => [number, number];
     readonly js_rolf_primes: (a: number) => [number, number];
     readonly jssemigroup_add_all_pf: (a: number) => [number, number];
@@ -233,7 +240,6 @@ export interface InitOutput {
     readonly eval_expr: (a: number, b: number, c: number) => number;
     readonly shortprop: (a: number) => [number, number];
     readonly shortprop_tds: (a: number) => [number, number];
-    readonly tilt_table: (a: number, b: number) => [number, number];
     readonly js_graph_edge_pairs: (a: number, b: number) => [number, number];
     readonly js_graph_edges_text: (a: number, b: number) => [number, number];
     readonly js_graph_node_ids: (a: number, b: number) => [number, number];
@@ -255,6 +261,7 @@ export interface InitOutput {
     readonly state_current_idx: () => number;
     readonly state_set_current_idx: (a: number) => void;
     readonly state_len: () => number;
+    readonly tilt_table: (a: number, b: number) => [number, number];
     readonly combined_table: (a: number, b: number, c: number, d: number) => [number, number];
     readonly __wbindgen_externrefs: WebAssembly.Table;
     readonly __wbindgen_free: (a: number, b: number, c: number) => void;

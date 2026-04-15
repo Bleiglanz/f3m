@@ -284,6 +284,34 @@ pub fn js_classify_table(s: &JsSemigroup) -> String {
     out
 }
 
+/// Returns two HTML tables (side-by-side) listing `diag(i)` and `main_diag(i)`
+/// for `i = 0..m-1`, each followed by a bold Σ row.
+#[wasm_bindgen]
+#[must_use]
+pub fn js_diagonals_table(s: &JsSemigroup) -> String {
+    use std::fmt::Write as _;
+    let sg = &s.0;
+    let m = sg.m;
+    let build = |header: &str, f: &dyn Fn(usize) -> usize| -> String {
+        let mut t = format!(
+            "<table class=\"classify-table diagonals-table\">\
+             <thead><tr><th>i</th><th>{header}</th></tr></thead><tbody>",
+        );
+        let mut sum = 0usize;
+        for i in 0..m {
+            let v = f(i);
+            sum += v;
+            let _ = write!(t, "<tr><td class=\"cl-n\">{i}</td><td>{v}</td></tr>");
+        }
+        let _ = write!(t, "<tr><td class=\"cl-n\"><b>Σ</b></td><td><b>{sum}</b></td></tr>");
+        t.push_str("</tbody></table>");
+        t
+    };
+    let minor = build("diag(i)", &|i| sg.diag(i));
+    let main = build("main_diag(i)", &|i| sg.main_diag(i));
+    format!("<div class=\"diagonals-pane\">{minor}{main}</div>")
+}
+
 /// Return `p_n` and all primes > `p_n` up to `5·p_n` (1-indexed: n=1 → `p_1`=2).
 #[wasm_bindgen]
 #[must_use]

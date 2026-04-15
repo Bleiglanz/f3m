@@ -32,8 +32,12 @@ pub struct Semigroup {
     pub gen_set: Vec<usize>,
     /// Apéry set w.r.t. m: `apery_set`[i] is the smallest element of S congruent to i mod m.
     pub apery_set: Vec<usize>,
+    /// sum of all the apery-elements
+    pub apery_sum:usize,
     /// Pseudo-Frobenius elements, PF(S) are gaps L such that L+S_+ is contained in S
     pub pf_set:Vec<usize>,
+    /// the index of the Frobenius f mod m
+    pub mu:usize,
 }
 
 /// Two semigroups are equal iff they have the same generators, Frobenius number,
@@ -118,6 +122,19 @@ impl Semigroup {
         assert_eq!(0, res % self.m, "ai+aj-a(i+j) immer duch m teilbar!");
         res / self.m
     }
+    // computes the sum of the minor diagonal of the kunz matrix
+    #[must_use]
+    pub fn diag(&self, i:usize) -> usize {
+        let index = i % self.m;
+        (0..self.m).map(|j| self.kunz(j, index+self.m-j)).sum()
+    }
+    // computes the sum of the main diagonal through i
+    #[must_use]
+    pub fn main_diag(&self, i:usize) -> usize {
+        let index:usize = i % self.m;
+        (0..self.m).map(|j| self.kunz(index+j,j)).sum()
+    }
+
     /// Computes PF(S) and the special pseudo-Frobenius numbers.
     ///
     /// Returns `((pf, t), (spf, st))` where:

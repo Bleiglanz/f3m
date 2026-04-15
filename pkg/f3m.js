@@ -339,6 +339,26 @@ export function js_compute(input) {
 }
 
 /**
+ * Returns two HTML tables (side-by-side) listing `diag(i)` and `main_diag(i)`
+ * for `i = 0..m-1`, each followed by a bold Σ row.
+ * @param {JsSemigroup} s
+ * @returns {string}
+ */
+export function js_diagonals_table(s) {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        _assertClass(s, JsSemigroup);
+        const ret = wasm.js_diagonals_table(s.__wbg_ptr);
+        deferred1_0 = ret[0];
+        deferred1_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+    }
+}
+
+/**
  * Return the GAP assertion block for a single semigroup, numbered `idx`.
  * @param {JsSemigroup} s
  * @param {number} idx

@@ -159,7 +159,9 @@ pub fn compute(input: &[usize]) -> Semigroup {
         max_gen: *genset.iter().max().unwrap(),
         gen_set: genset,
         apery_set: aperyset,
+        apery_sum: sum_apery,
         pf_set,
+        mu: max_apery % m,
     }
 }
 

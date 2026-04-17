@@ -296,9 +296,9 @@ pub fn js_classify_table(s: &JsSemigroup) -> String {
     out
 }
 
-/// Returns the `diag`/`main_diag` tables, U(m), U(m)·C, and (U(m)−(m−1)I)·C tables.
+/// Returns the `diag`/`main_diag` tables, U(m), U(m)−(m−1), U(m)·C, and U(m)·C−(m−1)w₁ tables.
 // ALLOW: matrix variable names are intentionally similar (they refer to related matrices).
-#[allow(clippy::similar_names)]
+#[allow(clippy::similar_names, clippy::too_many_lines)]
 #[wasm_bindgen]
 #[must_use]
 pub fn js_diagonals_table(s: &JsSemigroup) -> String {
@@ -365,10 +365,43 @@ pub fn js_diagonals_table(s: &JsSemigroup) -> String {
         );
         format!("<td>{}</td>", span(cls, n, true))
     };
+    // ── helper: render a DenseMatrix<i64> as a plain HTML table ─────────────
+    let render_i64_mat = |mat: &crate::math::matrix::DenseMatrix<i64>, caption: &str| -> String {
+        let mut h = format!(
+            "<table class=\"classify-table u-matrix-table\">\
+                 <thead><tr><th>{caption}</th>",
+        );
+        for j in 0..m {
+            let _ = write!(h, "<th>{j}</th>");
+        }
+        h.push_str("</tr></thead><tbody>");
+        for i in 0..m {
+            let _ = write!(h, "<tr><th>{i}</th>");
+            for j in 0..m {
+                let _ = write!(h, "<td>{}</td>", mat[(i, j)]);
+            }
+            h.push_str("</tr>");
+        }
+        h.push_str("</tbody></table>");
+        h
+    };
     let kunz = kunz_matrix(sg);
     let full_u = u_matrix(m);
-    let det_u = crate::math::matrix::Matrix::det(&to_i64(&full_u));
+    let u_i64 = to_i64(&full_u);
+    let det_u = crate::math::matrix::Matrix::det(&u_i64);
     let html_u = render_mat(&full_u, &format!("U(m)  det={det_u}"), &plain_cell);
+    // U(m) − (m−1): subtract (m−1) from every entry, yielding an i64 matrix.
+    // ALLOW: semigroup multiplicity m is always small; wrapping is impossible in practice.
+    #[allow(clippy::cast_possible_wrap)]
+    let shift = (m - 1) as i64;
+    let mut u_shifted = u_i64;
+    for i in 0..m {
+        for j in 0..m {
+            u_shifted[(i, j)] -= shift;
+        }
+    }
+    let det_us = crate::math::matrix::Matrix::det(&u_shifted);
+    let html_us = render_i64_mat(&u_shifted, &format!("U(m)−(m−1)  det={det_us}"));
     let mut product_full = mat_mul_unsigned(&full_u, &kunz);
     let html_uc = render_mat(&product_full, "U(m)·C", &plain_cell);
     // Subtract the scalar (m−1)·w₁ from every entry of U·C in-place.
@@ -379,7 +412,7 @@ pub fn js_diagonals_table(s: &JsSemigroup) -> String {
         }
     }
     let html_adj = render_mat(&product_full, "U(m)·C − (m−1)w₁", &classified_cell);
-    format!("<div class=\"diagonals-pane\">{minor}{main}{html_u}{html_uc}{html_adj}</div>")
+    format!("<div class=\"diagonals-pane\">{minor}{main}{html_u}{html_us}{html_uc}{html_adj}</div>")
 }
 
 /// Return `p_n` and all primes > `p_n` up to `5·p_n` (1-indexed: n=1 → `p_1`=2).

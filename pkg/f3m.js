@@ -351,7 +351,7 @@ export function js_compute(input) {
 }
 
 /**
- * Returns the `diag`/`main_diag` tables, U(m), U(m)·C, and (U(m)−(m−1)I)·C tables.
+ * Returns the `diag`/`main_diag` tables, U(m), U(m)−(m−1), U(m)·C, and U(m)·C−(m−1)w₁ tables.
  * @param {JsSemigroup} s
  * @returns {string}
  */

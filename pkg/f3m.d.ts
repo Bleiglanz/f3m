@@ -80,7 +80,7 @@ export function js_cmp_semigroups(s1: JsSemigroup, s2: JsSemigroup): string;
 export function js_compute(input: string): JsSemigroup;
 
 /**
- * Returns the `diag`/`main_diag` tables, U(m), U(m)·C, and (U(m)−(m−1)I)·C tables.
+ * Returns the `diag`/`main_diag` tables, U(m), U(m)−(m−1), U(m)·C, and U(m)·C−(m−1)w₁ tables.
  */
 export function js_diagonals_table(s: JsSemigroup): string;
 

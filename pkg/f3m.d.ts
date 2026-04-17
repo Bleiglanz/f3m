@@ -19,6 +19,12 @@ export class JsSemigroup {
      * generator coprime to m), or an empty vec if no such generator exists.
      */
     self_glue(): Uint32Array;
+    /**
+     * Returns the generators of the symmetric partner S̄, where S = S̄/2.
+     *
+     * See `crate::math::symmetric_partner` for the construction (Rosales–García-Sánchez 2008).
+     */
+    symmetric_partner(): Uint32Array;
     toggle(n: number): JsSemigroup;
     readonly apery_set: Uint32Array;
     readonly blob: Uint32Array;
@@ -74,8 +80,7 @@ export function js_cmp_semigroups(s1: JsSemigroup, s2: JsSemigroup): string;
 export function js_compute(input: string): JsSemigroup;
 
 /**
- * Returns two HTML tables (side-by-side) listing `diag(i)` and `main_diag(i)`
- * for `i = 0..m-1`, each followed by a bold Σ row.
+ * Returns the `diag`/`main_diag` tables, U(m), U(m)·C, and (U(m)−(m−1)I)·C tables.
  */
 export function js_diagonals_table(s: JsSemigroup): string;
 
@@ -234,6 +239,7 @@ export interface InitOutput {
     readonly jssemigroup_self_glue: (a: number) => [number, number];
     readonly jssemigroup_special_pf: (a: number) => [number, number];
     readonly jssemigroup_special_pf_str: (a: number) => [number, number];
+    readonly jssemigroup_symmetric_partner: (a: number) => [number, number];
     readonly jssemigroup_toggle: (a: number, b: number) => number;
     readonly jssemigroup_type_t: (a: number) => number;
     readonly jssemigroup_wilf: (a: number) => number;

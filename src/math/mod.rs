@@ -2,7 +2,9 @@
 
 pub mod glue;
 mod graph;
+pub mod matrix;
 pub mod semigroup;
+pub mod symmetric_partner;
 
 pub use semigroup::Semigroup;
 
@@ -119,32 +121,35 @@ pub fn compute(input: &[usize]) -> Semigroup {
     genset.sort_unstable();
     assert_eq!(aperyset.len(), m);
 
-    let element = |n:usize| -> bool {
-        n >= aperyset[n%m]
-    };
+    let element = |n: usize| -> bool { n >= aperyset[n % m] };
 
-    let reflected_gap = |n:usize| -> bool {
-        !element(n) && !element(max_apery-m-n)
-    };
+    let reflected_gap = |n: usize| -> bool { !element(n) && !element(max_apery - m - n) };
 
-    let pseudo_frobenius = |n:usize|-> bool {
-        !element(n) && genset.iter().all(|a|element(*a+n))
-    };
+    let pseudo_frobenius =
+        |n: usize| -> bool { !element(n) && genset.iter().all(|a| element(*a + n)) };
 
-    let reflected_gap_count = (1..max_apery-m).filter(|x| reflected_gap(*x)).count();
+    let reflected_gap_count = (1..max_apery - m).filter(|x| reflected_gap(*x)).count();
 
-    let ra = aperyset[1..].iter().filter(|x|  reflected_gap(**x-m)).count();
+    let ra = aperyset[1..]
+        .iter()
+        .filter(|x| reflected_gap(**x - m))
+        .count();
 
-    let pf_set:Vec<usize> = aperyset[1..].iter().filter(|x|pseudo_frobenius(**x-m)).map(|x|*x-m).collect();
+    let pf_set: Vec<usize> = aperyset[1..]
+        .iter()
+        .filter(|x| pseudo_frobenius(**x - m))
+        .map(|x| *x - m)
+        .collect();
 
-    let type_count:usize = pf_set.len();
-    
-    let is_fundamental_gap = |n:usize|-> bool {
-        !element(n) && (2..=max_apery/n).all(|x|element(x*n))
-    };
+    let type_count: usize = pf_set.len();
 
-    let fg = (1..max_apery-m).filter(|x| is_fundamental_gap(*x)).count();
-    
+    let is_fundamental_gap =
+        |n: usize| -> bool { !element(n) && (2..=max_apery / n).all(|x| element(x * n)) };
+
+    let fg = (1..max_apery - m)
+        .filter(|x| is_fundamental_gap(*x))
+        .count();
+
     Semigroup {
         e: minimal_generators,
         f: max_apery - m,

@@ -17,11 +17,11 @@ pub struct Semigroup {
     /// r the number of reflected gaps, r=#RG(S) the number of gaps L such that f-L is a gap
     pub r: usize,
     /// ae = the largest minimal generator, max of `gen_set`
-    pub ae:usize,
+    pub ae: usize,
     /// ra = number of apery-elements w such that w-m is a reflected gap
-    pub ra:usize,
+    pub ra: usize,
     /// fg = number of fundamental gaps
-    pub fg:usize,
+    pub fg: usize,
     /// Number of elements of S in the range (0, f] — the "sporadic" elements (= f+1 - genus).
     pub count_set: usize,
     /// Genus: number of gaps (positive integers not in S).
@@ -33,11 +33,11 @@ pub struct Semigroup {
     /// Apéry set w.r.t. m: `apery_set`[i] is the smallest element of S congruent to i mod m.
     pub apery_set: Vec<usize>,
     /// sum of all the apery-elements
-    pub apery_sum:usize,
+    pub apery_sum: usize,
     /// Pseudo-Frobenius elements, PF(S) are gaps L such that L+S_+ is contained in S
-    pub pf_set:Vec<usize>,
+    pub pf_set: Vec<usize>,
     /// the index of the Frobenius f mod m
-    pub mu:usize,
+    pub mu: usize,
 }
 
 /// Two semigroups are equal iff they have the same generators, Frobenius number,
@@ -122,17 +122,22 @@ impl Semigroup {
         assert_eq!(0, res % self.m, "ai+aj-a(i+j) immer duch m teilbar!");
         res / self.m
     }
-    // computes the sum of the minor diagonal of the kunz matrix
+    /// Returns the sum of the anti-diagonal (minor diagonal) of the Kunz matrix through column `i`.
+    ///
+    /// For each `j` in `0..m`, sums `kunz(j, i+m-j mod m)`.
     #[must_use]
-    pub fn diag(&self, i:usize) -> usize {
+    pub fn diag(&self, i: usize) -> usize {
         let index = i % self.m;
-        (0..self.m).map(|j| self.kunz(j, index+self.m-j)).sum()
+        (0..self.m).map(|j| self.kunz(j, index + self.m - j)).sum()
     }
-    // computes the sum of the main diagonal through i
+
+    /// Returns the sum of the main diagonal of the Kunz matrix through row `i`.
+    ///
+    /// For each `j` in `0..m`, sums `kunz(i+j mod m, j)`.
     #[must_use]
-    pub fn main_diag(&self, i:usize) -> usize {
-        let index:usize = i % self.m;
-        (0..self.m).map(|j| self.kunz(index+j,j)).sum()
+    pub fn main_diag(&self, i: usize) -> usize {
+        let index: usize = i % self.m;
+        (0..self.m).map(|j| self.kunz(index + j, j)).sum()
     }
 
     /// Computes PF(S) and the special pseudo-Frobenius numbers.
@@ -240,5 +245,13 @@ impl Semigroup {
         let mut current_blob = self.blob().clone();
         current_gen_set.append(&mut current_blob);
         compute(&current_gen_set)
+    }
+
+    /// Returns the symmetric partner S̄ such that S = S̄/2 = {n | 2n ∈ S̄}.
+    ///
+    /// See [`crate::math::symmetric_partner`] for the full construction.
+    #[must_use]
+    pub fn compute_symmetric_partner(&self) -> Semigroup {
+        super::symmetric_partner::symmetric_partner(self)
     }
 }

@@ -30,6 +30,7 @@ export const jssemigroup_s_over_2: (a: number) => [number, number];
 export const jssemigroup_self_glue: (a: number) => [number, number];
 export const jssemigroup_special_pf: (a: number) => [number, number];
 export const jssemigroup_special_pf_str: (a: number) => [number, number];
+export const jssemigroup_symmetric_partner: (a: number) => [number, number];
 export const jssemigroup_toggle: (a: number, b: number) => number;
 export const jssemigroup_type_t: (a: number) => number;
 export const jssemigroup_wilf: (a: number) => number;

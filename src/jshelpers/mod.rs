@@ -176,6 +176,14 @@ impl JsSemigroup {
         to_u32(&self.0.compute_add_reflected_gaps().gen_set)
     }
 
+    /// Returns the generators of the symmetric partner S̄, where S = S̄/2.
+    ///
+    /// See `crate::math::symmetric_partner` for the construction (Rosales–García-Sánchez 2008).
+    #[must_use]
+    pub fn symmetric_partner(&self) -> Vec<u32> {
+        to_u32(&self.0.compute_symmetric_partner().gen_set)
+    }
+
     /// Returns `true` if the semigroup has a generator coprime to m (i.e. self-gluing is possible).
     #[must_use]
     pub fn can_self_glue(&self) -> bool {
@@ -233,7 +241,11 @@ pub fn js_classify_table(s: &JsSemigroup) -> String {
     // that are also minimal generators.
     let ap = &sg.apery_set;
     let ap_cls = |v: usize| {
-        if sets.gens.contains(&v) { "sg-gen" } else { "sg-apery" }
+        if sets.gens.contains(&v) {
+            "sg-gen"
+        } else {
+            "sg-apery"
+        }
     };
     let mut apery_diffs: HashMap<usize, String> = HashMap::new();
     for (i, &wi) in ap.iter().enumerate().skip(1) {
@@ -284,14 +296,17 @@ pub fn js_classify_table(s: &JsSemigroup) -> String {
     out
 }
 
-/// Returns two HTML tables (side-by-side) listing `diag(i)` and `main_diag(i)`
-/// for `i = 0..m-1`, each followed by a bold Σ row.
+/// Returns the `diag`/`main_diag` tables, U(m), U(m)·C, and (U(m)−(m−1)I)·C tables.
+// ALLOW: matrix variable names are intentionally similar (they refer to related matrices).
+#[allow(clippy::similar_names)]
 #[wasm_bindgen]
 #[must_use]
 pub fn js_diagonals_table(s: &JsSemigroup) -> String {
+    use crate::math::matrix::{kunz_matrix, mat_mul_unsigned, to_i64, u_matrix};
     use std::fmt::Write as _;
     let sg = &s.0;
     let m = sg.m;
+    // ── diag / main_diag columns ─────────────────────────────────────────────
     let build = |header: &str, f: &dyn Fn(usize) -> usize| -> String {
         let mut t = format!(
             "<table class=\"classify-table diagonals-table\">\
@@ -303,13 +318,68 @@ pub fn js_diagonals_table(s: &JsSemigroup) -> String {
             sum += v;
             let _ = write!(t, "<tr><td class=\"cl-n\">{i}</td><td>{v}</td></tr>");
         }
-        let _ = write!(t, "<tr><td class=\"cl-n\"><b>Σ</b></td><td><b>{sum}</b></td></tr>");
+        let _ = write!(
+            t,
+            "<tr><td class=\"cl-n\"><b>Σ</b></td><td><b>{sum}</b></td></tr>"
+        );
         t.push_str("</tbody></table>");
         t
     };
     let minor = build("diag(i)", &|i| sg.diag(i));
     let main = build("main_diag(i)", &|i| sg.main_diag(i));
-    format!("<div class=\"diagonals-pane\">{minor}{main}</div>")
+    // ── helper: render a usize DenseMatrix; `cell` maps an entry value to a <td>…</td> string ──
+    let render_mat = |mat: &crate::math::matrix::DenseMatrix<usize>,
+                      caption: &str,
+                      cell: &dyn Fn(usize) -> String|
+     -> String {
+        let mut h = format!(
+            "<table class=\"classify-table u-matrix-table\">\
+             <thead><tr><th>{caption}</th>",
+        );
+        for j in 0..m {
+            let _ = write!(h, "<th>{j}</th>");
+        }
+        h.push_str("</tr></thead><tbody>");
+        for i in 0..m {
+            let _ = write!(h, "<tr><th>{i}</th>");
+            for j in 0..m {
+                h.push_str(&cell(mat[(i, j)]));
+            }
+            h.push_str("</tr>");
+        }
+        h.push_str("</tbody></table>");
+        h
+    };
+    let sets = class_sets(sg);
+    let plain_cell = |n: usize| format!("<td>{n}</td>");
+    let classified_cell = |n: usize| {
+        let cls = combined_table::get_cls(
+            n,
+            false,
+            sg.f,
+            m,
+            &sg.apery_set,
+            &sets.gens,
+            &sets.pf_set,
+            &sets.blobs,
+        );
+        format!("<td>{}</td>", span(cls, n, true))
+    };
+    let kunz = kunz_matrix(sg);
+    let full_u = u_matrix(m);
+    let det_u = crate::math::matrix::Matrix::det(&to_i64(&full_u));
+    let html_u = render_mat(&full_u, &format!("U(m)  det={det_u}"), &plain_cell);
+    let mut product_full = mat_mul_unsigned(&full_u, &kunz);
+    let html_uc = render_mat(&product_full, "U(m)·C", &plain_cell);
+    // Subtract the scalar (m−1)·w₁ from every entry of U·C in-place.
+    let sub_val = (m - 1) * sg.apery_set[1];
+    for i in 0..m {
+        for j in 0..m {
+            product_full[(i, j)] = product_full[(i, j)].saturating_sub(sub_val);
+        }
+    }
+    let html_adj = render_mat(&product_full, "U(m)·C − (m−1)w₁", &classified_cell);
+    format!("<div class=\"diagonals-pane\">{minor}{main}{html_u}{html_uc}{html_adj}</div>")
 }
 
 /// Return `p_n` and all primes > `p_n` up to `5·p_n` (1-indexed: n=1 → `p_1`=2).

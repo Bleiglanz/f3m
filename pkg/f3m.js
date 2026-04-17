@@ -185,6 +185,18 @@ export class JsSemigroup {
         return v1;
     }
     /**
+     * Returns the generators of the symmetric partner S̄, where S = S̄/2.
+     *
+     * See `crate::math::symmetric_partner` for the construction (Rosales–García-Sánchez 2008).
+     * @returns {Uint32Array}
+     */
+    symmetric_partner() {
+        const ret = wasm.jssemigroup_symmetric_partner(this.__wbg_ptr);
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
      * @param {number} n
      * @returns {JsSemigroup}
      */
@@ -339,8 +351,7 @@ export function js_compute(input) {
 }
 
 /**
- * Returns two HTML tables (side-by-side) listing `diag(i)` and `main_diag(i)`
- * for `i = 0..m-1`, each followed by a bold Σ row.
+ * Returns the `diag`/`main_diag` tables, U(m), U(m)·C, and (U(m)−(m−1)I)·C tables.
  * @param {JsSemigroup} s
  * @returns {string}
  */

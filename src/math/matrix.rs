@@ -75,7 +75,7 @@ macro_rules! impl_scalar_float {
         })+
     };
 }
-impl_scalar_int!(i32, i64, i128);
+impl_scalar_int!(isize, i32, i64, i128);
 impl_scalar_float!(f32, f64);
 
 // ── Matrix trait ──────────────────────────────────────────────────────────────
@@ -518,69 +518,48 @@ impl<T: Scalar> Neg for DenseMatrix<T> {
 
 // ── U(m) matrix ───────────────────────────────────────────────────────────────
 
-/// Constructs the m × m matrix U(m) with `usize` entries.
+/// Constructs the m × m matrix U(m) with `i64` entries.
 ///
-/// Row k (0 ≤ k ≤ m−1):
+/// Row 0 and column 0 form a unit border: `U[0][j] = δ(0,j)` and
+/// `U[k][0] = δ(k,0)`.  The interior (k ≥ 1, j ≥ 1) is the shifted
+/// matrix with entries minus (m−1):
 ///
 /// ```text
-/// U(m)[0][0] = 1,  U(m)[0][j] = 0  for j ≥ 1   (first row: 1 then zeros)
-/// U(m)[k][j] = k − 1        if j < k  (k ≥ 1)
-///            = k + m − 1    if j ≥ k  (k ≥ 1)
+/// U(m)[k][j] = k − m   if 1 ≤ j < k
+///            = k        if j ≥ k
 /// ```
 ///
-/// Examples for m = 5:
+/// Example for m = 5:
 /// ```text
-/// k=0: [1, 0, 0, 0, 0]
-/// k=1: [0, 5, 5, 5, 5]
-/// k=2: [1, 1, 6, 6, 6]
-/// k=3: [2, 2, 2, 7, 7]
-/// k=4: [3, 3, 3, 3, 8]
+/// k=0: [ 1,  0,  0,  0,  0]
+/// k=1: [ 0,  1,  1,  1,  1]
+/// k=2: [ 0, -3,  2,  2,  2]
+/// k=3: [ 0, -2, -2,  3,  3]
+/// k=4: [ 0, -1, -1, -1,  4]
 /// ```
+///
+/// Uses `i64` rather than `isize` so that the Bareiss determinant does
+/// not overflow on wasm32 targets (where `isize` is only 32 bits).
 ///
 /// # Panics
 ///
 /// Panics if `m < 2`.
 #[must_use]
-pub fn u_matrix(m: usize) -> DenseMatrix<usize> {
+pub fn u_matrix(m: usize) -> DenseMatrix<i64> {
     assert!(m >= 2, "u_matrix requires m ≥ 2");
-    let mut data = vec![0usize; m * m];
-    data[0] = 1; // U(m)[0][0] = 1 so that det(U(m)) ≠ 0
+    // ALLOW: semigroup multiplicity m is always small; wrapping is impossible.
+    #[allow(clippy::cast_possible_wrap)]
+    let mi = m as i64;
+    let mut data = vec![0i64; m * m];
+    // Row 0: [1, 0, 0, …, 0]
+    data[0] = 1;
+    // Column 0 stays 0 for k ≥ 1 (already initialised).
+    // Interior: rows k ≥ 1, cols j ≥ 1.
     for k in 1..m {
-        for j in 0..m {
-            data[k * m + j] = if j < k { k - 1 } else { k + m - 1 };
-        }
-    }
-    DenseMatrix {
-        rows: m,
-        cols: m,
-        data,
-    }
-}
-
-/// Constructs V(m) = U(m) − (m−1)·I, the m × m matrix with entries:
-///
-/// ```text
-/// V(m)[k][j] = k − 1     if j < k
-///            = k          if j = k   (diagonal shifted down by m−1)
-///            = k + m − 1  if j > k
-/// ```
-///
-/// For k = 0: diagonal entry is 0; entries j > 0 are m−1.
-///
-/// # Panics
-///
-/// Panics if `m < 2`.
-#[must_use]
-pub fn u_shifted_matrix(m: usize) -> DenseMatrix<usize> {
-    assert!(m >= 2, "u_shifted_matrix requires m ≥ 2");
-    let mut data = vec![0usize; m * m];
-    for k in 0..m {
-        for j in 0..m {
-            data[k * m + j] = match j.cmp(&k) {
-                std::cmp::Ordering::Less => k - 1,
-                std::cmp::Ordering::Equal => k,
-                std::cmp::Ordering::Greater => k + m - 1,
-            };
+        #[allow(clippy::cast_possible_wrap)]
+        let ki = k as i64;
+        for j in 1..m {
+            data[k * m + j] = if j < k { ki - mi } else { ki };
         }
     }
     DenseMatrix {
@@ -604,6 +583,68 @@ pub fn kunz_matrix(s: &super::Semigroup) -> DenseMatrix<usize> {
     for i in 0..m {
         for j in 0..m {
             data[i * m + j] = s.kunz(i, j);
+        }
+    }
+    DenseMatrix {
+        rows: m,
+        cols: m,
+        data,
+    }
+}
+
+// ── U(m)·C product (structure-aware, O(m²)) ──────────────────────────────────
+
+/// Computes the product `U(m) · C` where `C` is the Kunz matrix, exploiting
+/// the block structure of U(m) to avoid a general O(m³) matrix multiply.
+///
+/// Each row k ≥ 1 of U(m) has entries `k−m` for j < k and `k` for j ≥ k
+/// (with column 0 being 0).  This gives:
+///
+/// ```text
+/// (U·C)[k][j] = k · S[j] − m · P(k−1, j)
+/// ```
+///
+/// where `S[j] = Σ_{l=1}^{m−1} C[l][j]` (column sum excluding row 0) and
+/// `P(k, j) = Σ_{l=1}^{k} C[l][j]` (prefix sum of rows 1..k).
+///
+/// Row 0 of the product equals row 0 of `C` (always all zeros for a Kunz matrix).
+///
+/// All arithmetic uses `i64` to accommodate the signed intermediate values;
+/// overflow is not possible for semigroups with practical multiplicity
+/// (entries are bounded by m × max(Kunz entry)).
+#[must_use]
+pub fn u_times_kunz(kunz: &DenseMatrix<usize>, m: usize) -> DenseMatrix<i64> {
+    // Column sums S[j] = C[1][j] + C[2][j] + … + C[m-1][j]
+    let mut col_sum = vec![0i64; m];
+    for l in 1..m {
+        for j in 0..m {
+            // ALLOW: Kunz entries are small non-negative integers.
+            #[allow(clippy::cast_possible_wrap)]
+            let c = kunz[(l, j)] as i64;
+            col_sum[j] += c;
+        }
+    }
+    // Build result row by row using running prefix sums.
+    #[allow(clippy::cast_possible_wrap)]
+    let mi = m as i64;
+    let mut data = vec![0i64; m * m];
+    // Row 0: C[0] (all zeros for Kunz).
+    // Prefix sum accumulator, starts at 0 (P(0, j) = 0 for all j).
+    let mut prefix = vec![0i64; m];
+    for k in 1..m {
+        // prefix[j] += C[k][j]  →  prefix is now P(k, j)
+        // But (U·C)[k] uses P(k−1), so compute result first, then update prefix.
+        #[allow(clippy::cast_possible_wrap)]
+        let ki = k as i64;
+        for j in 0..m {
+            // (U·C)[k][j] = k·S[j] − m·P(k−1, j)
+            data[k * m + j] = ki * col_sum[j] - mi * prefix[j];
+        }
+        // Now advance prefix to P(k, j).
+        for j in 0..m {
+            #[allow(clippy::cast_possible_wrap)]
+            let c = kunz[(k, j)] as i64;
+            prefix[j] += c;
         }
     }
     DenseMatrix {
@@ -1112,23 +1153,22 @@ mod tests {
 
     #[test]
     fn u_matrix_2x2() {
-        // k=0: (1, 0); k=1: (0, 2)
         let u = u_matrix(2);
         assert_eq!(u[(0, 0)], 1);
         assert_eq!(u[(0, 1)], 0);
         assert_eq!(u[(1, 0)], 0);
-        assert_eq!(u[(1, 1)], 2);
+        assert_eq!(u[(1, 1)], 1);
     }
 
     #[test]
     fn u_matrix_5x5() {
         let u = u_matrix(5);
-        let expected: &[&[usize]] = &[
+        let expected: &[&[i64]] = &[
             &[1, 0, 0, 0, 0],
-            &[0, 5, 5, 5, 5],
-            &[1, 1, 6, 6, 6],
-            &[2, 2, 2, 7, 7],
-            &[3, 3, 3, 3, 8],
+            &[0, 1, 1, 1, 1],
+            &[0, -3, 2, 2, 2],
+            &[0, -2, -2, 3, 3],
+            &[0, -1, -1, -1, 4],
         ];
         for (k, row) in expected.iter().enumerate() {
             for (j, &v) in row.iter().enumerate() {
@@ -1139,19 +1179,22 @@ mod tests {
 
     #[test]
     fn u_matrix_last_row_pattern() {
-        // Last row (k=m-1): cols 0..m-2 = m-2; col m-1 = 2m-2.
+        // Last row (k=m-1): col 0 = 0; cols 1..m-2 = −1; col m-1 = m−1.
         for m in 2..=10 {
             let u = u_matrix(m);
-            for j in 0..(m - 1) {
-                assert_eq!(u[(m - 1, j)], m - 2, "U({m}) last row col {j}");
+            assert_eq!(u[(m - 1, 0)], 0, "U({m}) last row col 0");
+            for j in 1..(m - 1) {
+                assert_eq!(u[(m - 1, j)], -1, "U({m}) last row col {j}");
             }
-            assert_eq!(u[(m - 1, m - 1)], 2 * m - 2, "U({m}) last row last col");
+            #[allow(clippy::cast_possible_wrap)]
+            let expected = (m - 1) as i64;
+            assert_eq!(u[(m - 1, m - 1)], expected, "U({m}) last row last col");
         }
     }
 
     #[test]
     fn u_matrix_row0_pattern() {
-        // k=0: U[0][0] = 1, rest are 0.
+        // k=0: [1, 0, 0, …, 0]
         for m in 2..=8 {
             let u = u_matrix(m);
             assert_eq!(u[(0, 0)], 1, "U({m}) row0 col 0");
@@ -1162,13 +1205,243 @@ mod tests {
     }
 
     #[test]
+    fn u_matrix_col0_pattern() {
+        // col 0: [1, 0, 0, …, 0]
+        for m in 2..=8 {
+            let u = u_matrix(m);
+            assert_eq!(u[(0, 0)], 1, "U({m}) col0 row 0");
+            for k in 1..m {
+                assert_eq!(u[(k, 0)], 0, "U({m}) col0 row {k}");
+            }
+        }
+    }
+
+    #[test]
     fn u_matrix_row1_pattern() {
-        // k=1: col 0 = 0, cols 1..m-1 = m.
+        // k=1: col 0 = 0, cols 1..m-1 = 1.
         for m in 2..=8 {
             let u = u_matrix(m);
             assert_eq!(u[(1, 0)], 0, "U({m}) row1 col 0");
             for j in 1..m {
-                assert_eq!(u[(1, j)], m, "U({m}) row1 col {j}");
+                assert_eq!(u[(1, j)], 1, "U({m}) row1 col {j}");
+            }
+        }
+    }
+
+    // ── U(m) determinant ────────────────────────────────────────────────────
+
+    #[test]
+    fn u_matrix_det_small_cases() {
+        // det(U(m)) = m^(m−2) follows from the unit-border structure:
+        // cofactor expansion along col 0 of the interior gives f(n) = m·f(n−1), f(1) = 1.
+        let expected: &[(usize, i64)] = &[
+            (2, 1),     // 2^0
+            (3, 3),     // 3^1
+            (4, 16),    // 4^2
+            (5, 125),   // 5^3
+            (6, 1296),  // 6^4
+            (7, 16807), // 7^5
+        ];
+        for &(m, det) in expected {
+            let u = u_matrix(m);
+            assert_eq!(u.det(), det, "det(U({m})) should be {m}^({m}−2) = {det}");
+        }
+    }
+
+    #[test]
+    fn u_matrix_det_equals_m_pow_m_minus_2() {
+        // Parametric check for m = 2..=10.
+        // Bareiss intermediate products overflow i64 for m ≥ 11.
+        for m in 2..=10 {
+            let u = u_matrix(m);
+            #[allow(clippy::cast_possible_wrap)]
+            let expected = (m as i64).pow((m - 2) as u32);
+            assert_eq!(u.det(), expected, "det(U({m})) ≠ {m}^{}", m - 2);
+        }
+    }
+
+    #[test]
+    fn u_matrix_det_2x2_manual() {
+        // U(2) = [[1,0],[0,1]] = I₂, det = 1.
+        let u = u_matrix(2);
+        assert_eq!(u.det(), 1);
+    }
+
+    #[test]
+    fn u_matrix_det_3x3_manual() {
+        // U(3) = [[1,0,0],[0,1,1],[0,-1,2]].  det = 1·(1·2 − 1·(−1)) = 3.
+        let u = u_matrix(3);
+        assert_eq!(u.det(), 3);
+    }
+
+    // ── u_times_kunz ──────────────────────────────────────────────────────────
+
+    #[test]
+    fn u_times_kunz_matches_mat_mul() {
+        // Verify the O(m²) product matches the general mat_mul for several semigroups.
+        for gens in &[
+            vec![3usize, 5, 7],
+            vec![4, 6, 11],
+            vec![5, 7, 11],
+            vec![6, 7, 8, 9],
+            vec![7, 11, 13, 17, 19],
+        ] {
+            let s = compute(gens);
+            let kunz = kunz_matrix(&s);
+            let m = s.m;
+            let fast = u_times_kunz(&kunz, m);
+            // General product via mat_mul: convert both to i64.
+            let u = u_matrix(m);
+            let kunz_i64 = to_i64(&kunz);
+            let general = u.mat_mul(&kunz_i64);
+            assert_eq!(fast, general, "u_times_kunz mismatch for ⟨{gens:?}⟩");
+        }
+    }
+
+    #[test]
+    fn u_times_kunz_row0_is_zero() {
+        // Row 0 of U(m)·C is always zero (Kunz row 0 is all zeros).
+        for gens in &[vec![3usize, 5], vec![5, 8, 13], vec![6, 9, 20]] {
+            let s = compute(gens);
+            let kunz = kunz_matrix(&s);
+            let product = u_times_kunz(&kunz, s.m);
+            for j in 0..s.m {
+                assert_eq!(product[(0, j)], 0, "row 0 col {j} should be 0");
+            }
+        }
+    }
+
+    #[test]
+    fn u_times_kunz_col0_is_zero() {
+        // Column 0 is always zero: w_0 = 0 and all Kunz entries c(l,0) = 0.
+        for gens in &[
+            vec![3usize, 5, 7],
+            vec![4, 5],
+            vec![6, 7, 8, 9],
+            vec![7, 11, 13, 17, 19],
+        ] {
+            let s = compute(gens);
+            let product = u_times_kunz(&kunz_matrix(&s), s.m);
+            for k in 0..s.m {
+                assert_eq!(product[(k, 0)], 0, "col 0 row {k} should be 0");
+            }
+        }
+    }
+
+    #[test]
+    fn u_times_kunz_row1_is_apery() {
+        // Row 1 = Apéry set: (U·C)[1][j] = 1·S[j] − m·0 = w_j.
+        for gens in &[
+            vec![3usize, 5, 7],
+            vec![4, 5],
+            vec![5, 7, 11],
+            vec![6, 9, 20],
+        ] {
+            let s = compute(gens);
+            let product = u_times_kunz(&kunz_matrix(&s), s.m);
+            for j in 0..s.m {
+                #[allow(clippy::cast_possible_wrap)]
+                let wj = s.apery_set[j] as i64;
+                assert_eq!(product[(1, j)], wj, "row 1 col {j}");
+            }
+        }
+    }
+
+    #[test]
+    fn u_times_kunz_col1_is_apery() {
+        // Column 1 = Apéry set: telescoping gives (U·C)[k][1] = w_k.
+        for gens in &[
+            vec![3usize, 5, 7],
+            vec![4, 5],
+            vec![5, 7, 11],
+            vec![6, 9, 20],
+        ] {
+            let s = compute(gens);
+            let product = u_times_kunz(&kunz_matrix(&s), s.m);
+            for k in 0..s.m {
+                #[allow(clippy::cast_possible_wrap)]
+                let wk = s.apery_set[k] as i64;
+                assert_eq!(product[(k, 1)], wk, "col 1 row {k}");
+            }
+        }
+    }
+
+    #[test]
+    fn u_times_kunz_last_row() {
+        // Last row: (U·C)[m-1][j] = w_{m-1} − w_{(m-1+j) mod m}.
+        for gens in &[
+            vec![3usize, 5, 7],
+            vec![4, 5],
+            vec![5, 7, 11],
+            vec![6, 7, 8, 9],
+        ] {
+            let s = compute(gens);
+            let m = s.m;
+            let product = u_times_kunz(&kunz_matrix(&s), m);
+            #[allow(clippy::cast_possible_wrap)]
+            let w_last = s.apery_set[m - 1] as i64;
+            for j in 0..m {
+                #[allow(clippy::cast_possible_wrap)]
+                let expected = w_last - s.apery_set[(m - 1 + j) % m] as i64;
+                assert_eq!(
+                    product[(m - 1, j)],
+                    expected,
+                    "last row col {j}: w_{{m-1}} - w_{{({} + {j}) mod {m}}}",
+                    m - 1,
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn u_times_kunz_symmetric() {
+        // U·C is symmetric: T(k,j)+T(j,0) = T(j,k)+T(k,0) where T(k,j) is the
+        // sum of k consecutive Apéry elements starting at circular index j.
+        for gens in &[
+            vec![3usize, 5, 7],
+            vec![4, 5],
+            vec![5, 7, 11],
+            vec![6, 9, 20],
+            vec![6, 7, 8, 9],
+            vec![7, 11, 13, 17, 19],
+        ] {
+            let s = compute(gens);
+            let m = s.m;
+            let product = u_times_kunz(&kunz_matrix(&s), m);
+            for k in 0..m {
+                for j in 0..m {
+                    assert_eq!(
+                        product[(k, j)],
+                        product[(j, k)],
+                        "⟨{gens:?}⟩: (U·C)[{k}][{j}] ≠ (U·C)[{j}][{k}]"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn u_times_kunz_general_entry_formula() {
+        // (U·C)[k][j] = Σ_{l=0}^{k-1} [w_{(l+j) mod m} − w_l].
+        for gens in &[
+            vec![3usize, 5, 7],
+            vec![4, 5],
+            vec![6, 9, 20],
+            vec![7, 11, 13, 17, 19],
+        ] {
+            let s = compute(gens);
+            let m = s.m;
+            let product = u_times_kunz(&kunz_matrix(&s), m);
+            for k in 0..m {
+                for j in 0..m {
+                    let mut expected = 0i64;
+                    for l in 0..k {
+                        #[allow(clippy::cast_possible_wrap)]
+                        let diff = s.apery_set[(l + j) % m] as i64 - s.apery_set[l] as i64;
+                        expected += diff;
+                    }
+                    assert_eq!(product[(k, j)], expected, "⟨{gens:?}⟩ entry ({k},{j})");
+                }
             }
         }
     }

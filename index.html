@@ -191,7 +191,17 @@
           <tr><td>.csv</td><td>History table in CSV format, ready to copy. Includes a final <em>generators</em> column with the minimal generating set.</td></tr>
           <tr><td>LaTeX</td><td>Editable LaTeX source with live KaTeX preview of semigroup properties.</td></tr>
           <tr><td>Help</td><td>This reference page, plus a dynamic summary of the current semigroup.</td></tr>
-          <tr><td>Diagonals</td><td>Two tables showing diag(i) and main_diag(i) for i = 0&hellip;m&minus;1: column sums along anti-diagonals and main diagonals of the Kunz matrix, each followed by a &Sigma; total.</td></tr>
+          <tr><td>Diagonals</td><td>
+            The <b>U(m)</b> matrix and the product <b>U(m)&middot;C</b> where C is the Kunz coefficient matrix.<br>
+            <b>U(m)</b> is m&times;m with a unit border (row&nbsp;0 and col&nbsp;0 are (1,0,&hellip;,0));
+            interior entries are k&minus;m (below diagonal) and k (on/above diagonal).
+            <b>det(U(m))&nbsp;=&nbsp;m<sup>m&minus;2</sup></b>.<br>
+            <b>U(m)&middot;C</b> is <em>symmetric</em> with closed-form entries:
+            (U&middot;C)[k][j]&nbsp;=&nbsp;&Sigma;<sub>l=0..k&minus;1</sub>&thinsp;[w<sub>(l+j)&thinsp;mod&thinsp;m</sub>&nbsp;&minus;&nbsp;w<sub>l</sub>]
+            &mdash; partial sums of cyclically shifted Ap&eacute;ry differences.
+            Column&nbsp;0 is always zero; <b>column&nbsp;1 = row&nbsp;1 = the Ap&eacute;ry set</b> (w<sub>0</sub>,&hellip;,w<sub>m&minus;1</sub>);
+            last row: w<sub>m&minus;1</sub>&nbsp;&minus;&nbsp;w<sub>(m&minus;1+j)&thinsp;mod&thinsp;m</sub>.
+          </td></tr>
         </tbody>
       </table>
 

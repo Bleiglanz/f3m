@@ -52,7 +52,7 @@ A color-coded layout of elements and gaps, with an Apéry row and Kunz coefficie
 | .csv | History table in CSV format with a final *generators* column |
 | LaTeX | Editable LaTeX source with live KaTeX preview of semigroup properties |
 | Help | Interactive reference with current semigroup details |
-| Diagonals | diag(i) and main_diag(i) for i = 0…m−1: anti-diagonal and main-diagonal column sums of the Kunz matrix, each with a Σ total |
+| Diagonals | U(m) matrix and its product U(m)·C with the Kunz matrix; see [U(m) matrix](#um-matrix) below |
 
 ### Toolbar buttons
 
@@ -129,6 +129,69 @@ The index expression is itself fully evaluated, so `a[m-1]`, `q[e-1]`, `a[a[0]+1
 ### Operators
 
 `+`, `-`, `*`, `/` over non-negative integers. `/` is integer (truncating) division. Subtraction that would go below zero returns an error (shown as `—`). Standard operator precedence and parentheses are supported.
+
+---
+
+## U(m) matrix
+
+The **Diagonals** tab displays the m × m matrix U(m) and its product with the Kunz coefficient matrix C.
+
+### Definition
+
+U(m) has a unit border — row 0 and column 0 are (1, 0, …, 0). The interior (k ≥ 1, j ≥ 1) contains:
+
+```
+U(m)[k][j] = k − m   if j < k
+            = k       if j ≥ k
+```
+
+Example for m = 5:
+
+```
+[ 1,  0,  0,  0,  0]
+[ 0,  1,  1,  1,  1]
+[ 0, -3,  2,  2,  2]
+[ 0, -2, -2,  3,  3]
+[ 0, -1, -1, -1,  4]
+```
+
+### Determinant
+
+**det(U(m)) = m^(m−2)**.
+
+Proof sketch: the unit border reduces det(U) to det(interior). Row-reducing the interior — subtract adjacent rows, then subtract row 0 — yields a matrix with first row all-1s and a −m·I block below. Cofactor expansion along column 0 gives the recurrence f(n) = m·f(n−1), f(1) = 1, so f(n) = m^(n−1). Since n = m−1, det = m^(m−2).
+
+### Product U(m)·C
+
+The product is computed in O(m²) by exploiting U(m)'s block structure. A key identity is that the **column sums of C equal the Apéry set**: S[j] = w_j. This gives the row-by-row formula:
+
+```
+(U·C)[k][j] = k · w_j − m · P(k−1, j)
+```
+
+where P(k, j) = Σ_{l=1}^{k} c(l, j) is the column-j prefix sum of C.
+
+### Closed form
+
+Expanding the Kunz entries c(l, j) = (w_l + w_j − w_{(l+j) mod m}) / m yields:
+
+```
+(U·C)[k][j] = Σ_{l=0}^{k−1} [w_{(l+j) mod m} − w_l]
+```
+
+Each entry is a partial sum of differences between the **j-shifted** and **natural** Apéry sequence.
+
+### Properties of U(m)·C
+
+| Property | Value |
+|---|---|
+| **Symmetry** | U·C is symmetric: (U·C)[k][j] = (U·C)[j][k] |
+| Column 0 | Always zero |
+| **Column 1 = Row 1** | The Apéry set (w_0, w_1, …, w_{m−1}) |
+| Last row | w_{m−1} − w_{(m−1+j) mod m} |
+| Column j | Partial sums of cyclically shifted Apéry differences |
+
+The symmetry follows from the identity T(k, j) + T(j, 0) = T(j, k) + T(k, 0), where T(k, j) = sum of k consecutive Apéry elements starting at circular index j. Both sides cover the same circular arc of indices with identical overlaps.
 
 ---
 

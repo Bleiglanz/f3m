@@ -26,7 +26,7 @@ python3 -m http.server 8080
 # then open http://localhost:8080
 ```
 
-The `pkg/` directory contains committed WASM build artifacts. Rebuild it with `wasm-pack build --target web` after changing any `src/` file.
+The `pkg/` directory holds the wasm-pack output and is gitignored — rebuild it locally with `wasm-pack build --target web` after changing any `src/` file. The deployed site (GitHub Pages) builds `pkg/` in CI via `.github/workflows/pages.yml`.
 
 ## Architecture
 

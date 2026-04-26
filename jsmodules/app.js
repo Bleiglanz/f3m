@@ -201,8 +201,8 @@ function render(s, toggle = null, label = '⏎') {
   const resultEl = document.getElementById('result');
   resultEl.innerHTML =
     `<div class="eva-row"><input type="text" id="eva-input" value="${expr}" title="Ops: + - * /  (integer)&#10;e=emb.dim  g=gaps  f=Frobenius  t=type  m=mult&#10;s=σ (elts below c)  r=reflected gaps&#10;Q=largest gen  A=max Apéry (f+m)&#10;a[i]=Apéry[i]  q[i]=generator[i]"><span id="eva-result">= ${exprVal ?? '—'}</span><span class="eva-spacer"></span><label>offset: <span id="sg-offset-val">0</span></label><input type="range" id="sg-offset" min="0" max="${s.m - 1}" value="0"></div>` +
-    `<div id="sg-grid-container"></div>` +
-    `<div id="classify" class="classify-row">${js_classify_table(s)}</div>`;
+    `<div id="sg-grid-container" class="table-wrap"></div>` +
+    `<div id="classify" class="classify-row table-wrap">${js_classify_table(s)}</div>`;
 
   // Live expression evaluator
   document.getElementById('eva-input').addEventListener('input', e => {
@@ -369,10 +369,14 @@ function renderDiagonals(s) {
 
 // Activate the named tab and deactivate all others; trigger 3D render if needed.
 function switchTab(name) {
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  let activeBtn = null;
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    const on = b.dataset.tab === name;
+    b.classList.toggle('active', on);
+    if (on) { activeBtn = b; }
+  });
   document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.id === `tab-${name}`));
   // On mobile the tab bar is horizontally scrollable; keep the active tab in view.
-  const activeBtn = document.querySelector(`.tab-btn[data-tab="${name}"]`);
   if (activeBtn) {
     activeBtn.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
   }

@@ -32,9 +32,22 @@ const FALLBACK_COLORS = {
   'sg-out':     { bg: '#f7f8fa', fg: '#999' },
 };
 
+// Theme-independent overrides for gap-class cubes in the 3D view. The 2D
+// palette desaturates these in dark mode (so they read well as small cells
+// against a dark page surface), but the 3D scene background is fixed light
+// grey — desaturated dark colors blur into it and look uniformly black.
+const VIEW3D_OVERRIDES = {
+  'sg-out':     { bg: '#ffffff', fg: '#000' },  // plain gap → white
+  'sg-frob':    { bg: '#dc2626', fg: '#fff' },  // Frobenius → red
+  'sg-pf':      { bg: '#8a2be2', fg: '#fff' },  // pseudo-Frob → blue-violet
+  'sg-pf-blob': { bg: '#ba55d3', fg: '#fff' },  // PF ∩ reflected gap → orchid
+  'sg-blob':    { bg: '#84cc16', fg: '#000' },  // reflected gap → lime
+};
+
 // Lazily computed once on first call; recomputing per-frame would be wasteful.
 let _colorCache = null;
 function COLORS_FOR(cls) {
+  if (VIEW3D_OVERRIDES[cls]) { return VIEW3D_OVERRIDES[cls]; }
   if (_colorCache === null) {
     _colorCache = readColorsFromProbe();
   }
@@ -406,42 +419,43 @@ export function render3d(s, onToggle) {
     renderer.domElement.style.cursor = '';
   }
 
+  function setHover(hit, event, { suffix = '', cursor = 'pointer' } = {}) {
+    hoveredMesh = hit;
+    hoveredOriginalMat = hit.material;
+    hit.material = highlightMat;
+    const rect = renderer.domElement.getBoundingClientRect();
+    tooltip.textContent = `${hit.userData.val} ${CLS_LABEL[hit.userData.cls] || ''}${suffix}`;
+    tooltip.style.display = 'block';
+    tooltip.style.left = `${event.clientX - rect.left + 12}px`;
+    tooltip.style.top = `${event.clientY - rect.top - 20}px`;
+    renderer.domElement.style.cursor = cursor;
+    showHoverLines(hit.userData.val);
+  }
+
   renderer.domElement.addEventListener('mousemove', event => {
     const hit = hitTest(event);
-    const rect = renderer.domElement.getBoundingClientRect();
-    const tx = `${event.clientX - rect.left + 12}px`;
-    const ty = `${event.clientY - rect.top - 20}px`;
-
     if (hit === hoveredMesh) {
-      if (hit) { tooltip.style.left = tx; tooltip.style.top = ty; }
+      if (hit) {
+        const rect = renderer.domElement.getBoundingClientRect();
+        tooltip.style.left = `${event.clientX - rect.left + 12}px`;
+        tooltip.style.top = `${event.clientY - rect.top - 20}px`;
+      }
       return;
     }
     clearHover();
-    if (hit) {
-      hoveredMesh = hit;
-      hoveredOriginalMat = hit.material;
-      hit.material = highlightMat;
-      tooltip.textContent = `${hit.userData.val} ${CLS_LABEL[hit.userData.cls] || ''}`;
-      tooltip.style.display = 'block';
-      tooltip.style.left = tx;
-      tooltip.style.top = ty;
-      renderer.domElement.style.cursor = 'pointer';
-      showHoverLines(hit.userData.val);
-    }
+    if (hit) { setHover(hit, event); }
   });
 
   renderer.domElement.addEventListener('mouseleave', clearHover);
 
-  // Click-to-toggle (mouse) and tap-to-inspect / tap-again-to-toggle (touch).
-  // Touch devices have no hover, so a first tap on a cube selects it (highlight,
-  // tooltip, hover lines) without committing the toggle; a second tap on the
-  // same cube within 1.5 s commits. Mouse keeps the original one-click toggle.
+  // Mouse: click toggles. Touch (no hover): first tap inspects, second tap on
+  // the same cube within TOUCH_COMMIT_WINDOW commits the toggle.
   const DRAG_THRESHOLD_SQ = 16; // ~4px
+  const TOUCH_COMMIT_WINDOW = 1500; // ms
   let pointerDownPos = null;
   let pointerDownType = null;
-  let touchSelected = null;          // currently inspected mesh on touch
-  let touchSelectedAt = 0;           // timestamp of the inspect tap
-  const TOUCH_COMMIT_WINDOW = 1500;  // ms
+  let touchSelected = null;
+  let touchSelectedAt = 0;
 
   renderer.domElement.addEventListener('pointerdown', event => {
     pointerDownPos = { x: event.clientX, y: event.clientY };
@@ -461,23 +475,13 @@ export function render3d(s, onToggle) {
       const now = performance.now();
       const isCommit = touchSelected === hit && (now - touchSelectedAt) < TOUCH_COMMIT_WINDOW;
       if (isCommit) {
-        // Second tap on the same cube within the window — commit toggle.
         touchSelected = null;
         clearHover();
         if (onToggle) { onToggle(hit.userData.val); }
         return;
       }
-      // First tap — show tooltip + hover lines, don't toggle yet.
       clearHover();
-      hoveredMesh = hit;
-      hoveredOriginalMat = hit.material;
-      hit.material = highlightMat;
-      const rect = renderer.domElement.getBoundingClientRect();
-      tooltip.textContent = `${hit.userData.val} ${CLS_LABEL[hit.userData.cls] || ''} — tap again to toggle`;
-      tooltip.style.display = 'block';
-      tooltip.style.left = `${event.clientX - rect.left + 12}px`;
-      tooltip.style.top = `${event.clientY - rect.top - 20}px`;
-      showHoverLines(hit.userData.val);
+      setHover(hit, event, { suffix: ' — tap again to toggle', cursor: '' });
       touchSelected = hit;
       touchSelectedAt = now;
       return;

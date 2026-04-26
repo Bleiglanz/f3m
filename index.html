@@ -5,8 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="light dark">
   <title>Numerical Semigroup Calculator</title>
-  <!-- Pico (classless) gives us a baseline, dark-mode CSS variables, and modern
-       focus states. style.css comes after and overrides where it needs to. -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.classless.min.css">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.44/dist/katex.min.css" integrity="sha384-irXK0JiCGinqGL+slwVklbhJetrjczNwaP2lANewD8lKAs9n61SbQ3As28iSqXUE" crossorigin="anonymous">
@@ -57,12 +55,10 @@
     <button id="selfglue-btn" class="btn-mod" title="Self-glue: compute m·S + x·S where x is the first generator coprime to m" aria-label="Self-glue" style="display:none">glue</button>
   </div>
 
-  <div class="table-wrap">
-    <table class="history-table" style="width:fit-content">
-      <thead id="current-prop-thead"></thead>
-      <tbody id="current-prop-tbody"></tbody>
-    </table>
-  </div>
+  <table class="history-table">
+    <thead id="current-prop-thead"></thead>
+    <tbody id="current-prop-tbody"></tbody>
+  </table>
 
   <div class="checkbox-strip">
     <label><input type="checkbox" id="graph-show-gaps" checked> Show gaps</label>
@@ -118,12 +114,10 @@
   </div>
 
   <div id="tab-history" class="tab-content">
-    <div class="table-wrap">
-      <table class="history-table" style="width:fit-content">
-        <thead></thead>
-        <tbody id="history-tbody"></tbody>
-      </table>
-    </div>
+    <table class="history-table">
+      <thead></thead>
+      <tbody id="history-tbody"></tbody>
+    </table>
   </div>
 
   <div id="tab-gap" class="tab-content">
@@ -133,7 +127,7 @@
 
   <div id="tab-tilt" class="tab-content">
     <div id="tilt-controls" style="margin-bottom:0.5em"></div>
-    <div id="tilt-grid-container"></div>
+    <div id="tilt-grid-container" class="table-wrap"></div>
   </div>
 
   <div id="tab-csv" class="tab-content">

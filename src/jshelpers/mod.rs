@@ -344,74 +344,103 @@ pub fn js_classify_table(s: &JsSemigroup) -> String {
     out
 }
 
-/// Returns the U(m) matrix and U(m)·C product as HTML tables.
+/// Returns U(m), `U(m)·C_red`, and the U(m) pair-relations matrix as HTML tables.
 #[wasm_bindgen]
 #[must_use]
 pub fn js_diagonals_table(s: &JsSemigroup) -> String {
-    use crate::math::matrix::{kunz_matrix, u_matrix, u_times_kunz};
+    use crate::math::matrix::{
+        DenseMatrix, Matrix, c_red, u_matrix, u_pair_relations, u_times_c_red,
+    };
     use std::fmt::Write as _;
     let sg = &s.0;
-    let m = sg.m;
-    // Render a DenseMatrix<i64> as an HTML table.
-    // `cell` maps (row, col, value) to a <td>…</td> string.
-    let render = |mat: &crate::math::matrix::DenseMatrix<i64>,
+    let mult = sg.m;
+    // Render a DenseMatrix<i64> with custom row/col header labels and cell formatter.
+    let render = |mat: &DenseMatrix<i64>,
                   caption: &str,
+                  row_label: &dyn Fn(usize) -> String,
+                  col_label: &dyn Fn(usize) -> String,
                   cell: &dyn Fn(usize, usize, i64) -> String|
      -> String {
         let mut html = format!(
             "<table class=\"classify-table u-matrix-table\">\
              <thead><tr><th>{caption}</th>",
         );
-        for col in 0..m {
-            let _ = write!(html, "<th>{col}</th>");
+        for b in 0..mat.ncols() {
+            let _ = write!(html, "<th>{}</th>", col_label(b));
         }
         html.push_str("</tr></thead><tbody>");
-        for row in 0..m {
-            let _ = write!(html, "<tr><th>{row}</th>");
-            for col in 0..m {
-                html.push_str(&cell(row, col, mat[(row, col)]));
+        for a in 0..mat.nrows() {
+            let _ = write!(html, "<tr><th>{}</th>", row_label(a));
+            for b in 0..mat.ncols() {
+                html.push_str(&cell(a, b, mat[(a, b)]));
             }
             html.push_str("</tr>");
         }
         html.push_str("</tbody></table>");
         html
     };
-    let plain = |_row: usize, _col: usize, val: i64| format!("<td>{val}</td>");
-    let u = u_matrix(m);
-    let html_u = render(&u, "U(m)", &plain);
-    // U(m)·C via structure-aware O(m²) formula.
-    let kunz = kunz_matrix(sg);
-    let product = u_times_kunz(&kunz, m);
+    let plain = |_a: usize, _b: usize, val: i64| format!("<td>{val}</td>");
+    let one_based = |i: usize| (i + 1).to_string();
+    let dim = mult - 1;
+    // Lex-ordered labels for pairs (i, j) with 1 ≤ i ≤ j ≤ m−1.
+    let pair_labels: Vec<String> = (0..dim)
+        .flat_map(|a| (a..dim).map(move |b| format!("({},{})", a + 1, b + 1)))
+        .collect();
+    let pair_label = |r: usize| pair_labels[r].clone();
+
+    let u_mat = u_matrix(mult);
+    let html_u = render(&u_mat, "U(m)", &one_based, &one_based, &plain);
+
+    let cr = c_red(sg);
+    let product = u_times_c_red(&cr);
     let sets = class_sets(sg);
-    let classified = |_row: usize, col: usize, val: i64| {
-        if col == 1 && val >= 0 {
+    // Column 0 (semigroup index 1) is the Apéry-set column of U·C_red.
+    let classified = |_a: usize, b: usize, val: i64| {
+        if b == 0 && val >= 0 {
             #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-            let n = val as usize;
+            let v = val as usize;
             let cls = combined_table::get_cls(
-                n,
+                v,
                 false,
                 sg.f,
-                m,
+                mult,
                 &sg.apery_set,
                 &sets.gens,
                 &sets.pf_set,
                 &sets.blobs,
             );
-            format!("<td>{}</td>", span(cls, n, true))
+            format!("<td>{}</td>", span(cls, v, true))
         } else {
             format!("<td>{val}</td>")
         }
     };
-    let html_uc = render(&product, "U(m)\u{b7}C", &classified);
+    let html_uc = render(&product, "U(m)\u{b7}C_red", &one_based, &one_based, &classified);
+
+    let pair = u_pair_relations(mult);
+    let pair_cell = |_a: usize, _b: usize, val: i64| match val {
+        0 => "<td class=\"pm-zero\">0</td>".to_string(),
+        1 => "<td class=\"pm-pos1\">1</td>".to_string(),
+        -1 => "<td class=\"pm-neg1\">\u{2212}1</td>".to_string(),
+        _ => format!("<td>{val}</td>"),
+    };
+    let html_pair = render(
+        &pair,
+        "(U_i+U_j\u{2212}U_{i+j})/m",
+        &pair_label,
+        &one_based,
+        &pair_cell,
+    );
+
     let mut out = String::from("<div class=\"diagonals-pane\">");
-    out.push_str(&html_u);
+    let _ = write!(out, "<div class=\"table-wrap\">{html_u}</div>");
     let _ = write!(
         out,
         "<p class=\"det-note\">det(U(m)) = m<sup>m\u{2212}2</sup> = \
-         {m}<sup>{}</sup></p>",
-        m - 2,
+         {mult}<sup>{}</sup></p>",
+        mult - 2,
     );
-    out.push_str(&html_uc);
+    let _ = write!(out, "<div class=\"table-wrap\">{html_uc}</div>");
+    let _ = write!(out, "<div class=\"table-wrap\">{html_pair}</div>");
     out.push_str("</div>");
     out
 }

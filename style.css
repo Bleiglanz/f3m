@@ -186,7 +186,7 @@ button {
   white-space: nowrap;
 }
 
-button:hover { background: var(--th-bg); filter: brightness(1.4); }
+button:hover { filter: brightness(1.4); }
 button:active { transform: scale(0.97); }
 
 .btn-sep {
@@ -197,7 +197,7 @@ button:active { transform: scale(0.97); }
 .btn-mod {
   background: var(--muted);
 }
-.btn-mod:hover { background: var(--muted); filter: brightness(1.2); }
+.btn-mod:hover { filter: brightness(1.2); }
 
 /* ─── Status Banners ────────────────────────────────────────────── */
 #busy-banner {
@@ -254,17 +254,8 @@ button:active { transform: scale(0.97); }
 .tab-btn:hover { background: none; color: var(--text); }
 .tab-btn.active { color: var(--text); border-bottom-color: #2563eb; font-weight: 700; }
 
-.tab-content { display: none; width: 100%; max-width: 860px; }
+.tab-content { display: none; width: 100%; }
 .tab-content.active { display: block; }
-#tab-s { max-width: 95vw; }
-
-#tab-graph,
-#tab-gapgraph {
-  width: 95vw;
-  max-width: 95vw;
-  margin-left: -5vw;
-  padding-left: 1.5rem;
-}
 
 /* ─── Tables ────────────────────────────────────────────────────── */
 table {
@@ -501,6 +492,8 @@ span[data-remove-gen]     { cursor: pointer; }
   border-collapse: collapse;
   font-size: 0.82rem;
   font-family: var(--mono);
+  width: fit-content;
+  max-width: 100%;
   overflow: visible; /* allow .popup to escape the table boundary */
 }
 
@@ -599,6 +592,11 @@ body.hide-s .sg-grid span.sg-large { opacity: 0; }
 
 body.hide-classification .classify-row { display: none; }
 
+/* Pair-relations matrix: highlight ±1 entries, dim 0 entries. */
+.pm-zero { color: var(--dim); }
+.pm-pos1 { color: var(--green); background: var(--green-bg); font-weight: 600; }
+.pm-neg1 { color: var(--red);   background: var(--red-bg);   font-weight: 600; }
+
 .diagonals-pane { display: flex; gap: 1.5rem; flex-wrap: wrap; }
 .diagonals-table { background: var(--surface); }
 
@@ -660,26 +658,13 @@ body.hide-classification .classify-row { display: none; }
 }
 
 /* ─── Misc ──────────────────────────────────────────────────────── */
-.scroll-x { overflow-x: auto; }
-#sg-grid-container,
-#tilt-grid-container,
-#diagonals-container,
-#classify.classify-row { overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; }
 #result { width: 100%; }
 
-/* Generic horizontal-scroll wrapper for any wide table that mustn't squish.
-   Use directly in HTML or via wrapInScroll() in app.js for Rust-injected
-   tables. Includes a subtle gradient hint that more content exists offscreen. */
+/* Horizontal-scroll wrapper for wide grid tables. */
 .table-wrap {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   max-width: 100%;
-  /* Edge-fade hints: visible only when content is wider than viewport. */
-  background:
-    linear-gradient(to right, var(--bg) 30%, rgba(255,255,255,0)) left center / 24px 100% no-repeat local,
-    linear-gradient(to right, rgba(255,255,255,0), var(--bg) 70%) right center / 24px 100% no-repeat local,
-    radial-gradient(farthest-side at 0 50%, rgba(0,0,0,.12), rgba(0,0,0,0)) left center / 14px 100% no-repeat scroll,
-    radial-gradient(farthest-side at 100% 50%, rgba(0,0,0,.12), rgba(0,0,0,0)) right center / 14px 100% no-repeat scroll;
 }
 
 /* ─── Help Tab ──────────────────────────────────────────────────── */
@@ -870,10 +855,6 @@ footer a:hover { color: var(--text); }
     font-size: 0.9rem;
     min-height: 44px;
   }
-
-  /* Wide tabs: drop the negative-margin trick, let table-wrap handle overflow. */
-  #tab-graph, #tab-gapgraph { width: 100%; max-width: 100%; margin-left: 0; padding-left: 0; }
-  #tab-s { max-width: 100%; }
 
   th, td { padding: 0.4rem 0.55rem; }
   td.label { width: auto; white-space: nowrap; font-size: 0.82rem; }

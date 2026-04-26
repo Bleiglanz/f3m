@@ -248,6 +248,34 @@ pub fn gap_block(sg: &Semigroup, idx: usize) -> String {
         ps.t
     )
     .unwrap();
+    if sg.m >= 2 {
+        let m = sg.m;
+        // Verify U(m) · C_red[:,0] = [w_1, …, w_{m−1}].
+        // Row i of U(m) is (i−1) copies of (i−m) followed by (n−i+1) copies of i.
+        // C_red[:,0] is built from the Apéry list: the i-th entry is
+        // c(i, 1) = (w_i + w_1 − w_{(i+1) mod m}) / m.
+        writeln!(out, "ap{idx} := AperyList(ng{idx}, {m});;").unwrap();
+        writeln!(
+            out,
+            "U{idx} := List([1..{n}], i -> Concatenation(\
+             ListWithIdenticalEntries(i-1, i-{m}), \
+             ListWithIdenticalEntries({n}-i+1, i)));;",
+            n = m - 1,
+        )
+        .unwrap();
+        writeln!(
+            out,
+            "c_red_col1_{idx} := List([1..{n}], \
+             i -> (ap{idx}[i+1] + ap{idx}[2] - ap{idx}[((i+1) mod {m}) + 1]) / {m});;",
+            n = m - 1,
+        )
+        .unwrap();
+        writeln!(
+            out,
+            "Assert(0, U{idx} * c_red_col1_{idx} = ap{idx}{{[2..{m}]}});",
+        )
+        .unwrap();
+    }
     out.push('\n');
     out
 }

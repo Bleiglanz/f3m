@@ -1675,7 +1675,8 @@ mod tests {
                     #[allow(clippy::cast_possible_wrap)]
                     let expected = s.kunz(a + 1, b + 1) as i64;
                     assert_eq!(
-                        sum, expected,
+                        sum,
+                        expected,
                         "⟨{gens:?}⟩ pair ({},{}): c = {expected}",
                         a + 1,
                         b + 1

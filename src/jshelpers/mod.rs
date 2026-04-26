@@ -414,7 +414,13 @@ pub fn js_diagonals_table(s: &JsSemigroup) -> String {
             format!("<td>{val}</td>")
         }
     };
-    let html_uc = render(&product, "U(m)\u{b7}C_red", &one_based, &one_based, &classified);
+    let html_uc = render(
+        &product,
+        "U(m)\u{b7}C_red",
+        &one_based,
+        &one_based,
+        &classified,
+    );
 
     let pair = u_pair_relations(mult);
     let pair_cell = |_a: usize, _b: usize, val: i64| match val {

@@ -1,20 +1,23 @@
-#![warn(clippy::pedantic)]
-// Evaluation of easy arithmetical expressions over usize integers.
-//
-// Supports: non-negative integers, +, -, *, /, parentheses.
-// Operator precedence: * and / bind tighter than + and -.
-// Subtraction underflow (wrapping below zero) is an error.
-//
-// Grammar (recursive descent):
-//
-//   expr   = term   (('+' | '-') term)*
-//   term   = factor (('*' | '/') factor)*
-//   factor = '(' expr ')' | number
-//   number = [0-9]+
-//
-// Usage:
-//   let result = eval("3 + 4 * 2");   // Ok(11)
-//   let result = eval("(1 + 2) * 3"); // Ok(9)
+//! Evaluation of easy arithmetical expressions over `usize` integers.
+//!
+//! Supports: non-negative integers, `+`, `-`, `*`, `/`, parentheses.
+//! Operator precedence: `*` and `/` bind tighter than `+` and `-`.
+//! Subtraction underflow (wrapping below zero) is an error.
+//!
+//! Grammar (recursive descent):
+//!
+//! ```text
+//!   expr   = term   (('+' | '-') term)*
+//!   term   = factor (('*' | '/') factor)*
+//!   factor = '(' expr ')' | number
+//!   number = [0-9]+
+//! ```
+//!
+//! ```rust
+//! use f3m::eva::eval;
+//! assert_eq!(eval("3 + 4 * 2").unwrap(), 11);
+//! assert_eq!(eval("(1 + 2) * 3").unwrap(), 9);
+//! ```
 
 /// # Errors
 ///
@@ -96,6 +99,7 @@ fn tokenize(input: &str) -> Result<Vec<Token>, String> {
 
 // ── Parser ───────────────────────────────────────────────────────────────────
 
+#[derive(Debug)]
 struct Parser {
     tokens: Vec<Token>,
     pos: usize,
@@ -106,7 +110,7 @@ impl Parser {
         self.tokens.get(self.pos)
     }
 
-    fn consume(&mut self) {
+    const fn consume(&mut self) {
         self.pos += 1;
     }
 

@@ -305,7 +305,10 @@ function doToggle(val) {
   const canonical = newGens.join(', ');
   gensInput.value = canonical;
   const idx = state_push(canonical);
-  render(state_get(idx), toggle, `${sign}${val}`);
+  if (idx < 0) { return; } // no positive generators (shouldn't happen on toggle, but defensive)
+  const sg = state_get(idx);
+  if (!sg) { return; }
+  render(sg, toggle, `${sign}${val}`);
   history.pushState({ gens: canonical, idx }, '', `?g=${encodeURIComponent(canonical)}`);
 }
 
@@ -329,7 +332,13 @@ function compute() {
   _computeLabel = '⏎'; // reset for next manual compute
   try {
     const idx = state_push(canonical);
-    render(state_get(idx), null, label);
+    if (idx < 0) {
+      showError('Need at least one positive generator.');
+      return;
+    }
+    const sg = state_get(idx);
+    if (!sg) { return; }
+    render(sg, null, label);
     if (!navigating) { history.pushState({ gens: canonical, idx }, '', `?g=${encodeURIComponent(canonical)}`); }
   } catch (e) {
     showError(`Error: ${e.message ?? e}`);
@@ -346,7 +355,9 @@ function randNums() {
 // "RndKf": random generators + generators [k*m .. (k+1)*m] to push f near k*m.
 function randWithMultiplier(k) {
   const nums = randNums();
-  const { m } = js_compute(nums.join(', ')); // peek without storing
+  const peek = js_compute(nums.join(', ')); // peek without storing
+  if (!peek) { return; }
+  const m = peek.m;
   const extra = Array.from({ length: k * m + 1 }, (_, i) => k * m + i);
   gensInput.value = [...nums, ...extra].join(', ');
   compute();
@@ -475,7 +486,9 @@ document.getElementById('current-prop-tbody').addEventListener('click', e => {
   if (!row) { return; }
   const rowIdx = parseInt(row.dataset.idx, 10);
   state_set_current_idx(rowIdx);
-  currentS = state_get(rowIdx);
+  const sg = state_get(rowIdx);
+  if (!sg) { return; }
+  currentS = sg;
   currentGenSet = Array.from(currentS.gen_set);
   doToggle(parseInt(span.textContent, 10));
 });
@@ -487,12 +500,16 @@ document.getElementById('history-tbody').addEventListener('click', e => {
   if (!row || !cell) { return; }
   const rowIdx = parseInt(row.dataset.idx, 10);
   const s = state_get(rowIdx);
+  if (!s) { return; }
   if (cell.cellIndex === 0) {
     const canonical = Array.from(s.gen_set).join(', ');
     gensInput.value = canonical;
     switchTab('s');
     const newIdx = state_push(canonical);
-    render(state_get(newIdx), null, '⏎');
+    if (newIdx < 0) { return; }
+    const newSg = state_get(newIdx);
+    if (!newSg) { return; }
+    render(newSg, null, '⏎');
     history.pushState({ gens: canonical, idx: newIdx }, '', `?g=${encodeURIComponent(canonical)}`);
     return;
   }
@@ -510,7 +527,8 @@ window.addEventListener('popstate', e => {
   if (e.state?.idx != null && e.state.idx < state_len()) {
     state_set_current_idx(e.state.idx);
     navigating = true;
-    render(state_get(e.state.idx));
+    const sg = state_get(e.state.idx);
+    if (sg) { render(sg); }
     navigating = false;
   } else if (e.state?.gens) {
     gensInput.value = e.state.gens;

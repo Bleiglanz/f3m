@@ -1,7 +1,29 @@
-#![warn(clippy::pedantic)]
+//! [`Semigroup`] — the central data type.
+//!
+//! Holds every property computed by [`super::compute`] plus the methods that
+//! derive further properties on demand.
 
 use super::compute;
 use std::collections;
+
+/// One special pseudo-Frobenius number, paired with the indices of the two
+/// generators whose difference produced it: `(diff, (i, j))` with `i > j`.
+pub type SpecialPf = (usize, (usize, usize));
+
+/// Pseudo-Frobenius numbers and the special pseudo-Frobenius numbers (those
+/// that arise as differences of generators) of a semigroup.
+#[derive(Debug, Clone)]
+pub struct PseudoSpecial {
+    /// Pseudo-Frobenius numbers PF(S): gaps `x` such that `x + s ∈ S` for every `s ∈ S \ {0}`.
+    pub pf: Vec<usize>,
+    /// Type of S = `pf.len()`.
+    pub t: usize,
+    /// Special PF: elements of PF(S) expressible as `gen[i] − gen[j]` (`i > j`)
+    /// that don't divide `f`, paired with `(i, j)`.
+    pub special: Vec<SpecialPf>,
+    /// Cardinality of the special set (= `special.len()`).
+    pub st: usize,
+}
 
 /// All computed properties of a numerical semigroup S = <`gen_set`>.
 #[derive(Debug, Clone)]
@@ -81,12 +103,16 @@ impl Semigroup {
         !self.element(x)
     }
     /// Returns `true` if S is symmetric (genus == `count_set`, equivalently f+1 = 2·genus).
-    /// # Panics
-    /// Panics if the symmetric invariant `f + 1 == 2 * g` is violated (internal consistency check).
+    ///
+    /// The well-known equivalence `g = (f+1)/2` is checked in debug builds only;
+    /// release builds trust the value computed by [`super::compute`].
     #[must_use]
     pub fn is_symmetric(&self) -> bool {
         let sym = self.count_gap == self.count_set;
-        assert!(!sym || self.f + 1 == 2 * self.count_gap);
+        debug_assert!(
+            !sym || self.f + 1 == 2 * self.count_gap,
+            "symmetric semigroup invariant f+1 = 2g violated",
+        );
         sym
     }
     /// Wilf quotient: `count_set` / (f+1). Wilf's conjecture states this is ≥ 1/e for all S.
@@ -109,17 +135,29 @@ impl Semigroup {
     }
     /// Kunz coefficient c(i,j) = (apery[i] + apery[j] - apery[(i+j) mod m]) / m.
     /// Forms a symmetric matrix; row sums equal the Apéry elements.
-    /// # Panics
-    /// Panics if the Kunz divisibility invariant is violated (internal consistency check).
+    ///
+    /// The Apéry-divisibility invariant (`a_i + a_j − a_{i+j} ≡ 0 (mod m)` and
+    /// `a_i + a_j ≥ a_{i+j}`) is checked in debug builds only; release builds
+    /// trust the values computed by [`super::compute`]. Returns 0 if either
+    /// invariant is violated, so this function never panics in release.
     #[must_use]
     pub fn kunz(&self, i: usize, j: usize) -> usize {
         let first = i % self.m;
         let second = j % self.m;
         let idx = (i + j) % self.m;
         let sum = self.apery_set[first] + self.apery_set[second];
-        assert!(sum >= self.apery_set[idx]);
-        let res = sum - self.apery_set[idx];
-        assert_eq!(0, res % self.m, "ai+aj-a(i+j) immer duch m teilbar!");
+        debug_assert!(
+            sum >= self.apery_set[idx],
+            "Kunz invariant: a_i + a_j ≥ a_{{i+j}}"
+        );
+        let Some(res) = sum.checked_sub(self.apery_set[idx]) else {
+            return 0;
+        };
+        debug_assert_eq!(
+            0,
+            res % self.m,
+            "Kunz invariant: a_i + a_j − a_{{i+j}} must be divisible by m",
+        );
         res / self.m
     }
     /// Returns the sum of the anti-diagonal (minor diagonal) of the Kunz matrix through column `i`.
@@ -142,47 +180,32 @@ impl Semigroup {
 
     /// Computes PF(S) and the special pseudo-Frobenius numbers.
     ///
-    /// Returns `((pf, t), (spf, st))` where:
-    /// - `pf` = pseudo-Frobenius numbers: gaps x such that x + s ∈ S for every s ∈ S \ {0}.
-    /// - `t`  = |PF(S)| (the type of S).
-    /// - `spf` = special PF: elements of PF(S) expressible as gen[i] - gen[j] (i > j) that don't divide f,
-    ///   paired with the generator indices `(i, j)`.
-    /// - `st` = |SPF(S)|.
+    /// Returns a `PseudoSpecial` describing both sets and their cardinalities.
     #[must_use]
-    #[allow(clippy::type_complexity)]
-    pub fn pseudo_and_special(
-        &self,
-    ) -> (
-        (Vec<usize>, usize),                   // PF and its length
-        (Vec<(usize, (usize, usize))>, usize), // SPF with what diff it is and the length of SPF
-    ) {
+    pub fn pseudo_and_special(&self) -> PseudoSpecial {
         let pf = self.pf_set.clone();
         let t = pf.len();
-        let normal_pseudofrobenius = (pf, t);
 
         // Special PF: elements of PF(S) that equal gen[i]-gen[j] (i>j) and don't divide f
-        let pf_set: collections::HashSet<usize> =
-            normal_pseudofrobenius.0.iter().copied().collect();
-        let mut special_set: Vec<(usize, (usize, usize))> = Vec::new();
+        let pf_lookup: collections::HashSet<usize> = pf.iter().copied().collect();
+        let mut special: Vec<(usize, (usize, usize))> = Vec::new();
         for i in 1..self.gen_set.len() {
             for j in 0..i {
                 let diff = self.gen_set[i] - self.gen_set[j];
-                if pf_set.contains(&diff) && !self.f.is_multiple_of(diff) {
-                    special_set.push((diff, (i, j)));
+                if pf_lookup.contains(&diff) && !self.f.is_multiple_of(diff) {
+                    special.push((diff, (i, j)));
                 }
             }
         }
-        let special: Vec<(usize, (usize, usize))> = special_set.into_iter().collect();
-        // todo: sort by the first number x in the pair (x(-,-))
         let st = special.len();
-        (normal_pseudofrobenius, (special, st))
+        PseudoSpecial { pf, t, special, st }
     }
 
     /// Toggle generator `n`: if `n` is a gap, add it as a new generator;
     /// if `n` is a minimal generator, remove it and recompute the generator set.
     /// Returns `self` unchanged if the operation would produce an empty generator set.
     #[must_use]
-    pub fn toggle(&self, n: usize) -> Semigroup {
+    pub fn toggle(&self, n: usize) -> Self {
         if self.is_gap(n) {
             let mut newgen = self.gen_set.clone();
             newgen.push(n);
@@ -214,24 +237,23 @@ impl Semigroup {
             _ => "unknown",
         }
     }
-    //
-    // compute S/2, i.e the Semigroup of all number x>= 0 such that 2x is in S
-    //
+    /// Returns S/2 = {n ≥ 0 : 2n ∈ S}, the half of `self`.
     #[must_use]
-    pub fn compute_s_over_2(&self) -> Semigroup {
+    pub fn compute_s_over_2(&self) -> Self {
         let new_generators: Vec<usize> = (1..usize::midpoint(self.f, self.m) + 2 * self.m)
             .filter(|&x| self.element(2 * x))
             .collect();
         compute(&new_generators)
     }
 
+    /// Returns the semigroup obtained by adding every pseudo-Frobenius number
+    /// other than `f` itself as a generator.
     #[must_use]
-    pub fn compute_add_all_pf(&self) -> Semigroup {
+    pub fn compute_add_all_pf(&self) -> Self {
         let mut current_gen_set = self.gen_set.clone();
         let mut current_pf: Vec<usize> = self
             .pseudo_and_special()
-            .0
-            .0
+            .pf
             .into_iter()
             .filter(|&x| x != self.f)
             .collect();
@@ -239,10 +261,11 @@ impl Semigroup {
         compute(&current_gen_set)
     }
 
+    /// Returns the semigroup obtained by adding every reflected gap as a generator.
     #[must_use]
-    pub fn compute_add_reflected_gaps(&self) -> Semigroup {
+    pub fn compute_add_reflected_gaps(&self) -> Self {
         let mut current_gen_set = self.gen_set.clone();
-        let mut current_blob = self.blob().clone();
+        let mut current_blob = self.blob();
         current_gen_set.append(&mut current_blob);
         compute(&current_gen_set)
     }
@@ -251,7 +274,7 @@ impl Semigroup {
     ///
     /// See [`crate::math::symmetric_partner`] for the full construction.
     #[must_use]
-    pub fn compute_symmetric_partner(&self) -> Semigroup {
+    pub fn compute_symmetric_partner(&self) -> Self {
         super::symmetric_partner::symmetric_partner(self)
     }
 }

@@ -1,13 +1,15 @@
-#![warn(clippy::pedantic)]
+//! Sheared "Tilt" grid view for the Tilt tab.
+
 use super::combined_table::get_cls;
 use super::{JsSemigroup, class_sets};
 use std::fmt::Write as _;
 use wasm_bindgen::prelude::*;
 
 /// Pure x-y grid for the Tilt tab: no Apéry row, no Kunz matrix.
-/// x (columns) and y (rows) both run from -3m to 3m.
-/// y increases upward (highest y at top). x increases left to right.
-/// Element at (x, y) = y*m + x - tilt*y.
+///
+/// x (columns) and y (rows) both run from `-3m` to `3m`. y increases upward
+/// (highest y at top). x increases left to right. The element at (x, y) is
+/// `y·m + x − tilt·y`.
 // ALLOW: m, f, x, n are standard mathematical notation for this domain.
 #[allow(clippy::many_single_char_names)]
 #[wasm_bindgen]

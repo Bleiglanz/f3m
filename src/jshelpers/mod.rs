@@ -1,18 +1,29 @@
-#![warn(clippy::pedantic)]
+//! WebAssembly bindings: `JsSemigroup`, HTML rendering helpers, and the global
+//! `PageState` (in `pagestate`). All `#[wasm_bindgen]` exports live here.
+
 use crate::math::{Semigroup, compute, gap_block};
 use std::collections::HashSet;
 use wasm_bindgen::prelude::*;
+
+/// Combined structure-grid + Apéry row + Kunz matrix HTML table.
 pub mod combined_table;
+/// Expression evaluator over semigroup variables (`e`, `f`, `m`, `a[i]`, …).
 pub mod js_eval;
+/// Hasse-diagram graph data for the Cayley-graph view.
 pub mod jsgraph;
+/// Global page state owned by the WASM module (history, toggles, expressions).
 pub mod pagestate;
+/// "Short props" table on the Semigroup tab.
 pub mod shortprops_table;
+/// Tilted x-y grid for the Tilt tab.
 pub mod tilt;
+
 pub use shortprops_table::{shortprop, shortprop_tds};
 
 // ── shared helpers ────────────────────────────────────────────────────────────
 
 /// Pre-built `HashSets` used for O(1) CSS-class lookups across rendering functions.
+#[derive(Debug)]
 pub(super) struct ClassSets {
     pub gens: HashSet<usize>,   // minimal generators
     pub pf_set: HashSet<usize>, // pseudo-Frobenius numbers
@@ -24,7 +35,7 @@ pub(super) struct ClassSets {
 pub(super) fn class_sets(sg: &Semigroup) -> ClassSets {
     ClassSets {
         gens: sg.gen_set.iter().copied().collect(),
-        pf_set: sg.pseudo_and_special().0.0.into_iter().collect(),
+        pf_set: sg.pseudo_and_special().pf.into_iter().collect(),
         blobs: sg.blob().into_iter().collect(),
     }
 }
@@ -49,128 +60,165 @@ pub(super) fn spf_pair(gen_i: usize, gen_j: usize, data_n: bool) -> String {
     )
 }
 
-/// Cast a `usize` slice to `Vec<u32>` for WASM transfer (values are always small in practice).
-#[allow(clippy::cast_possible_truncation)]
+/// Cast a `usize` slice to `Vec<u32>` for WASM transfer.
+///
+/// Semigroup values are always small (well below `u32::MAX`) so saturation acts
+/// as a defensive cap: a hypothetical out-of-range value clamps to `u32::MAX`
+/// rather than silently truncating.
 fn to_u32(v: &[usize]) -> Vec<u32> {
-    v.iter().map(|&x| x as u32).collect()
+    v.iter()
+        .map(|&x| u32::try_from(x).unwrap_or(u32::MAX))
+        .collect()
 }
 
 // ── JsSemigroup ──────────────────────────────────────────────────────────────
 
+/// JavaScript-facing wrapper around [`Semigroup`].
+///
+/// `wasm_bindgen` exports its getters and methods to JS; the inner `Semigroup`
+/// stays Rust-side and is never serialised.
 #[wasm_bindgen]
+#[derive(Debug)]
 pub struct JsSemigroup(pub(crate) Semigroup);
 
-// Semigroup values are always small; truncation to u32 is safe in practice.
-#[allow(clippy::cast_possible_truncation)]
+// `wasm_bindgen` getters cannot be `const fn` (they cross the FFI boundary).
+// `cast_possible_truncation` is acceptable: semigroup values fit comfortably in u32.
+#[allow(clippy::cast_possible_truncation, clippy::missing_const_for_fn)]
 #[wasm_bindgen]
 impl JsSemigroup {
+    /// Embedding dimension (number of minimal generators).
     #[wasm_bindgen(getter)]
     #[must_use]
     pub fn e(&self) -> usize {
         self.0.e
     }
+    /// Frobenius number.
     #[wasm_bindgen(getter)]
     #[must_use]
     pub fn f(&self) -> usize {
         self.0.f
     }
+    /// Multiplicity (smallest positive element).
     #[wasm_bindgen(getter)]
     #[must_use]
     pub fn m(&self) -> usize {
         self.0.m
     }
+    /// σ — number of semigroup elements below the conductor f+1.
     #[wasm_bindgen(getter)]
     #[must_use]
     pub fn count_set(&self) -> usize {
         self.0.count_set
     }
+    /// Genus — number of gaps.
     #[wasm_bindgen(getter)]
     #[must_use]
     pub fn count_gap(&self) -> usize {
         self.0.count_gap
     }
+    /// Largest minimal generator.
     #[wasm_bindgen(getter)]
     #[must_use]
     pub fn max_gen(&self) -> usize {
         self.0.max_gen
     }
 
+    /// Sorted list of minimal generators.
     #[wasm_bindgen(getter)]
     #[must_use]
     pub fn gen_set(&self) -> Vec<u32> {
         to_u32(&self.0.gen_set)
     }
+    /// Apéry set w.r.t. m.
     #[wasm_bindgen(getter)]
     #[must_use]
     pub fn apery_set(&self) -> Vec<u32> {
         to_u32(&self.0.apery_set)
     }
+    /// Reflected gaps (gaps n with f−n also a gap).
     #[wasm_bindgen(getter)]
     #[must_use]
     pub fn blob(&self) -> Vec<u32> {
         to_u32(&self.0.blob())
     }
 
+    /// True if `x` belongs to the semigroup.
     #[must_use]
     pub fn is_element(&self, x: usize) -> bool {
         self.0.element(x)
     }
+    /// Kunz coefficient c(i, j).
     #[must_use]
     pub fn kunz(&self, i: usize, j: usize) -> usize {
         self.0.kunz(i, j)
     }
 
+    /// True if the semigroup is symmetric.
     #[wasm_bindgen(getter)]
     #[must_use]
     pub fn is_symmetric(&self) -> bool {
         self.0.is_symmetric()
     }
+    /// Wilf quotient σ/(f+1).
     #[wasm_bindgen(getter)]
     #[must_use]
     pub fn wilf(&self) -> f64 {
         self.0.wilf()
     }
 
+    /// Pseudo-Frobenius numbers PF(S).
     #[wasm_bindgen(getter)]
     #[must_use]
     pub fn pf(&self) -> Vec<u32> {
-        let ((pf, _), _) = self.0.pseudo_and_special();
-        to_u32(&pf)
+        to_u32(&self.0.pseudo_and_special().pf)
     }
+    /// Type t = |PF(S)|.
     #[wasm_bindgen(getter)]
     #[must_use]
     pub fn type_t(&self) -> usize {
-        self.0.pseudo_and_special().0.1
+        self.0.pseudo_and_special().t
     }
+    /// Special pseudo-Frobenius numbers (PF that arise as a generator difference).
     #[wasm_bindgen(getter)]
     #[must_use]
     pub fn special_pf(&self) -> Vec<u32> {
-        let (_, (spf, _)) = self.0.pseudo_and_special();
-        to_u32(&spf.iter().map(|&(diff, _)| diff).collect::<Vec<_>>())
+        let diffs: Vec<usize> = self
+            .0
+            .pseudo_and_special()
+            .special
+            .iter()
+            .map(|&(diff, _)| diff)
+            .collect();
+        to_u32(&diffs)
     }
 
+    /// Special pseudo-Frobenius numbers grouped as printable `=a−b` strings.
     #[wasm_bindgen(getter)]
     #[must_use]
     pub fn special_pf_str(&self) -> Vec<String> {
-        let (_, (spf, _)) = self.0.pseudo_and_special();
-        shortprops_table::spf_grouped(&spf, &self.0.gen_set)
+        let ps = self.0.pseudo_and_special();
+        shortprops_table::spf_grouped(&ps.special, &self.0.gen_set)
     }
 
+    /// Add `n` as a generator if it is a gap, else remove it from the generating set.
     #[must_use]
-    pub fn toggle(&self, n: usize) -> JsSemigroup {
-        JsSemigroup(self.0.toggle(n))
+    pub fn toggle(&self, n: usize) -> Self {
+        Self(self.0.toggle(n))
     }
 
+    /// Generators of S/2 = { x : 2x ∈ S }.
     #[must_use]
     pub fn s_over_2(&self) -> Vec<u32> {
         to_u32(&self.0.compute_s_over_2().gen_set)
     }
 
+    /// Generators of S with every pseudo-Frobenius number ≠ f added.
     #[must_use]
     pub fn add_all_pf(&self) -> Vec<u32> {
         to_u32(&self.0.compute_add_all_pf().gen_set)
     }
 
+    /// Generators of S with every reflected gap added.
     #[must_use]
     pub fn add_reflected_gaps(&self) -> Vec<u32> {
         to_u32(&self.0.compute_add_reflected_gaps().gen_set)
@@ -391,24 +439,35 @@ pub fn js_gap_block(s: &JsSemigroup, idx: usize) -> String {
     gap_block(&s.0, idx)
 }
 
+/// GAP script header (load + package declarations) for the verification script.
 #[wasm_bindgen]
 #[must_use]
 pub fn gap_header() -> String {
     crate::math::GAP_HEADER.to_string()
 }
 
+/// GAP script footer (final assertion-success print).
 #[wasm_bindgen]
 #[must_use]
 pub fn gap_footer() -> String {
     crate::math::GAP_FOOTER.to_string()
 }
 
+/// Parse a comma-separated generator list and compute its semigroup.
+///
+/// Returns `None` when the input contains no positive integer generators
+/// (empty / whitespace-only / all zeros), since [`compute`] requires at least
+/// one positive generator.
 #[wasm_bindgen]
 #[must_use]
-pub fn js_compute(input: &str) -> JsSemigroup {
+pub fn js_compute(input: &str) -> Option<JsSemigroup> {
     let numbers: Vec<usize> = input
         .split(',')
         .filter_map(|s| s.trim().parse().ok())
+        .filter(|&n: &usize| n > 0)
         .collect();
-    JsSemigroup(compute(&numbers))
+    if numbers.is_empty() {
+        return None;
+    }
+    Some(JsSemigroup(compute(&numbers)))
 }

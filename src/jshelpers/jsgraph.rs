@@ -1,4 +1,5 @@
-#![warn(clippy::pedantic)]
+//! Hasse-diagram graph data for the Cayley-graph view, exported as flat arrays for vis-network.
+
 use super::combined_table::get_cls;
 use super::{JsSemigroup, class_sets};
 use crate::math::Semigroup;
@@ -27,7 +28,7 @@ pub fn graph_edges(numbers: &[usize], ng: &Semigroup) -> (Vec<usize>, Vec<(usize
 
     let nodes: Vec<usize> = edges
         .iter()
-        .flat_map(|&(i, j)| [i, j])
+        .flat_map(|&(i, j)| std::iter::once(i).chain(std::iter::once(j)))
         .collect::<HashSet<_>>()
         .into_iter()
         .collect();

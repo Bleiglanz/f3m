@@ -1,11 +1,12 @@
-#![warn(clippy::pedantic)]
+//! HTML rendering for the compact summary row and the per-history-entry row.
+
 use super::JsSemigroup;
-use crate::math::Semigroup;
+use crate::math::{Semigroup, semigroup::SpecialPf};
 use wasm_bindgen::prelude::*;
 
 /// Groups special-PF entries by diff value and formats each as
 /// `<sg-pf>p</sg-pf>=<sg-gen>a</sg-gen>-<sg-gen>b</sg-gen>=...`
-pub(super) fn spf_grouped(spf: &[(usize, (usize, usize))], gen_set: &[usize]) -> Vec<String> {
+pub(super) fn spf_grouped(spf: &[SpecialPf], gen_set: &[usize]) -> Vec<String> {
     // collect unique diffs in order of first appearance
     let mut seen: Vec<usize> = Vec::new();
     for &(diff, _) in spf {
@@ -41,7 +42,8 @@ fn popup_cell(left: bool, count: usize, content: &str) -> String {
 /// gen, PF and (when non-zero) SPF show counts with a hover popup listing the actual values.
 #[allow(clippy::cast_precision_loss)]
 pub(super) fn shortprop_cells(sg: &Semigroup) -> String {
-    let ((pf, t), (spf_vec, st)) = sg.pseudo_and_special();
+    let ps = sg.pseudo_and_special();
+    let (pf, t, spf_vec, st) = (ps.pf, ps.t, ps.special, ps.st);
     let fmt_spans = |items: &[usize], cls: &str| -> String {
         items
             .iter()

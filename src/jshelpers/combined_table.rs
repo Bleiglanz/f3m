@@ -1,4 +1,5 @@
-#![warn(clippy::pedantic)]
+//! Combined structure-grid + Apéry row + Kunz matrix HTML table for the Semigroup tab.
+
 use super::{JsSemigroup, class_sets};
 use std::collections::HashSet;
 use std::fmt::Write as _;
@@ -51,9 +52,10 @@ pub(crate) fn get_cls(
     }
 }
 
-/// Build the full combined table: structure grid + repeated header + Apéry row + Kunz matrix.
-/// When `tilt == 0` columns span `[0, m)`; when `tilt != 0` they span `[-2m, 2m)` so
-/// the wider neighbourhood is visible for a tilted view.
+/// Build the full combined table: structure grid, repeated header, Apéry row, Kunz matrix.
+///
+/// When `tilt == 0` columns span `[0, m)`; when `tilt != 0` they span `[-2m, 2m)`
+/// so the wider neighbourhood is visible for a tilted view.
 #[wasm_bindgen]
 #[must_use]
 pub fn combined_table(s: &JsSemigroup, offset: usize, tilt: i32, show_kunz: bool) -> String {

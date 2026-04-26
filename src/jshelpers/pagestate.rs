@@ -1,4 +1,3 @@
-#![warn(clippy::pedantic)]
 use super::JsSemigroup;
 use crate::math::{GAP_FOOTER, GAP_HEADER, Semigroup, compute, gap_block};
 use std::cell::RefCell;
@@ -8,6 +7,7 @@ use wasm_bindgen::prelude::*;
 /// Uses `thread_local! + RefCell` — safe and zero-cost on the single WASM thread.
 // ALLOW: the four bools are independent UI display toggles with no meaningful enum grouping.
 #[allow(clippy::struct_excessive_bools)]
+#[derive(Debug)]
 pub struct PageState {
     history: Vec<Semigroup>,
     current_idx: Option<usize>,
@@ -56,28 +56,36 @@ where
 
 /// Compute a semigroup from comma-separated input, push it to history,
 /// update `current_idx`, and return the new index.
+///
+/// Returns `-1` when the input has no positive integer generators
+/// (the underlying [`compute`] function requires at least one).
 #[wasm_bindgen]
 #[must_use]
-pub fn state_push(input: &str) -> usize {
+pub fn state_push(input: &str) -> i32 {
     let numbers: Vec<usize> = input
         .split(',')
         .filter_map(|s| s.trim().parse().ok())
+        .filter(|&n: &usize| n > 0)
         .collect();
+    if numbers.is_empty() {
+        return -1;
+    }
     let sg = compute(&numbers);
     with_state_mut(|state| {
         let idx = state.history.len();
         state.gap_blocks.push_str(&gap_block(&sg, idx + 1));
         state.history.push(sg);
         state.current_idx = Some(idx);
-        idx
+        // History is bounded by user actions; any plausible value fits in i32.
+        i32::try_from(idx).unwrap_or(i32::MAX)
     })
 }
 
-/// Return the semigroup at history index `idx`.
+/// Return the semigroup at history index `idx`, or `None` if `idx` is out of range.
 #[wasm_bindgen]
 #[must_use]
-pub fn state_get(idx: usize) -> JsSemigroup {
-    with_state(|state| JsSemigroup(state.history[idx].clone()))
+pub fn state_get(idx: usize) -> Option<JsSemigroup> {
+    with_state(|state| state.history.get(idx).cloned().map(JsSemigroup))
 }
 
 /// Number of semigroups in history.
@@ -122,60 +130,69 @@ pub fn state_gap_output() -> String {
     with_state(|state| format!("{}{}{}", GAP_HEADER, state.gap_blocks, GAP_FOOTER))
 }
 
-/// Get/set `show_gaps` display toggle.
+/// Get the `show_gaps` display toggle.
 #[wasm_bindgen]
 #[must_use]
 pub fn state_get_show_gaps() -> bool {
     with_state(|s| s.show_gaps)
 }
+/// Set the `show_gaps` display toggle.
 #[wasm_bindgen]
 pub fn state_set_show_gaps(v: bool) {
     with_state_mut(|s| s.show_gaps = v);
 }
 
-/// Get/set `show_s` display toggle.
+/// Get the `show_s` display toggle.
 #[wasm_bindgen]
 #[must_use]
 pub fn state_get_show_s() -> bool {
     with_state(|s| s.show_s)
 }
+/// Set the `show_s` display toggle.
 #[wasm_bindgen]
 pub fn state_set_show_s(v: bool) {
     with_state_mut(|s| s.show_s = v);
 }
 
-/// Get/set `show_kunz` display toggle.
+/// Get the `show_kunz` display toggle.
 #[wasm_bindgen]
 #[must_use]
 pub fn state_get_show_kunz() -> bool {
     with_state(|s| s.show_kunz)
 }
+/// Set the `show_kunz` display toggle.
 #[wasm_bindgen]
 pub fn state_set_show_kunz(v: bool) {
     with_state_mut(|s| s.show_kunz = v);
 }
 
-/// Get/set `show_classification` display toggle.
+/// Get the `show_classification` display toggle.
 #[wasm_bindgen]
 #[must_use]
 pub fn state_get_show_classification() -> bool {
     with_state(|s| s.show_classification)
 }
+/// Set the `show_classification` display toggle.
 #[wasm_bindgen]
 pub fn state_set_show_classification(v: bool) {
     with_state_mut(|s| s.show_classification = v);
 }
 
 /// Containment-comparison HTML symbol between `history[a]` and `history[b]`.
+///
+/// Returns `"?"` for any out-of-range index instead of panicking.
 #[wasm_bindgen]
 #[must_use]
 pub fn state_cmp(a: usize, b: usize) -> String {
-    with_state(
-        |state| match state.history[a].partial_cmp(&state.history[b]) {
+    with_state(|state| {
+        let (Some(sa), Some(sb)) = (state.history.get(a), state.history.get(b)) else {
+            return "?".to_string();
+        };
+        match sa.partial_cmp(sb) {
             Some(std::cmp::Ordering::Less) => "⊂".to_string(),
             Some(std::cmp::Ordering::Equal) => "=".to_string(),
             Some(std::cmp::Ordering::Greater) => "⊃".to_string(),
             None => "?".to_string(),
-        },
-    )
+        }
+    })
 }

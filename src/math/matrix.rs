@@ -728,7 +728,7 @@ mod tests {
         let i3: DenseMatrix<i64> = DenseMatrix::identity(3);
         for r in 0..3 {
             for c in 0..3 {
-                assert_eq!(i3.get(r, c), if r == c { 1 } else { 0 });
+                assert_eq!(i3.get(r, c), i64::from(r == c));
             }
         }
     }
@@ -805,7 +805,7 @@ mod tests {
     fn det_product_equals_product_of_dets() {
         let a = mat_i(3, 3, &[1, 2, 3, 4, 5, 6, 7, 8, 10]);
         let b = mat_i(3, 3, &[2, 0, 1, 0, 3, 1, 1, 0, 4]);
-        let ab = a.clone().mat_mul(&b);
+        let ab = a.mat_mul(&b);
         assert_eq!(ab.det(), a.det() * b.det());
     }
 
@@ -842,7 +842,7 @@ mod tests {
         let inv = a.inverse().unwrap();
         assert_eq!(inv, mat_i(2, 2, &[1, -1, -1, 2]));
         // A * A^{-1} = I
-        assert_eq!(a.clone().mat_mul(&inv), DenseMatrix::identity(2));
+        assert_eq!(a.mat_mul(&inv), DenseMatrix::identity(2));
     }
 
     #[test]
@@ -856,7 +856,7 @@ mod tests {
     fn inverse_2x2_float() {
         let a = mat_f(2, 2, &[3.0, 1.0, 1.0, 1.0]);
         let inv = a.inverse().unwrap();
-        let product = a.clone().mat_mul(&inv);
+        let product = a.mat_mul(&inv);
         let id = DenseMatrix::<f64>::identity(2);
         for i in 0..2 {
             for j in 0..2 {
@@ -870,7 +870,7 @@ mod tests {
         // A known invertible matrix
         let a = mat_f(3, 3, &[1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 10.0]);
         let inv = a.inverse().unwrap();
-        let product = a.clone().mat_mul(&inv);
+        let product = a.mat_mul(&inv);
         let id = DenseMatrix::<f64>::identity(3);
         for i in 0..3 {
             for j in 0..3 {
@@ -889,37 +889,37 @@ mod tests {
     fn add_zero_is_identity() {
         let a = mat_i(2, 3, &[1, 2, 3, 4, 5, 6]);
         let z = DenseMatrix::zero(2, 3);
-        assert_eq!(a.clone().mat_add(&z), a);
-        assert_eq!(z.clone().mat_add(&a), a);
+        assert_eq!(a.mat_add(&z), a);
+        assert_eq!(z.mat_add(&a), a);
     }
 
     #[test]
     fn add_commutative() {
         let a = mat_i(2, 2, &[1, 2, 3, 4]);
         let b = mat_i(2, 2, &[5, 6, 7, 8]);
-        assert_eq!(a.clone().mat_add(&b), b.clone().mat_add(&a));
+        assert_eq!(a.mat_add(&b), b.mat_add(&a));
     }
 
     #[test]
     fn sub_self_is_zero() {
         let a = mat_i(3, 3, &[1, 2, 3, 4, 5, 6, 7, 8, 9]);
-        assert_eq!(a.clone().mat_sub(&a), DenseMatrix::zero(3, 3));
+        assert_eq!(a.mat_sub(&a), DenseMatrix::zero(3, 3));
     }
 
     #[test]
     fn mul_by_identity_is_self() {
         let a = mat_i(3, 3, &[1, 2, 3, 4, 5, 6, 7, 8, 9]);
         let i3 = DenseMatrix::identity(3);
-        assert_eq!(a.clone().mat_mul(&i3), a);
-        assert_eq!(i3.clone().mat_mul(&a), a);
+        assert_eq!(a.mat_mul(&i3), a);
+        assert_eq!(i3.mat_mul(&a), a);
     }
 
     #[test]
     fn mul_by_zero_is_zero() {
         let a = mat_i(2, 2, &[1, 2, 3, 4]);
         let z = DenseMatrix::zero(2, 2);
-        assert_eq!(a.clone().mat_mul(&z), z);
-        assert_eq!(z.clone().mat_mul(&a), z);
+        assert_eq!(a.mat_mul(&z), z);
+        assert_eq!(z.mat_mul(&a), z);
     }
 
     #[test]
@@ -936,7 +936,7 @@ mod tests {
         let a = mat_i(2, 2, &[1, 2, 3, 4]);
         let b = mat_i(2, 2, &[5, 6, 7, 8]);
         let k = 3i64;
-        let lhs = a.clone().mat_add(&b).scalar_mul(k);
+        let lhs = a.mat_add(&b).scalar_mul(k);
         let rhs = a.scalar_mul(k).mat_add(&b.scalar_mul(k));
         assert_eq!(lhs, rhs);
     }
@@ -958,10 +958,10 @@ mod tests {
     fn ops_overloads_agree_with_trait_methods() {
         let a = mat_i(2, 2, &[1, 2, 3, 4]);
         let b = mat_i(2, 2, &[5, 6, 7, 8]);
-        assert_eq!(a.clone() + b.clone(), a.clone().mat_add(&b));
-        assert_eq!(a.clone() - b.clone(), a.clone().mat_sub(&b));
-        assert_eq!(a.clone() * b.clone(), a.clone().mat_mul(&b));
-        assert_eq!(a.clone() * 3i64, a.clone().scalar_mul(3));
+        assert_eq!(a.clone() + b.clone(), a.mat_add(&b));
+        assert_eq!(a.clone() - b.clone(), a.mat_sub(&b));
+        assert_eq!(a.clone() * b.clone(), a.mat_mul(&b));
+        assert_eq!(a.clone() * 3i64, a.scalar_mul(3));
     }
 
     // ── transpose ─────────────────────────────────────────────────────────────
@@ -1020,7 +1020,7 @@ mod tests {
         ) {
             let ma = mat_f(2, 2, &a);
             let mb = mat_f(2, 2, &b);
-            let ab = ma.clone().mat_add(&mb);
+            let ab = ma.mat_add(&mb);
             let ba = mb.mat_add(&ma);
             for k in 0..4 {
                 proptest::prop_assert!((ab.data[k] - ba.data[k]).abs() < 1e-12);
@@ -1255,7 +1255,7 @@ mod tests {
         for m in 2..=10 {
             let u = u_matrix(m);
             #[allow(clippy::cast_possible_wrap)]
-            let expected = (m as i64).pow((m - 2) as u32);
+            let expected = (m as i64).pow(u32::try_from(m - 2).unwrap());
             assert_eq!(u.det(), expected, "det(U({m})) ≠ {m}^{}", m - 2);
         }
     }

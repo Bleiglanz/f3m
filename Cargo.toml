@@ -2,6 +2,12 @@
 name = "f3m"
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.88"
+description = "Numerical-semigroup calculator: properties (Frobenius, Apéry, gaps, Kunz, …) compiled to WebAssembly."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/Bleiglanz/f3m"
+keywords = ["numerical-semigroup", "frobenius", "apery", "kunz", "wasm"]
+categories = ["mathematics", "wasm"]
 
 [lib]
 crate-type = ["cdylib", "rlib"]

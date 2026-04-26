@@ -15,18 +15,48 @@ const FLAT_DURATION = 1.2;  // seconds
 let _3dCameraState = null; // { position, target, zoom }
 const _3dHoverLineMat = new THREE.LineBasicMaterial({ color: 0xff8888, linewidth: 2, depthTest: false });
 
-// CSS colors from style.css, mapped to structure-table classes.
-// bg = cube face color, fg = text color (used for Apéry tiles).
-const COLORS = {
-  'sg-gen':     { bg: '#7ab3e8', fg: '#111' },     // minimal generator
-  'sg-apery':   { bg: '#1a5fb4', fg: '#fff' },     // Apéry element (non-generator)
-  'sg-frob':    { bg: '#ffd6d3', fg: '#7a1008' },  // Frobenius number
-  'sg-pf':      { bg: '#e8d5ff', fg: '#4a1a80' },  // pseudo-Frobenius
-  'sg-pf-blob': { bg: '#d2f0d2', fg: '#4a1a80' },  // PF ∩ reflected gap
-  'sg-blob':    { bg: '#d2f0d2', fg: '#0f4a0f' },  // reflected gap
-  'sg-in':      { bg: '#222222', fg: '#fff' },      // element of S
-  'sg-out':     { bg: '#f7f8fa', fg: '#999' },      // gap
+// CSS colours are read from style.css via the hidden #sg-color-probe element
+// in index.html; this keeps the 3D view's cube/tile colours in sync with the
+// rest of the UI instead of duplicating them as JS hex literals here.
+//
+// A small fallback table is used if the probe is missing (e.g. unit tests, or
+// when the script runs before the probe is attached).
+const FALLBACK_COLORS = {
+  'sg-gen':     { bg: '#7ab3e8', fg: '#111' },
+  'sg-apery':   { bg: '#1a5fb4', fg: '#fff' },
+  'sg-frob':    { bg: '#ffd6d3', fg: '#7a1008' },
+  'sg-pf':      { bg: '#e8d5ff', fg: '#4a1a80' },
+  'sg-pf-blob': { bg: '#d2f0d2', fg: '#4a1a80' },
+  'sg-blob':    { bg: '#d2f0d2', fg: '#0f4a0f' },
+  'sg-in':      { bg: '#222222', fg: '#fff' },
+  'sg-out':     { bg: '#f7f8fa', fg: '#999' },
 };
+
+// Lazily computed once on first call; recomputing per-frame would be wasteful.
+let _colorCache = null;
+function COLORS_FOR(cls) {
+  if (_colorCache === null) {
+    _colorCache = readColorsFromProbe();
+  }
+  return _colorCache[cls] || _colorCache['sg-out'] || FALLBACK_COLORS['sg-out'];
+}
+
+function readColorsFromProbe() {
+  const probe = document.getElementById('sg-color-probe');
+  if (!probe) { return FALLBACK_COLORS; }
+  const out = {};
+  for (const cls of Object.keys(FALLBACK_COLORS)) {
+    const el = probe.querySelector('.' + cls);
+    if (el) {
+      const cs = getComputedStyle(el);
+      out[cls] = { bg: cs.backgroundColor || FALLBACK_COLORS[cls].bg,
+                   fg: cs.color           || FALLBACK_COLORS[cls].fg };
+    } else {
+      out[cls] = FALLBACK_COLORS[cls];
+    }
+  }
+  return out;
+}
 
 // Human-readable labels for each CSS class.
 const CLS_LABEL = {
@@ -62,7 +92,7 @@ function isGapClass(cls) {
 // Create a flat 1×1 tile with class-colored background and number label,
 // lying in the z=0 plane with its lower-left corner at (x, y, 0).
 function aperyTile(text, x, y, cls) {
-  const c = COLORS[cls] || COLORS['sg-apery'];
+  const c = COLORS_FOR(cls);
   const canvas = document.createElement('canvas');
   canvas.width = 128;
   canvas.height = 128;
@@ -289,7 +319,7 @@ export function render3d(s, onToggle) {
   const matCache = {};
   function matFor(cls) {
     if (!matCache[cls]) {
-      const c = COLORS[cls] || COLORS['sg-out'];
+      const c = COLORS_FOR(cls);
       matCache[cls] = new THREE.MeshLambertMaterial({
         color: new THREE.Color(c.bg), transparent: true, opacity: 0.85,
       });

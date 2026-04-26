@@ -3,7 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
   <title>Numerical Semigroup Calculator</title>
+  <!-- Pico (classless) gives us a baseline, dark-mode CSS variables, and modern
+       focus states. style.css comes after and overrides where it needs to. -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.classless.min.css">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.44/dist/katex.min.css" integrity="sha384-irXK0JiCGinqGL+slwVklbhJetrjczNwaP2lANewD8lKAs9n61SbQ3As28iSqXUE" crossorigin="anonymous">
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.44/dist/katex.min.js" integrity="sha384-m/s9umSlhJbqEdA/j7pQVdGCMx2fHf7GXtgCVhNGOwLuu+1qJQES5AzIE8pn3nKQ" crossorigin="anonymous"></script>
@@ -30,7 +34,9 @@
   <p class="subtitle">Enter a comma-separated list of generators</p>
 
   <div class="input-row">
-    <input type="text" id="gens" placeholder="e.g. 6,9,20" value="6, 9, 20" aria-label="Generators (comma-separated)" />
+    <input type="text" id="gens" placeholder="e.g. 6,9,20" value="6, 9, 20"
+           aria-label="Generators (comma-separated)"
+           inputmode="numeric" autocomplete="off" autocapitalize="off" spellcheck="false" />
     <button id="compute-btn" title="Compute" aria-label="Compute">&#x23CE;</button>
     <button id="reset-btn" title="Clear input" aria-label="Clear input">&#x21BB;</button>
   </div>
@@ -51,10 +57,12 @@
     <button id="selfglue-btn" class="btn-mod" title="Self-glue: compute m·S + x·S where x is the first generator coprime to m" aria-label="Self-glue" style="display:none">glue</button>
   </div>
 
-  <table class="history-table" style="width:fit-content;max-width:80%">
-    <thead id="current-prop-thead"></thead>
-    <tbody id="current-prop-tbody"></tbody>
-  </table>
+  <div class="table-wrap">
+    <table class="history-table" style="width:fit-content">
+      <thead id="current-prop-thead"></thead>
+      <tbody id="current-prop-tbody"></tbody>
+    </table>
+  </div>
 
   <div class="checkbox-strip">
     <label><input type="checkbox" id="graph-show-gaps" checked> Show gaps</label>
@@ -100,16 +108,22 @@
   </div>
 
   <div id="tab-gapgraph" class="tab-content">
+    <p class="touch-hint">
+      <span class="hint-mouse">Hover a cube for details · click to toggle · click empty space to flatten/restore.</span>
+      <span class="hint-touch">Tap a cube to inspect · tap again to toggle · tap empty space to flatten/restore.</span>
+    </p>
     <div id="sg-3d-wrapper" style="width:100%;resize:horizontal;overflow:auto;display:inline-block;max-width:100%">
       <div id="sg-3d-container" style="width:100%;height:400px"></div>
     </div>
   </div>
 
   <div id="tab-history" class="tab-content">
-    <table class="history-table" style="width:fit-content;max-width:80%">
-      <thead></thead>
-      <tbody id="history-tbody"></tbody>
-    </table>
+    <div class="table-wrap">
+      <table class="history-table" style="width:fit-content">
+        <thead></thead>
+        <tbody id="history-tbody"></tbody>
+      </table>
+    </div>
   </div>
 
   <div id="tab-gap" class="tab-content">

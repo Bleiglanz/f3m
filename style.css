@@ -1,4 +1,4 @@
-/* ─── Custom Properties ─────────────────────────────────────────── */
+/* ─── Custom Properties (light) ─────────────────────────────────── */
 :root {
   --bg:       #f0f2f5;
   --surface:  #ffffff;
@@ -21,10 +21,94 @@
   --purple:     #6530a0;
   --purple-bg:  rgba(101, 48, 160, .1);
 
+  /* Class badges (sg-*) — same in both themes; defined here so dark mode
+     can override in one place. */
+  --sg-gen-bg:     #7ab3e8;  --sg-gen-fg:     #111;
+  --sg-apery-bg:   #1a5fb4;  --sg-apery-fg:   #fff;
+  --sg-frob-bg:    #ffd6d3;  --sg-frob-fg:    #7a1008;
+  --sg-pf-bg:      #e8d5ff;  --sg-pf-fg:      #4a1a80;
+  --sg-blob-bg:    #d2f0d2;  --sg-blob-fg:    #0f4a0f;
+  --sg-pf-blob-bg: linear-gradient(45deg, #d2f0d2, #e8d5ff);
+  --sg-pf-blob-fg: #4a1a80;
+  --sg-in-bg:      #222222;  --sg-in-fg:      #fff;
+  --sg-out-bg:     #f7f8fa;  --sg-out-fg:     #999;
+  --sg-large-bg:   #e8eaed;  --sg-large-fg:   #aaa;
+  --sg-empty-bg:   #f7f8fa;
+
+  --th-bg:         #2a2a2a;
+  --th-fg:         #ffffff;
+  --row-stripe:    #f7f8fa;
+  --row-hover:     #eef2ff;
+
   --mono: 'JetBrains Mono', 'Cascadia Code', 'Consolas', monospace;
   --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --r: 6px;
 }
+
+/* ─── Dark theme via prefers-color-scheme ───────────────────────── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:       #161a20;
+    --surface:  #1d222a;
+    --surface-2: #252b35;
+    --border:   #3a414d;
+    --text:     #e6e9ee;
+    --label:    #b8bdc6;
+    --muted:    #98a0ab;
+    --dim:      #6b7380;
+
+    --orange:     #ff8a3a;
+    --orange-bg:  rgba(255, 138, 58, .14);
+    --orange-glow: rgba(255, 138, 58, .25);
+    --blue:       #6ea8ff;
+    --blue-bg:    rgba(110, 168, 255, .14);
+    --green:      #6dd170;
+    --green-bg:   rgba(109, 209, 112, .14);
+    --red:        #ff6b63;
+    --red-bg:     rgba(255, 107, 99, .14);
+    --purple:     #c79bff;
+    --purple-bg:  rgba(199, 155, 255, .14);
+
+    /* Slightly desaturated badges so they don't burn on a dark surface. */
+    --sg-gen-bg:     #2c5a8c;  --sg-gen-fg:     #e6f0fa;
+    --sg-apery-bg:   #4a89cf;  --sg-apery-fg:   #fff;
+    --sg-frob-bg:    #6b2a26;  --sg-frob-fg:    #ffd6d3;
+    --sg-pf-bg:      #4a2a6b;  --sg-pf-fg:      #e8d5ff;
+    --sg-blob-bg:    #2a4d2a;  --sg-blob-fg:    #d2f0d2;
+    --sg-pf-blob-bg: linear-gradient(45deg, #2a4d2a, #4a2a6b);
+    --sg-pf-blob-fg: #e8d5ff;
+    --sg-in-bg:      #c8d0dc;  --sg-in-fg:      #161a20;
+    --sg-out-bg:     #232831;  --sg-out-fg:     #6b7380;
+    --sg-large-bg:   #232831;  --sg-large-fg:   #6b7380;
+    --sg-empty-bg:   #1a1f27;
+
+    --th-bg:         #0f1115;
+    --th-fg:         #e6e9ee;
+    --row-stripe:    #1a1f27;
+    --row-hover:     #232b3a;
+  }
+}
+
+/* ─── Pico overrides ────────────────────────────────────────────── */
+/* Pico classless adds opinionated padding & typography to <button>,
+   <input>, <table>, <h1>… that fight with our compact, information-rich
+   layout. Strip those defaults; we'll re-apply our own below. */
+button {
+  width: auto;            /* Pico makes buttons full-width otherwise */
+  margin: 0;
+  font-weight: inherit;
+}
+input, textarea, select {
+  margin: 0;
+  width: auto;
+}
+table {
+  --pico-table-border-color: var(--border);
+  --pico-table-row-stripped-background-color: var(--row-stripe);
+}
+section, article { margin: 0; padding: 0; }
+hr { margin: 0; }
+:root { --pico-font-family: var(--sans); }
 
 /* ─── Reset ─────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -90,19 +174,19 @@ input[type="text"]::placeholder { color: var(--dim); }
 
 button {
   padding: 0.6rem 1.1rem;
-  background: #2a2a2a;
-  color: #ffffff;
+  background: var(--th-bg);
+  color: var(--th-fg);
   border: 1px solid transparent;
   border-radius: var(--r);
   font-family: var(--sans);
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.12s, transform 0.08s;
+  transition: background 0.12s, transform 0.08s, filter 0.12s;
   white-space: nowrap;
 }
 
-button:hover { background: #444; }
+button:hover { background: var(--th-bg); filter: brightness(1.4); }
 button:active { transform: scale(0.97); }
 
 .btn-sep {
@@ -111,9 +195,9 @@ button:active { transform: scale(0.97); }
   background: var(--border);
 }
 .btn-mod {
-  background: #9a9a9a;
+  background: var(--muted);
 }
-.btn-mod:hover { background: #777; }
+.btn-mod:hover { background: var(--muted); filter: brightness(1.2); }
 
 /* ─── Status Banners ────────────────────────────────────────────── */
 #busy-banner {
@@ -201,15 +285,15 @@ th, td {
 }
 
 th {
-  background: #2a2a2a;
-  color: #ffffff;
+  background: var(--th-bg);
+  color: var(--th-fg);
   font-weight: 500;
   font-size: 0.85rem;
   letter-spacing: 0.02em;
 }
 
 tr:last-child td { border-bottom: none; }
-tr:nth-child(even) td { background: #f7f8fa; }
+tr:nth-child(even) td { background: var(--row-stripe); }
 
 td.label {
   color: var(--label);
@@ -224,14 +308,14 @@ td.value {
 }
 
 /* ─── Color Badges ──────────────────────────────────────────────── */
-.sg-gen    { background: #7ab3e8; color: #111; }
-.sg-apery  { background: #1a5fb4; color: #fff; }
-.sg-frob   { background: #ffd6d3; color: #7a1008; }
-.sg-blob   { background: #d2f0d2; color: #0f4a0f; }
-.sg-pf     { background: #e8d5ff; color: #4a1a80; }
+.sg-gen    { background: var(--sg-gen-bg);   color: var(--sg-gen-fg); }
+.sg-apery  { background: var(--sg-apery-bg); color: var(--sg-apery-fg); }
+.sg-frob   { background: var(--sg-frob-bg);  color: var(--sg-frob-fg); }
+.sg-blob   { background: var(--sg-blob-bg);  color: var(--sg-blob-fg); }
+.sg-pf     { background: var(--sg-pf-bg);    color: var(--sg-pf-fg); }
 .sg-pf-blob,
 .apery-table td.sg-pf-blob,
-.sg-grid .sg-pf-blob { background: linear-gradient(45deg, #d2f0d2, #e8d5ff); color: #4a1a80; }
+.sg-grid .sg-pf-blob { background: var(--sg-pf-blob-bg); color: var(--sg-pf-blob-fg); }
 
 span.sg-gen, span.sg-apery, span.sg-frob, span.sg-blob, span.sg-pf, span.sg-pf-blob {
   display: inline-block;
@@ -268,9 +352,9 @@ span[data-remove-gen]     { cursor: pointer; }
   font-size: 0.78rem;
 }
 
-.apery-table td.sg-gen   { background: #7ab3e8; color: #111; }
-.apery-table td.sg-apery { background: #1a5fb4; color: #fff; }
-.apery-table td.sg-frob  { background: #ffd6d3; color: #7a1008; }
+.apery-table td.sg-gen   { background: var(--sg-gen-bg);   color: var(--sg-gen-fg); }
+.apery-table td.sg-apery { background: var(--sg-apery-bg); color: var(--sg-apery-fg); }
+.apery-table td.sg-frob  { background: var(--sg-frob-bg);  color: var(--sg-frob-fg); }
 
 /* ─── Structure/Kunz Grid ───────────────────────────────────────── */
 
@@ -369,15 +453,15 @@ span[data-remove-gen]     { cursor: pointer; }
 .sg-grid span.sg-apery,
 .sg-grid span.sg-large { font-weight: bold; }
 
-.sg-grid .sg-gen     { background: #7ab3e8; color: #111; }
-.sg-grid .sg-apery   { background: #1a5fb4; color: #fff; }
-.sg-grid .sg-frob    { background: #ffd6d3; color: #7a1008; }
-.sg-grid .sg-pf   { background: #e8d5ff; color: #4a1a80; }
-.sg-grid .sg-blob { background: #d2f0d2; color: #0f4a0f; }
-.sg-grid .sg-in    { background: #222222; color: #ffffff; }
-.sg-grid .sg-out   { background: #f7f8fa; color: #999; }
-.sg-grid .sg-large { background: #e8eaed; color: #aaa; }
-.sg-grid .sg-empty { background: #f7f8fa; }
+.sg-grid .sg-gen     { background: var(--sg-gen-bg);   color: var(--sg-gen-fg); }
+.sg-grid .sg-apery   { background: var(--sg-apery-bg); color: var(--sg-apery-fg); }
+.sg-grid .sg-frob    { background: var(--sg-frob-bg);  color: var(--sg-frob-fg); }
+.sg-grid .sg-pf      { background: var(--sg-pf-bg);    color: var(--sg-pf-fg); }
+.sg-grid .sg-blob    { background: var(--sg-blob-bg);  color: var(--sg-blob-fg); }
+.sg-grid .sg-in      { background: var(--sg-in-bg);    color: var(--sg-in-fg); }
+.sg-grid .sg-out     { background: var(--sg-out-bg);   color: var(--sg-out-fg); }
+.sg-grid .sg-large   { background: var(--sg-large-bg); color: var(--sg-large-fg); }
+.sg-grid .sg-empty   { background: var(--sg-empty-bg); }
 .sg-grid td.sg-selected { outline: 2px solid var(--orange); outline-offset: -2px; }
 .tilt-grid .tilt-axis { background-color: #fffde7; }
 .tilt-grid td, .tilt-grid th { width: 2.5em; min-width: 2.5em; max-width: 2.5em; height: 2.5em; padding: 0; text-align: center; }
@@ -427,15 +511,15 @@ span[data-remove-gen]     { cursor: pointer; }
 }
 
 .history-table thead th {
-  background: #2a2a2a;
-  color: #ffffff;
+  background: var(--th-bg);
+  color: var(--th-fg);
   font-weight: 500;
   font-size: 0.8rem;
   letter-spacing: 0.02em;
 }
 
 .history-row { cursor: pointer; }
-.history-row:hover td { background: #eef2ff; }
+.history-row:hover td { background: var(--row-hover); }
 .history-table td.left { text-align: left; }
 
 /* ─── GAP Tab ───────────────────────────────────────────────────── */
@@ -476,15 +560,15 @@ span[data-remove-gen]     { cursor: pointer; }
 .classify-table th {
   border: 1px solid var(--border);
   padding: 0.12rem 0.5rem;
-  background: #2a2a2a;
-  color: #fff;
+  background: var(--th-bg);
+  color: var(--th-fg);
   font-weight: 500;
   cursor: pointer;
   user-select: none;
   white-space: nowrap;
 }
 
-.classify-table th:hover { background: #444; }
+.classify-table th:hover { filter: brightness(1.4); }
 .classify-table th[data-sort="asc"]::after  { content: ' ▲'; font-size: 0.7em; }
 .classify-table th[data-sort="desc"]::after { content: ' ▼'; font-size: 0.7em; }
 
@@ -577,8 +661,26 @@ body.hide-classification .classify-row { display: none; }
 
 /* ─── Misc ──────────────────────────────────────────────────────── */
 .scroll-x { overflow-x: auto; }
-#sg-grid-container { overflow-x: auto; }
+#sg-grid-container,
+#tilt-grid-container,
+#diagonals-container,
+#classify.classify-row { overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; }
 #result { width: 100%; }
+
+/* Generic horizontal-scroll wrapper for any wide table that mustn't squish.
+   Use directly in HTML or via wrapInScroll() in app.js for Rust-injected
+   tables. Includes a subtle gradient hint that more content exists offscreen. */
+.table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+  /* Edge-fade hints: visible only when content is wider than viewport. */
+  background:
+    linear-gradient(to right, var(--bg) 30%, rgba(255,255,255,0)) left center / 24px 100% no-repeat local,
+    linear-gradient(to right, rgba(255,255,255,0), var(--bg) 70%) right center / 24px 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, rgba(0,0,0,.12), rgba(0,0,0,0)) left center / 14px 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, rgba(0,0,0,.12), rgba(0,0,0,0)) right center / 14px 100% no-repeat scroll;
+}
 
 /* ─── Help Tab ──────────────────────────────────────────────────── */
 .help-content {
@@ -725,17 +827,94 @@ footer a { color: var(--muted); }
 footer a:hover { color: var(--text); }
 
 /* ─── Responsive ────────────────────────────────────────────────── */
-@media (max-width: 600px) {
-  body { padding: 1.5rem 0.75rem 3rem; }
+@media (max-width: 720px) {
+  body { padding: 1rem 0.75rem 5rem; }
 
+  h1 { font-size: 1.3rem; }
+  p.subtitle { margin-bottom: 1rem; }
+
+  /* Input row: text input takes full width, then buttons fill the next row. */
   .input-row { flex-wrap: wrap; }
-  .input-row input[type="text"] { flex-basis: 100%; }
-  .input-row button { flex: 1; padding: 0.6rem 0.5rem; font-size: 0.82rem; }
+  .input-row input[type="text"] { flex-basis: 100%; min-width: 0; }
+  .input-row button { flex: 1; padding: 0.6rem 0.5rem; font-size: 0.85rem; }
 
-  th, td { padding: 0.45rem 0.6rem; }
+  /* Generator-toolbar: horizontal scroll instead of wrapping into 5 rows. */
+  .gen-row {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+    padding-bottom: 0.4rem;
+    /* Snap each button into view as a thumb-friendly target. */
+    scroll-snap-type: x proximity;
+  }
+  .gen-row button { flex: 0 0 auto; min-height: 40px; scroll-snap-align: start; }
+  .gen-row .btn-sep { display: none; }
+
+  /* Tab bar: horizontal scroll, sticky for thumb access while scrolling tables.
+     The active tab stays visible because we scroll-into-view on click (JS). */
+  .tab-bar {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    background: var(--bg);
+    margin-left: -0.75rem;
+    margin-right: -0.75rem;
+    padding: 0 0.75rem;
+  }
+  .tab-btn {
+    flex: 0 0 auto;
+    padding: 0.55rem 0.85rem;
+    font-size: 0.9rem;
+    min-height: 44px;
+  }
+
+  /* Wide tabs: drop the negative-margin trick, let table-wrap handle overflow. */
+  #tab-graph, #tab-gapgraph { width: 100%; max-width: 100%; margin-left: 0; padding-left: 0; }
+  #tab-s { max-width: 100%; }
+
+  th, td { padding: 0.4rem 0.55rem; }
   td.label { width: auto; white-space: nowrap; font-size: 0.82rem; }
   td.value { font-size: 0.85rem; }
 
+  /* Diagonals: the two big tables stack instead of competing for width. */
+  .diagonals-pane { gap: 1rem; }
+  .diagonals-pane > table, .diagonals-pane > .table-wrap { width: 100%; }
+
+  /* LaTeX tab: source + rendered stack instead of side-by-side. */
+  .latex-pane { gap: 0.75rem; }
+  #latex-source, #latex-rendered { min-height: 220px; height: 280px; }
+
+  /* Tooltips: don't overflow the viewport. */
   .has-tip .tip { max-width: min(88vw, 320px); }
   .eva-row input[type="range"] { max-width: 120px; }
+
+  /* Larger tap targets across the board. */
+  .checkbox-strip { flex-wrap: wrap; gap: 0.6rem 1rem; }
+  .checkbox-strip input[type="checkbox"] { width: 18px; height: 18px; }
+  button { min-height: 40px; }
+}
+
+/* Hover-only interactions don't translate to touch — show tooltips/popups
+   on tap instead. The .open class is added by app.js on touch. */
+@media (hover: none) {
+  .has-popup .popup { transition: none; }
+  .has-popup:active .popup,
+  .has-popup.open .popup { opacity: 1; visibility: visible; pointer-events: auto; }
+  span.sg-frob, span.sg-pf, span.sg-pf-blob { -webkit-tap-highlight-color: transparent; }
+}
+
+/* 3D-tab gesture hint: swap between mouse and touch wording. */
+.touch-hint {
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-bottom: 0.5rem;
+  font-style: italic;
+}
+.touch-hint .hint-touch { display: none; }
+@media (hover: none) {
+  .touch-hint .hint-mouse { display: none; }
+  .touch-hint .hint-touch { display: inline; }
 }

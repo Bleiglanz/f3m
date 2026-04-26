@@ -371,6 +371,11 @@ function renderDiagonals(s) {
 function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
   document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.id === `tab-${name}`));
+  // On mobile the tab bar is horizontally scrollable; keep the active tab in view.
+  const activeBtn = document.querySelector(`.tab-btn[data-tab="${name}"]`);
+  if (activeBtn) {
+    activeBtn.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
+  }
   if (name === 'gapgraph' && currentS) { render3d(currentS, doToggle); }
   if (name === 'csv') { buildCsv(); }
   if (name === 'latex' && currentS) { buildLatex(currentS); }

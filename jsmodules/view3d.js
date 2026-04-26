@@ -432,23 +432,63 @@ export function render3d(s, onToggle) {
 
   renderer.domElement.addEventListener('mouseleave', clearHover);
 
-  // Click-to-toggle: only fire if pointer barely moved (distinguishes from orbit drag).
+  // Click-to-toggle (mouse) and tap-to-inspect / tap-again-to-toggle (touch).
+  // Touch devices have no hover, so a first tap on a cube selects it (highlight,
+  // tooltip, hover lines) without committing the toggle; a second tap on the
+  // same cube within 1.5 s commits. Mouse keeps the original one-click toggle.
   const DRAG_THRESHOLD_SQ = 16; // ~4px
   let pointerDownPos = null;
+  let pointerDownType = null;
+  let touchSelected = null;          // currently inspected mesh on touch
+  let touchSelectedAt = 0;           // timestamp of the inspect tap
+  const TOUCH_COMMIT_WINDOW = 1500;  // ms
+
   renderer.domElement.addEventListener('pointerdown', event => {
     pointerDownPos = { x: event.clientX, y: event.clientY };
+    pointerDownType = event.pointerType;
   });
   renderer.domElement.addEventListener('pointerup', event => {
     if (!pointerDownPos) { return; }
     const dx = event.clientX - pointerDownPos.x;
     const dy = event.clientY - pointerDownPos.y;
+    const type = pointerDownType;
     pointerDownPos = null;
+    pointerDownType = null;
     if (dx * dx + dy * dy > DRAG_THRESHOLD_SQ) { return; }
     const hit = hitTest(event);
+
+    if (type === 'touch' && hit && hit.userData.val != null) {
+      const now = performance.now();
+      const isCommit = touchSelected === hit && (now - touchSelectedAt) < TOUCH_COMMIT_WINDOW;
+      if (isCommit) {
+        // Second tap on the same cube within the window — commit toggle.
+        touchSelected = null;
+        clearHover();
+        if (onToggle) { onToggle(hit.userData.val); }
+        return;
+      }
+      // First tap — show tooltip + hover lines, don't toggle yet.
+      clearHover();
+      hoveredMesh = hit;
+      hoveredOriginalMat = hit.material;
+      hit.material = highlightMat;
+      const rect = renderer.domElement.getBoundingClientRect();
+      tooltip.textContent = `${hit.userData.val} ${CLS_LABEL[hit.userData.cls] || ''} — tap again to toggle`;
+      tooltip.style.display = 'block';
+      tooltip.style.left = `${event.clientX - rect.left + 12}px`;
+      tooltip.style.top = `${event.clientY - rect.top - 20}px`;
+      showHoverLines(hit.userData.val);
+      touchSelected = hit;
+      touchSelectedAt = now;
+      return;
+    }
+
     if (hit && hit.userData.val != null && onToggle) {
       onToggle(hit.userData.val);
     } else if (!hit) {
       // Empty-space click: toggle flatten animation
+      touchSelected = null;
+      clearHover();
       if (_3dFlatState === 'kunz') { _3dFlatState = 'to-flat'; _3dFlatT = 0; }
       else if (_3dFlatState === 'flat') { _3dFlatState = 'to-kunz'; _3dFlatT = 0; }
       else if (_3dFlatState === 'to-flat') { _3dFlatState = 'to-kunz'; _3dFlatT = 1 - _3dFlatT; }

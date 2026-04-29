@@ -2207,3 +2207,86 @@ fn test_canonical_ideal_symmetric() {
         );
     }
 }
+
+#[test]
+fn test_u_times_two_ones_is_m_zero_zero() {
+    // U(m) · (2, 1, 1, …, 1)ᵀ = (m, 0, 0, …, 0)ᵀ for every m ≥ 2.
+    // This is the identity that makes `compute_apery_shift_first` correspond
+    // to a Kunz-cone neighbour (row 1 of C shifted by (2, 1, …, 1)).
+    for m in 2..=12 {
+        let n = m - 1;
+        let u = u_matrix(m);
+        let mut v = vec![1i64; n];
+        v[0] = 2;
+        let mut prod = vec![0i64; n];
+        for i in 0..n {
+            for (j, vj) in v.iter().enumerate().take(n) {
+                prod[i] += u[(i, j)] * vj;
+            }
+        }
+        let mut expected = vec![0i64; n];
+        expected[0] = i64::try_from(m).expect("m fits in i64");
+        assert_eq!(prod, expected, "U({m})·(2,1,…,1)ᵀ ≠ (m,0,…,0)ᵀ");
+    }
+}
+
+#[test]
+fn test_apery_shift_first_when_kunz_move_is_valid() {
+    // When every antidiagonal Kunz entry c_{a,b} with (a+b) ≡ 1 (mod m) and
+    // a,b ≠ 1 is ≥ 1, the move w₁ → w₁ + m is a valid Kunz-cone neighbour
+    // and the result has multiplicity m and Apéry (0, w₁+m, w₂, …, w_{m-1}).
+    // <3,7,11>: m=3, Ap=(0,7,11), c_22 = (11+11-7)/3 = 5 ≥ 1 → valid.
+    // <4,5,6,7>: m=4, Ap=(0,5,6,7), c_23 = (6+7-5)/4 = 2 ≥ 1 → valid.
+    for gens in [[3, 7, 11].as_slice(), [4, 5, 6, 7].as_slice()] {
+        let s = compute(gens);
+        let s2 = s.compute_apery_shift_first();
+        assert_eq!(s2.m, s.m, "multiplicity preserved for {gens:?}");
+        let mut want = s.apery_set.clone();
+        want[1] += s.m;
+        assert_eq!(
+            s2.apery_set, want,
+            "Apéry shift for {gens:?}: got {:?}, want {:?}",
+            s2.apery_set, want,
+        );
+    }
+}
+
+#[test]
+fn test_apery_shift_first_changes_s_iff_w1_is_minimal_generator() {
+    // Equivalence: the move w₁ → w₁+m yields a different semigroup iff w₁
+    // is a minimal generator. (When w₁ ∉ gen_set, w₁ = w_a + w_b for some
+    // a,b ≠ 1 with (a+b)≡1 mod m, so c_{a,b} = 0, so the Kunz move forces
+    // c_{a,b} = -1 — and compute() recovers the original w₁ as that sum.)
+    for gens in [
+        [3, 7, 11].as_slice(),         // w₁ = 7  ∈ gen_set → moves
+        [4, 5, 6, 7].as_slice(),       // w₁ = 5  ∈ gen_set → moves
+        [6, 9, 20].as_slice(),         // w₁ = 49 ∉ gen_set → no-op
+        [5, 6, 8].as_slice(),          // various
+        [7, 11, 13, 17, 19].as_slice(),
+        [10, 14, 21].as_slice(),
+    ] {
+        let s = compute(gens);
+        let w1 = s.apery_set[1];
+        let w1_is_gen = s.gen_set.contains(&w1);
+        let s2 = s.compute_apery_shift_first();
+        let changed = s.partial_cmp(&s2) != Some(std::cmp::Ordering::Equal);
+        assert_eq!(
+            changed, w1_is_gen,
+            "for {gens:?}: w₁={w1}, w1_is_gen={w1_is_gen}, changed={changed}",
+        );
+    }
+}
+
+#[test]
+fn test_apery_shift_first_when_kunz_move_is_blocked() {
+    // For <6,9,20>, w₂+w₅ = 20+29 = 49 = w₁, so c_25 = 0 and the move
+    // would force c_25 → -1. compute() then collapses back: 9 + 40 = 49
+    // regenerates the original w₁, so the result equals the input semigroup.
+    let s = compute(&[6, 9, 20]);
+    let s2 = s.compute_apery_shift_first();
+    assert_eq!(
+        s.partial_cmp(&s2),
+        Some(std::cmp::Ordering::Equal),
+        "blocked Kunz move should collapse to the original semigroup",
+    );
+}

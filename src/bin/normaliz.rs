@@ -20,7 +20,8 @@
 //! The upper bound `t ≤ g` follows from `w₁ ≤ ∑wᵢ − ∑_{i=2}^{m−1} i = mg+1`
 //! (using `wᵢ ≥ i` for every Apéry element).
 //!
-//! All `(m, t)` pairs are processed in parallel via rayon.
+//! `(m, t)` pairs are processed sequentially (temporary — parallel via rayon
+//! disabled to surface per-pair progress on stdout).
 //!
 //! Usage: `cargo run --bin normaliz [g]`  (g defaults to 10)
 
@@ -28,12 +29,12 @@
 #![deny(clippy::all, clippy::pedantic, clippy::nursery)]
 
 use f3m::math::matrix::u_pair_relations;
-use rayon::prelude::*;
 use std::collections::HashMap;
 use std::fmt::Write as _;
 use std::fs;
 use std::path::Path;
 use std::process::Command;
+use std::time::Instant;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -55,7 +56,11 @@ fn write_normaliz_files(g: usize) -> std::io::Result<()> {
         .flat_map(|m| (1..=g).map(move |t| (m, t)))
         .collect();
 
-    pairs.into_par_iter().try_for_each(|(m, t)| {
+    let total = pairs.len();
+    let overall = Instant::now();
+    // TEMPORARY: sequential loop with progress prints to identify slow pairs.
+    // Restore `pairs.into_par_iter().try_for_each(...)` once timing is understood.
+    for (idx, (m, t)) in pairs.into_iter().enumerate() {
         let n = m - 1;
         let nrows = n * (n + 1) / 2;
         let data = matrices[m - 2].as_slice();
@@ -130,15 +135,27 @@ fn write_normaliz_files(g: usize) -> std::io::Result<()> {
         let in_path = dir.join(format!("normaliz_g{g}_m{m}_t{t}.in"));
         fs::write(&in_path, &buf)?;
 
+        println!(
+            "[{}/{total}] starting g={g} m={m} t={t} (n={n}, nrows={nrows}) ...",
+            idx + 1,
+        );
+        let started = Instant::now();
         let status = Command::new("normaliz").arg(&in_path).status()?;
+        let elapsed = started.elapsed();
+        println!(
+            "[{}/{total}] finished g={g} m={m} t={t} in {:.2}s (total elapsed: {:.2}s)",
+            idx + 1,
+            elapsed.as_secs_f64(),
+            overall.elapsed().as_secs_f64(),
+        );
         if !status.success() {
             return Err(std::io::Error::other(format!(
                 "normaliz exited with code {} for g={g} m={m} t={t}",
                 status.code().unwrap_or(-1),
             )));
         }
-        Ok(())
-    })
+    }
+    Ok(())
 }
 
 // ── Output parsing ────────────────────────────────────────────────────────────

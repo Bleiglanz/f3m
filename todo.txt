@@ -81,13 +81,19 @@ if there are two numbers: let the new input be <m,km+1,km+2,...,km+m-1>, do this
 
 35) [DONE] create a function fn(M:usize)
 
-for each m from 2...m it creates a textfile (in the the subdirectory "./normaliz") calles normaliz_{m}.in, which looks like this
+36) [DONE] Add a new modify button "w₁+m": compute the semigroup
+   <m, w₁+m, w₂, ..., w_{m-1}> (Apéry shift). Geometrically, the
+   Kunz-cone neighbour reached by adding (2,1,...,1) to row 1 of C.
+   When the move is feasible (every antidiagonal c_{a,b} with
+   (a+b)≡1 mod m and a,b≠1 is ≥ 1) the new Apéry vector is
+   (0, w₁+m, w₂, ..., w_{m-1}); otherwise the result equals the input.
 
-amb_space {m}
-inequalities {m(m-1)/2}
-<the matrix P> 
 
-P of course the (1/m)(U_i+U_j-U_{i+j})
+
+
+
+
+
 
 
 

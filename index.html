@@ -51,6 +51,7 @@
     <button id="half-btn" class="btn-mod" title="Compute S/2 = { x : 2x ∈ S }" aria-label="Compute S over 2">S/2</button>
     <button id="sym-partner-btn" class="btn-mod" title="Symmetric partner S̄: the unique symmetric semigroup with S = S̄/2 (Rosales–García-Sánchez 2008)" aria-label="Symmetric partner">S=SYM/2</button>
     <button id="ks-btn" class="btn-mod" title="Canonical ideal K(S): numerical semigroup with generators {f−p : p ∈ PF(S), p ≠ f}" aria-label="Canonical ideal K(S)">K(S)</button>
+    <button id="apery-shift-btn" class="btn-mod" title="Semigroup &langle;m, w&#x2081;+m, w&#x2082;, &hellip;, w&#x2098;&#x208B;&#x2081;&rangle;: shift the first non-zero Apéry element by m (Kunz-cone neighbour reached by adding (2,1,&hellip;,1) to row 1 of C). Shown only when w&#x2081; is a minimal generator." aria-label="Apéry shift w1+m" style="display:none">w&#x2081;+m</button>
     <button id="add-pf-btn" class="btn-mod" title="Add all pseudo-Frobenius numbers ≠ f as generators" aria-label="Add pseudo-Frobenius numbers" style="display:none">+PF</button>
     <button id="add-blobs-btn" class="btn-mod" title="Add all reflected gaps as generators" aria-label="Add reflected gaps" style="display:none">+refl</button>
     <button id="selfglue-btn" class="btn-mod" title="Self-glue: compute m·S + x·S where x is the first generator coprime to m" aria-label="Self-glue" style="display:none">glue</button>
@@ -184,6 +185,7 @@
           <tr><td>+PF</td><td>Add every pseudo-Frobenius number other than f as a new generator (shown when t &gt; 1).</td></tr>
           <tr><td>+refl</td><td>Add all reflected gaps (n where both n and f&minus;n are gaps) as generators.</td></tr>
           <tr><td>glue</td><td>Self-gluing: compute m&middot;S + x&middot;S = &langle;m&middot;g, x&middot;g | g &isin; gen(S)&rangle; where x is the first generator with gcd(m,&thinsp;x)=1 (shown when such x exists).</td></tr>
+          <tr><td>w&#x2081;+m</td><td>Compute &langle;m, w&#x2081;+m, w&#x2082;, &hellip;, w&#x2098;&#x208B;&#x2081;&rangle;. Geometrically, the Kunz-cone neighbour reached by adding (2,&thinsp;1,&hellip;,1) to row 1 of C; when the move is feasible the new Apéry vector is (0,&thinsp;w&#x2081;+m,&thinsp;w&#x2082;,&hellip;,&thinsp;w&#x2098;&#x208B;&#x2081;), otherwise the result equals the input.</td></tr>
         </tbody>
       </table>
 

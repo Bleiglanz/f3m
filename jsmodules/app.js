@@ -286,6 +286,11 @@ function render(s, toggle = null, label = '⏎') {
   document.getElementById('add-pf-btn').style.display = (s.type_t > 1 && s.f > 0) ? '' : 'none';
   document.getElementById('add-blobs-btn').style.display = s.blob.length > 0 ? '' : 'none';
   document.getElementById('selfglue-btn').style.display = s.can_self_glue() ? '' : 'none';
+  // w₁+m is meaningful only when w₁ is a minimal generator; otherwise the
+  // shift collapses back to S because w₁ stays expressible from {m, w₂, …}.
+  const apery = s.apery_set;
+  const w1IsGen = apery.length >= 2 && s.gen_set.includes(apery[1]);
+  document.getElementById('apery-shift-btn').style.display = w1IsGen ? '' : 'none';
 
   if (document.getElementById('tab-csv').classList.contains('active')) { buildCsv(); }
   if (document.getElementById('tab-latex').classList.contains('active')) { buildLatex(s); }
@@ -679,6 +684,7 @@ function wireGenSetBtn(id, method, label, beforeCompute) {
 wireGenSetBtn('half-btn',         's_over_2',           'S/2');
 wireGenSetBtn('sym-partner-btn',  'symmetric_partner',  'S=SYM/2');
 wireGenSetBtn('ks-btn',           'canonical_ideal',    'K(S)');
+wireGenSetBtn('apery-shift-btn',  'apery_shift_first',  'w₁+m');
 wireGenSetBtn('add-pf-btn',    'add_all_pf',         '+PF');
 wireGenSetBtn('add-blobs-btn', 'add_reflected_gaps',  '+refl');
 wireGenSetBtn('selfglue-btn',  'self_glue',           'glue', () => {

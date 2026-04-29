@@ -241,6 +241,13 @@ impl JsSemigroup {
         to_u32(&self.0.canonical_ideal().gen_set)
     }
 
+    /// Generators of `〈m, w₁ + m, w₂, …, w_{m-1}〉`, the Kunz-cone neighbour
+    /// reached by adding `(2, 1, …, 1)` to row 1 of the Kunz coefficient matrix.
+    #[must_use]
+    pub fn apery_shift_first(&self) -> Vec<u32> {
+        to_u32(&self.0.compute_apery_shift_first().gen_set)
+    }
+
     /// Returns `true` if the semigroup has a generator coprime to m (i.e. self-gluing is possible).
     #[must_use]
     pub fn can_self_glue(&self) -> bool {

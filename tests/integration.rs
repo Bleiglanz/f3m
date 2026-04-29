@@ -2258,10 +2258,10 @@ fn test_apery_shift_first_changes_s_iff_w1_is_minimal_generator() {
     // a,b ≠ 1 with (a+b)≡1 mod m, so c_{a,b} = 0, so the Kunz move forces
     // c_{a,b} = -1 — and compute() recovers the original w₁ as that sum.)
     for gens in [
-        [3, 7, 11].as_slice(),         // w₁ = 7  ∈ gen_set → moves
-        [4, 5, 6, 7].as_slice(),       // w₁ = 5  ∈ gen_set → moves
-        [6, 9, 20].as_slice(),         // w₁ = 49 ∉ gen_set → no-op
-        [5, 6, 8].as_slice(),          // various
+        [3, 7, 11].as_slice(),   // w₁ = 7  ∈ gen_set → moves
+        [4, 5, 6, 7].as_slice(), // w₁ = 5  ∈ gen_set → moves
+        [6, 9, 20].as_slice(),   // w₁ = 49 ∉ gen_set → no-op
+        [5, 6, 8].as_slice(),    // various
         [7, 11, 13, 17, 19].as_slice(),
         [10, 14, 21].as_slice(),
     ] {

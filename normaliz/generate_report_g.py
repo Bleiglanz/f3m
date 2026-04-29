@@ -24,7 +24,8 @@ def parse_out(path):
     points – list of coordinate tuples, trailing dehomogenization column removed
     """
     try:
-        text = open(path).read()
+        with open(path) as f:
+            text = f.read()
     except FileNotFoundError:
         return 0, []
 
@@ -132,8 +133,8 @@ Click a highlighted count to jump to its detail.</p>""")
     # ── detail cards ───────────────────────────────────────────────────────────
     w("<h2>Details</h2>")
     for m in range(2, g + 2):
-        nonempty = [(t, *idx[(m, t)]) for t in range(1, g + 1)
-                    if (m, t) in idx and idx[(m, t)][0] > 0]
+        nonempty = [(t, *v) for t in range(1, g + 1)
+                    if (v := idx.get((m, t))) and v[0] > 0]
         if not nonempty:
             continue
         w(f"<h3>m = {m}</h3>")

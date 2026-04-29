@@ -17,12 +17,12 @@ module rank = 1
 ***********************************************************************
 
 1 lattice points in polytope (module generators):
- 7 14 1
+ 0 7 1
 
 0 Hilbert basis elements of recession monoid:
 
 1 vertices of polyhedron:
- 7 14 1
+ 0 7 1
 
 0 extreme rays of recession cone:
 
@@ -30,9 +30,9 @@ module rank = 1
  0 0 1
 
 2 equations:
- 1 0  -7
- 0 1 -14
+ 1 0  0
+ 0 1 -7
 
 1 basis elements of generated  lattice:
- 7 14 1
+ 0 7 1
 

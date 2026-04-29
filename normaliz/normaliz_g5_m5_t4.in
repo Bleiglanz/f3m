@@ -11,5 +11,9 @@ inequalities 10
 0 -1 0 1
 0 0 -1 1
 inhom_equations 2
-1 0 0 0 -21
-1 1 1 1 -35
+1 1 1 1 -21
+-5 0 5 10 -35
+inhom_inequalities 3
+-3 2 2 2 -7
+-2 -2 3 3 -8
+-1 -1 -1 4 -9

@@ -6,10 +6,11 @@
 //! For each `m ∈ 2..=(g+1)` and `t ∈ 1..=g`, writes
 //! `./normaliz/normaliz_g{g}_m{m}_t{t}.in` with:
 //!
-//! - The pair-relations inequalities `(U_i + U_j − U_{i+j})/m ≥ 0` (Kunz cone)
-//! - Two affine equalities (Normaliz `inhom_equations` format, row = `[a b]` means `ax + b = 0`):
-//!   - `w₁ = mt+1` (first Apéry element in class 1 mod m)
-//!   - `∑wᵢ = mg + m(m−1)/2` (Selmer: pins genus to exactly g)
+//! - The pair-relations inequalities `(U(m)[i] + U(m)[j] − U(m)[(i+j) mod m]) / m ≥ 0`
+//!   (Kunz cone; the ambient variable is `x = C_red[:,0]`, i.e. `x_a = c(a+1, 1)`)
+//! - Two affine equalities (Normaliz `inhom_equations` format, row `[a b]` means `a·x + b = 0`):
+//!   - `∑xᵢ = mt+1`: row 0 of U(m) is all-ones, and `(U·C_red)[0][0] = w₁`, so this pins `w₁`.
+//!   - `(1ᵀ U(m))·x = mg+m(m−1)/2`: column sums of U(m) weight x so that `∑wᵢ = selmer`.
 //!
 //! The lattice points of the resulting polytope correspond bijectively to
 //! numerical semigroups with genus `g`, multiplicity `m`, and `w₁ = mt+1`.
@@ -28,10 +29,17 @@
 
 use f3m::math::matrix::u_pair_relations;
 use rayon::prelude::*;
-use std::fmt::Write as FmtWrite;
+use std::collections::HashMap;
+use std::fmt::Write as _;
 use std::fs;
 use std::path::Path;
 use std::process::Command;
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+fn join_row(iter: impl Iterator<Item = impl ToString>) -> String {
+    iter.map(|v| v.to_string()).collect::<Vec<_>>().join(" ")
+}
 
 // ── Normaliz file generation ──────────────────────────────────────────────────
 
@@ -39,65 +47,85 @@ fn write_normaliz_files(g: usize) -> std::io::Result<()> {
     let dir = Path::new("normaliz");
     fs::create_dir_all(dir)?;
 
-    // Collect all (m, t) pairs so rayon can parallelise them.
+    // Precompute pair-relations matrices once per m — they don't depend on t.
+    let matrices: Vec<_> = (2..=g + 1).map(u_pair_relations).collect();
+
     // t=0 (w₁=1) is omitted: 1 ∈ S forces m=1, which is out of scope.
     let pairs: Vec<(usize, usize)> = (2..=g + 1)
         .flat_map(|m| (1..=g).map(move |t| (m, t)))
         .collect();
 
     pairs.into_par_iter().try_for_each(|(m, t)| {
-        let n = m - 1; // ambient dimension = number of Kunz coordinates
-        let nrows = n * (n + 1) / 2; // number of pair-relations inequalities
-        let mat = u_pair_relations(m);
-        let data = mat.as_slice();
+        let n = m - 1;
+        let nrows = n * (n + 1) / 2;
+        let data = matrices[m - 2].as_slice();
 
         let mut buf = String::new();
         let _ = writeln!(buf, "amb_space {n}");
         let _ = writeln!(buf, "inequalities {nrows}");
         for r in 0..nrows {
-            let row: Vec<String> = (0..n).map(|c| data[r * n + c].to_string()).collect();
-            let _ = writeln!(buf, "{}", row.join(" "));
+            let _ = writeln!(buf, "{}", join_row((0..n).map(|c| data[r * n + c])));
         }
 
         // Two affine equalities cut the Kunz cone to a bounded polytope.
         // Normaliz inhom_equations row format: [a₁ … aₙ b] means a·x + b = 0.
-        let selmer = m * g + m * (m - 1) / 2; // ∑wᵢ for genus g (Selmer's formula)
-        let w1 = m * t + 1; // first Apéry element
+        // The ambient variable is x = C_red[:,0], so x_a = c(a+1, 1).
+        let selmer = m * g + m * (m - 1) / 2;
+        let w1 = m * t + 1;
 
         let _ = writeln!(buf, "inhom_equations 2");
 
-        // Equation 1: w₁ = w1  →  [1, 0, …, 0, −w1]
-        let mut eq1 = vec![0_i64; n + 1];
-        eq1[0] = 1;
+        // Equation 1: ∑xᵢ = w₁  →  [1, 1, …, 1, −w1]
+        // U(m) row 0 is all-ones and (U·C_red)[0][0] = w₁, so (1,…,1)·x = w₁.
+        let mut eq1 = vec![1_i64; n + 1];
         // ALLOW: w1 = mt+1 ≤ mg+1 for any reasonable genus — well within i64::MAX
         #[allow(clippy::cast_possible_wrap)]
         {
             eq1[n] = -(w1 as i64);
         }
-        let _ = writeln!(
-            buf,
-            "{}",
-            eq1.iter()
-                .map(ToString::to_string)
-                .collect::<Vec<_>>()
-                .join(" ")
-        );
+        let _ = writeln!(buf, "{}", join_row(eq1.iter()));
 
-        // Equation 2: ∑wᵢ = selmer  →  [1, 1, …, 1, −selmer]
-        let mut eq2 = vec![1_i64; n + 1];
+        // Equation 2: (1ᵀ U(m))·x = selmer  →  [col_sums_of_U, −selmer]
+        // Column b of U(m) sums to n(n+1)/2 − m(n−1−b); weighting x by these
+        // sums recovers ∑wᵢ = selmer via ∑_a (U·C_red)[a][0] = ∑wᵢ.
+        #[allow(clippy::cast_possible_wrap)]
+        let (ni, mi) = (n as i64, m as i64);
+        let mut eq2 = vec![0_i64; n + 1];
+        for (b, coeff) in eq2.iter_mut().enumerate().take(n) {
+            #[allow(clippy::cast_possible_wrap)]
+            {
+                *coeff = ni * (ni + 1) / 2 - mi * (ni - 1 - b as i64);
+            }
+        }
         // ALLOW: selmer = mg+m(m-1)/2 is genus-scale, far below i64::MAX
         #[allow(clippy::cast_possible_wrap)]
         {
             eq2[n] = -(selmer as i64);
         }
-        let _ = writeln!(
-            buf,
-            "{}",
-            eq2.iter()
-                .map(ToString::to_string)
-                .collect::<Vec<_>>()
-                .join(" ")
-        );
+        let _ = writeln!(buf, "{}", join_row(eq2.iter()));
+
+        // Multiplicity-m constraint: κ_a = (w_a − (a+1))/m ≥ 1 for a = 1..n-1,
+        // i.e. w_a ≥ m + a + 1, encoded as U(m)[a]·x ≥ m + a + 1.
+        // (a=0 holds automatically: w₁ = mt+1 ≥ m+1 for t ≥ 1.)
+        // Without these, the cone admits κ_a = 0 (w_a = a+1 < m), which gives
+        // semigroups whose true multiplicity is < m — counted in a smaller-m cell.
+        if n > 1 {
+            let _ = writeln!(buf, "inhom_inequalities {}", n - 1);
+            for a in 1..n {
+                // U(m)[a][b] = a+1 if b ≥ a, else a+1−m.
+                #[allow(clippy::cast_possible_wrap)]
+                let (ki, min_w) = ((a + 1) as i64, (m + a + 1) as i64);
+                let _ = writeln!(
+                    buf,
+                    "{}",
+                    join_row(
+                        (0..n)
+                            .map(|b| if b < a { ki - mi } else { ki })
+                            .chain(std::iter::once(-min_w))
+                    )
+                );
+            }
+        }
 
         let in_path = dir.join(format!("normaliz_g{g}_m{m}_t{t}.in"));
         fs::write(&in_path, &buf)?;
@@ -142,7 +170,7 @@ fn parse_out_file(path: &Path) -> std::io::Result<(usize, Vec<Vec<i64>>)> {
                 .filter_map(|s| s.parse().ok())
                 .collect();
             if !row.is_empty() {
-                let n = row.len().saturating_sub(1); // drop the trailing dehom = 1
+                let n = row.len().saturating_sub(1);
                 points.push(row[..n].to_vec());
             }
         }
@@ -158,14 +186,10 @@ const MAX_DISPLAY: usize = 40;
 // would obscure the visual correspondence between code and rendered page structure.
 #[allow(clippy::too_many_lines)]
 fn build_html(g: usize, data: &[(usize, usize, usize, Vec<Vec<i64>>)]) -> String {
-    use std::fmt::Write as _;
     let mut h = String::new();
 
-    let count_of = |m: usize, t: usize| -> usize {
-        data.iter()
-            .find(|&&(dm, dt, ..)| dm == m && dt == t)
-            .map_or(0, |&(_, _, c, _)| c)
-    };
+    let count_map: HashMap<(usize, usize), usize> =
+        data.iter().map(|(m, t, c, _)| ((*m, *t), *c)).collect();
 
     let _ = write!(
         h,
@@ -223,7 +247,7 @@ Click a highlighted count to jump to its detail.</p>
         let _ = write!(h, "\n<tr><th class=\"lbl\">m = {m}</th>");
         let mut row_sum = 0usize;
         for (t, ct) in col_totals.iter_mut().enumerate().skip(1).take(g) {
-            let c = count_of(m, t);
+            let c = count_map.get(&(m, t)).copied().unwrap_or(0);
             *ct += c;
             row_sum += c;
             if c == 0 {
@@ -303,9 +327,10 @@ fn write_index_html(g: usize) -> std::io::Result<()> {
     for m in 2..=g + 1 {
         for t in 1..=g {
             let path = dir.join(format!("normaliz_g{g}_m{m}_t{t}.out"));
-            if path.exists() {
-                let (count, points) = parse_out_file(&path)?;
-                data.push((m, t, count, points));
+            match parse_out_file(&path) {
+                Ok((count, points)) => data.push((m, t, count, points)),
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+                Err(e) => return Err(e),
             }
         }
     }

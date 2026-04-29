@@ -1,4 +1,4 @@
-5 lattice points in polytope (module generators)
+2 lattice points in polytope (module generators)
 0 Hilbert basis elements of recession monoid
 2 vertices of polyhedron
 0 extreme rays of recession cone
@@ -12,34 +12,31 @@ dehomogenization:
 0 0 0 1 
 
 
-module rank = 5
+module rank = 2
 
 ***********************************************************************
 
-5 lattice points in polytope (module generators):
- 13 0 17 1
- 13 1 16 1
- 13 2 15 1
- 13 3 14 1
- 13 4 13 1
+2 lattice points in polytope (module generators):
+ 4 4 5 1
+ 5 2 6 1
 
 0 Hilbert basis elements of recession monoid:
 
 2 vertices of polyhedron:
- 13 0 17 1
- 13 4 13 1
+ 4 4 5 1
+ 5 2 6 1
 
 0 extreme rays of recession cone:
 
 2 support hyperplanes of polyhedron (homogenized):
- 0   1 0 0
- 4 -13 0 0
+ -2  5 0 0
+  1 -1 0 0
 
 2 equations:
- 1 0 0 -13
- 0 1 1 -17
+ 1 0 -1   1
+ 0 1  2 -14
 
 2 basis elements of generated  lattice:
- 13 0 17 1
-  0 1 -1 0
+ 1 -2 1 0
+ 0 12 1 1
 

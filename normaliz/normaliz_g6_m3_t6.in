@@ -4,5 +4,7 @@ inequalities 3
 0 1
 -1 1
 inhom_equations 2
-1 0 -19
-1 1 -21
+1 1 -19
+0 3 -21
+inhom_inequalities 1
+-1 2 -5

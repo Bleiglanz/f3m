@@ -2143,3 +2143,67 @@ fn test_71_73_79_83_89_97_101_103_107_109_113_127_131_137_139_149_151_157_163_16
         40,
     );
 }
+
+// ── Canonical ideal K(S) ──────────────────────────────────────────────────────
+
+#[test]
+fn test_canonical_ideal_generators() {
+    // gen(K(S)) = {f − p : p ∈ PF(S), p ≠ f} for non-symmetric semigroups.
+    let cases: &[(&[usize], &[usize])] = &[
+        // ⟨6, 13, 17, 27⟩: f=28, PF={20,21,28}  →  K = ⟨7, 8⟩
+        (&[6, 13, 17, 27], &[7, 8]),
+        // ⟨12, 14, 19, 77⟩: f=65, PF={58,63,65}  →  K = ⟨2, 7⟩
+        (&[12, 14, 19, 77], &[2, 7]),
+    ];
+    for &(gens, expected_k_gens) in cases {
+        let s = compute(gens);
+        let k = s.canonical_ideal();
+
+        // Verify formula: gen(K) = {f − p : p ∈ PF, p ≠ f}, sorted.
+        let mut from_formula: Vec<usize> = s
+            .pf_set
+            .iter()
+            .filter(|&&p| p != s.f)
+            .map(|&p| s.f - p)
+            .collect();
+        from_formula.sort_unstable();
+        let mut actual = k.gen_set.clone();
+        actual.sort_unstable();
+        assert_eq!(
+            actual, from_formula,
+            "gen(K(S)) = {{f−p : p ∈ PF(S)\\{{f}}}} for {gens:?}"
+        );
+
+        // Verify against the known expected generators.
+        assert_eq!(actual, expected_k_gens, "K(S) generators for {gens:?}");
+    }
+}
+
+#[test]
+fn test_canonical_ideal_containment() {
+    // S ⊊ K(S) when the generators of K reach below m(S).
+    // ⟨12, 14, 19, 77⟩: K = ⟨2, 7⟩; every element of S is ≥ 12 > f(K)=5,
+    // so S ⊆ K, and 2 ∈ K \ S, giving S ⊊ K.
+    let s = compute(&[12, 14, 19, 77]);
+    let k = s.canonical_ideal();
+    assert!(s < k, "⟨12,14,19,77⟩ ⊊ K(S)");
+}
+
+#[test]
+fn test_canonical_ideal_symmetric() {
+    // For symmetric semigroups, K(S) = S.
+    for gens in [
+        [6, 9, 20].as_slice(), // symmetric, f=43
+        [5, 7].as_slice(),     // symmetric, f=23
+        [2, 11].as_slice(),    // symmetric, f=9
+    ] {
+        let s = compute(gens);
+        assert!(s.is_symmetric(), "{gens:?} should be symmetric");
+        let k = s.canonical_ideal();
+        assert_eq!(
+            s.partial_cmp(&k),
+            Some(std::cmp::Ordering::Equal),
+            "K(S) = S for symmetric {gens:?}"
+        );
+    }
+}

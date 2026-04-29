@@ -678,6 +678,7 @@ function wireGenSetBtn(id, method, label, beforeCompute) {
 
 wireGenSetBtn('half-btn',         's_over_2',           'S/2');
 wireGenSetBtn('sym-partner-btn',  'symmetric_partner',  'S=SYM/2');
+wireGenSetBtn('ks-btn',           'canonical_ideal',    'K(S)');
 wireGenSetBtn('add-pf-btn',    'add_all_pf',         '+PF');
 wireGenSetBtn('add-blobs-btn', 'add_reflected_gaps',  '+refl');
 wireGenSetBtn('selfglue-btn',  'self_glue',           'glue', () => {

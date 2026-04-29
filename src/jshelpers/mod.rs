@@ -232,6 +232,15 @@ impl JsSemigroup {
         to_u32(&self.0.compute_symmetric_partner().gen_set)
     }
 
+    /// Generators of the canonical ideal K(S).
+    ///
+    /// The minimal generators are `{f − p : p ∈ PF(S), p ≠ f}`.
+    /// For symmetric S (PF = {f}), K(S) = S and the same generators are returned.
+    #[must_use]
+    pub fn canonical_ideal(&self) -> Vec<u32> {
+        to_u32(&self.0.canonical_ideal().gen_set)
+    }
+
     /// Returns `true` if the semigroup has a generator coprime to m (i.e. self-gluing is possible).
     #[must_use]
     pub fn can_self_glue(&self) -> bool {

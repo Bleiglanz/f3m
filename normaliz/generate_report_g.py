@@ -129,6 +129,7 @@ Click a highlighted count to jump to its detail.</p>""")
     for t in range(1, g + 1):
         w(f"<td class='sum'>{col_totals[t]}</td>")
     w(f"<td class='sum'>{grand}</td></tr></tfoot></table>")
+    w(f"<p><strong>Total: {grand} numerical semigroup(s) of genus {g}.</strong></p>")
 
     # ── detail cards ───────────────────────────────────────────────────────────
     w("<h2>Details</h2>")

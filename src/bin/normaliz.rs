@@ -270,6 +270,10 @@ Click a highlighted count to jump to its detail.</p>
         let _ = write!(h, "<td class=\"sum\">{ct}</td>");
     }
     let _ = write!(h, "<td class=\"sum\">{grand}</td></tr></tfoot>\n</table>\n");
+    let _ = writeln!(
+        h,
+        "<p><strong>Total: {grand} numerical semigroup(s) of genus {g}.</strong></p>"
+    );
 
     // ── detail cards ──────────────────────────────────────────────────────────
     h.push_str("<h2>Details</h2>\n");

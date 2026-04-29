@@ -3,7 +3,10 @@
 
 #![allow(clippy::too_many_lines, clippy::cognitive_complexity)]
 
-use f3m::math::{compute, gcd};
+use f3m::math::{
+    compute, gcd,
+    matrix::{c_red, u_matrix},
+};
 
 #[test]
 fn test_ord_containment() {
@@ -83,7 +86,7 @@ fn check(
     );
     assert_eq!(t, s.t, "t for {gens:?}");
     assert_eq!(t, s.pf_set.len(), "type is length pf_set");
-    let mut semi_pf = s.pf_set;
+    let mut semi_pf = s.pf_set.clone();
     semi_pf.sort_unstable();
     assert_eq!(
         pf.to_vec(),
@@ -92,6 +95,20 @@ fn check(
     );
     let aps: usize = s.apery_set.iter().sum();
     assert_eq!(aps, s.apery_sum);
+
+    // Selmer identity: one·U(m)·c₁ = m·g + m·(m−1)/2
+    let dim = m - 1;
+    let u_mat = u_matrix(m);
+    let cr = c_red(&s);
+    let one_u: Vec<i64> = (0..dim)
+        .map(|j| (0..dim).map(|a| u_mat[(a, j)]).sum())
+        .collect();
+    #[allow(clippy::cast_possible_wrap)]
+    let c1: Vec<i64> = (0..dim).map(|i| cr[(i, 0)] as i64).collect();
+    let scalar: i64 = one_u.iter().zip(c1.iter()).map(|(&u, &c)| u * c).sum();
+    #[allow(clippy::cast_possible_wrap)]
+    let apery_sum_selmer = (m * g + m * (m - 1) / 2) as i64;
+    assert_eq!(scalar, apery_sum_selmer, "Selmer identity for {gens:?}");
 }
 
 // ── Examples from gap/test.g (first block, ng1–ng10) ─────────────────────

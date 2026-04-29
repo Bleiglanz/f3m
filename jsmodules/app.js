@@ -34,7 +34,6 @@ window.addEventListener('error', e => {
 });
 window.addEventListener('unhandledrejection', e => showError(`Unhandled promise rejection: ${e.reason}`));
 
-// Show/hide the "Computing…" banner.
 function setBusy(b) {
   computing = b;
   busyBanner.style.display = b ? 'block' : 'none';
@@ -195,8 +194,6 @@ function render(s, toggle = null, label = '⏎') {
   document.getElementById('graph-edges-text').value = js_graph_edges_text(s, s.m);
   rebuildGraph(s, s.m, true);
 
-  // Cache WASM Vec getters — each call copies memory from WASM
-  const blobs = Array.from(s.blob);
 
   const resultEl = document.getElementById('result');
   resultEl.innerHTML =
@@ -287,7 +284,7 @@ function render(s, toggle = null, label = '⏎') {
   if (document.getElementById('tab-gapgraph').classList.contains('active')) { render3d(s, doToggle); }
 
   document.getElementById('add-pf-btn').style.display = (s.type_t > 1 && s.f > 0) ? '' : 'none';
-  document.getElementById('add-blobs-btn').style.display = blobs.length > 0 ? '' : 'none';
+  document.getElementById('add-blobs-btn').style.display = s.blob.length > 0 ? '' : 'none';
   document.getElementById('selfglue-btn').style.display = s.can_self_glue() ? '' : 'none';
 
   if (document.getElementById('tab-csv').classList.contains('active')) { buildCsv(); }

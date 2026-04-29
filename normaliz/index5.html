@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Kunz slices g=5</title>
+<style>
+*{box-sizing:border-box}
+body{background:#1a1a2e;color:#e0e0e0;font-family:monospace;
+     margin:2em auto;max-width:1200px;padding:0 1.5em}
+h1,h2,h3{color:#e94560;margin:.6em 0 .3em}
+p{margin:.3em 0 .8em;line-height:1.5}
+table{border-collapse:collapse;margin:.5em 0;font-size:.87em}
+th,td{padding:3px 10px;border:1px solid #2a2a4a;text-align:right}
+thead th,tfoot td{background:#16213e;color:#a8dadc}
+th.lbl{text-align:left;color:#a8dadc}
+td.zero{color:#3a3a5a}
+td.pos{background:#0f3460;color:#e94560;font-weight:bold;cursor:pointer}
+td.pos:hover{background:#e94560;color:#fff}
+td.sum{color:#a8dadc;font-weight:bold}
+.card{background:#16213e;border-radius:6px;padding:10px 14px;margin:4px 0 8px}
+details{margin:3px 0}
+details>summary{cursor:pointer;color:#a8dadc;list-style:none;padding:4px 2px}
+details>summary::before{content:"▶ ";font-size:.8em}
+details[open]>summary::before{content:"▼ ";font-size:.8em}
+details>summary:hover{color:#e94560}
+.pts th{background:#0d1b2a;color:#a8dadc}
+.pts td{padding:1px 8px;font-size:.83em}
+.trunc{color:#777;font-style:italic;font-size:.8em;margin:.3em 0 0}
+</style>
+</head>
+<body>
+<h1>Kunz cone slices &#8212; genus g = 5</h1>
+<p>Each polytope is cut from the Kunz cone by fixing multiplicity <em>m</em>,
+first Ap&#233;ry element w<sub>1</sub>&nbsp;=&nbsp;mt+1, and Selmer sum
+&#8721;w<sub>i</sub>&nbsp;=&nbsp;mg+m(m&#8722;1)/2.
+Each lattice point is one numerical semigroup with those parameters.<br>
+Click a highlighted count to jump to its detail.</p>
+<h2>Count table</h2>
+<table><thead><tr><th class='lbl'>m \ t</th>
+<th>1</th>
+<th>2</th>
+<th>3</th>
+<th>4</th>
+<th>5</th>
+<th class='sum'>&#931;</th></tr></thead><tbody>
+
+<tr><th class='lbl'>m = 2</th>
+<td class='zero'>·</td>
+<td class='zero'>·</td>
+<td class='zero'>·</td>
+<td class='zero'>·</td>
+<td class='pos' onclick="document.getElementById('sec-m2t5').scrollIntoView({behavior:'smooth'})">1</td>
+<td class='sum'>1</td></tr>
+
+<tr><th class='lbl'>m = 3</th>
+<td class='pos' onclick="document.getElementById('sec-m3t1').scrollIntoView({behavior:'smooth'})">1</td>
+<td class='pos' onclick="document.getElementById('sec-m3t2').scrollIntoView({behavior:'smooth'})">1</td>
+<td class='zero'>·</td>
+<td class='zero'>·</td>
+<td class='zero'>·</td>
+<td class='sum'>2</td></tr>
+
+<tr><th class='lbl'>m = 4</th>
+<td class='pos' onclick="document.getElementById('sec-m4t1').scrollIntoView({behavior:'smooth'})">11</td>
+<td class='pos' onclick="document.getElementById('sec-m4t2').scrollIntoView({behavior:'smooth'})">9</td>
+<td class='pos' onclick="document.getElementById('sec-m4t3').scrollIntoView({behavior:'smooth'})">1</td>
+<td class='zero'>·</td>
+<td class='zero'>·</td>
+<td class='sum'>21</td></tr>
+
+<tr><th class='lbl'>m = 5</th>
+<td class='pos' onclick="document.getElementById('sec-m5t1').scrollIntoView({behavior:'smooth'})">127</td>
+<td class='pos' onclick="document.getElementById('sec-m5t2').scrollIntoView({behavior:'smooth'})">19</td>
+<td class='zero'>·</td>
+<td class='zero'>·</td>
+<td class='zero'>·</td>
+<td class='sum'>146</td></tr>
+
+<tr><th class='lbl'>m = 6</th>
+<td class='pos' onclick="document.getElementById('sec-m6t1').scrollIntoView({behavior:'smooth'})">1701</td>
+<td class='pos' onclick="document.getElementById('sec-m6t2').scrollIntoView({behavior:'smooth'})">82</td>
+<td class='zero'>·</td>
+<td class='zero'>·</td>
+<td class='zero'>·</td>
+<td class='sum'>1783</td></tr>
+
+</tbody><tfoot><tr><th class='lbl'>&#931;</th>
+<td class='sum'>1840</td>
+<td class='sum'>111</td>
+<td class='sum'>1</td>
+<td class='sum'>0</td>
+<td class='sum'>1</td>
+<td class='sum'>1953</td></tr></tfoot></table>
+<h2>Details</h2>
+<h3>m = 2</h3>
+<details id='sec-m2t5'><summary>t = 5 &nbsp;|&nbsp; w<sub>1</sub> = 11 &nbsp;|&nbsp; &#8721;w<sub>i</sub> = 11 &nbsp;|&nbsp; <strong>1</strong> semigroup(s)</summary><div class='card'><table class='pts'><thead><tr>
+<th>w<sub>1</sub></th>
+</tr></thead><tbody>
+<tr><td>11</td></tr>
+</tbody></table>
+</div></details>
+<h3>m = 3</h3>
+<details id='sec-m3t1'><summary>t = 1 &nbsp;|&nbsp; w<sub>1</sub> = 4 &nbsp;|&nbsp; &#8721;w<sub>i</sub> = 18 &nbsp;|&nbsp; <strong>1</strong> semigroup(s)</summary><div class='card'><table class='pts'><thead><tr>
+<th>w<sub>1</sub></th>
+<th>w<sub>2</sub></th>
+</tr></thead><tbody>
+<tr><td>4</td><td>14</td></tr>
+</tbody></table>
+</div></details>
+<details id='sec-m3t2'><summary>t = 2 &nbsp;|&nbsp; w<sub>1</sub> = 7 &nbsp;|&nbsp; &#8721;w<sub>i</sub> = 18 &nbsp;|&nbsp; <strong>1</strong> semigroup(s)</summary><div class='card'><table class='pts'><thead><tr>
+<th>w<sub>1</sub></th>
+<th>w<sub>2</sub></th>
+</tr></thead><tbody>
+<tr><td>7</td><td>11</td></tr>
+</tbody></table>
+</div></details>
+<h3>m = 4</h3>
+<details id='sec-m4t1'><summary>t = 1 &nbsp;|&nbsp; w<sub>1</sub> = 5 &nbsp;|&nbsp; &#8721;w<sub>i</sub> = 26 &nbsp;|&nbsp; <strong>11</strong> semigroup(s)</summary><div class='card'><table class='pts'><thead><tr>
+<th>w<sub>1</sub></th>
+<th>w<sub>2</sub></th>
+<th>w<sub>3</sub></th>
+</tr></thead><tbody>
+<tr><td>5</td><td>0</td><td>21</td></tr>
+<tr><td>5</td><td>1</td><td>20</td></tr>
+<tr><td>5</td><td>2</td><td>19</td></tr>
+<tr><td>5</td><td>3</td><td>18</td></tr>
+<tr><td>5</td><td>4</td><td>17</td></tr>
+<tr><td>5</td><td>5</td><td>16</td></tr>
+<tr><td>5</td><td>6</td><td>15</td></tr>
+<tr><td>5</td><td>7</td><td>14</td></tr>
+<tr><td>5</td><td>8</td><td>13</td></tr>
+<tr><td>5</td><td>9</td><td>12</td></tr>
+<tr><td>5</td><td>10</td><td>11</td></tr>
+</tbody></table>
+</div></details>
+<details id='sec-m4t2'><summary>t = 2 &nbsp;|&nbsp; w<sub>1</sub> = 9 &nbsp;|&nbsp; &#8721;w<sub>i</sub> = 26 &nbsp;|&nbsp; <strong>9</strong> semigroup(s)</summary><div class='card'><table class='pts'><thead><tr>
+<th>w<sub>1</sub></th>
+<th>w<sub>2</sub></th>
+<th>w<sub>3</sub></th>
+</tr></thead><tbody>
+<tr><td>9</td><td>0</td><td>17</td></tr>
+<tr><td>9</td><td>1</td><td>16</td></tr>
+<tr><td>9</td><td>2</td><td>15</td></tr>
+<tr><td>9</td><td>3</td><td>14</td></tr>
+<tr><td>9</td><td>4</td><td>13</td></tr>
+<tr><td>9</td><td>5</td><td>12</td></tr>
+<tr><td>9</td><td>6</td><td>11</td></tr>
+<tr><td>9</td><td>7</td><td>10</td></tr>
+<tr><td>9</td><td>8</td><td>9</td></tr>
+</tbody></table>
+</div></details>
+<details id='sec-m4t3'><summary>t = 3 &nbsp;|&nbsp; w<sub>1</sub> = 13 &nbsp;|&nbsp; &#8721;w<sub>i</sub> = 26 &nbsp;|&nbsp; <strong>1</strong> semigroup(s)</summary><div class='card'><table class='pts'><thead><tr>
+<th>w<sub>1</sub></th>
+<th>w<sub>2</sub></th>
+<th>w<sub>3</sub></th>
+</tr></thead><tbody>
+<tr><td>13</td><td>0</td><td>13</td></tr>
+</tbody></table>
+</div></details>
+<h3>m = 5</h3>
+<details id='sec-m5t1'><summary>t = 1 &nbsp;|&nbsp; w<sub>1</sub> = 6 &nbsp;|&nbsp; &#8721;w<sub>i</sub> = 35 &nbsp;|&nbsp; <strong>127</strong> semigroup(s)</summary><div class='card'><table class='pts'><thead><tr>
+<th>w<sub>1</sub></th>
+<th>w<sub>2</sub></th>
+<th>w<sub>3</sub></th>
+<th>w<sub>4</sub></th>
+</tr></thead><tbody>
+<tr><td>6</td><td>0</td><td>6</td><td>23</td></tr>
+<tr><td>6</td><td>0</td><td>7</td><td>22</td></tr>
+<tr><td>6</td><td>0</td><td>8</td><td>21</td></tr>
+<tr><td>6</td><td>0</td><td>9</td><td>20</td></tr>
+<tr><td>6</td><td>0</td><td>10</td><td>19</td></tr>
+<tr><td>6</td><td>0</td><td>11</td><td>18</td></tr>
+<tr><td>6</td><td>0</td><td>12</td><td>17</td></tr>
+<tr><td>6</td><td>0</td><td>13</td><td>16</td></tr>
+<tr><td>6</td><td>0</td><td>14</td><td>15</td></tr>
+<tr><td>6</td><td>1</td><td>5</td><td>23</td></tr>
+<tr><td>6</td><td>1</td><td>6</td><td>22</td></tr>
+<tr><td>6</td><td>1</td><td>7</td><td>21</td></tr>
+<tr><td>6</td><td>1</td><td>8</td><td>20</td></tr>
+<tr><td>6</td><td>1</td><td>9</td><td>19</td></tr>
+<tr><td>6</td><td>1</td><td>10</td><td>18</td></tr>
+<tr><td>6</td><td>1</td><td>11</td><td>17</td></tr>
+<tr><td>6</td><td>1</td><td>12</td><td>16</td></tr>
+<tr><td>6</td><td>1</td><td>13</td><td>15</td></tr>
+<tr><td>6</td><td>1</td><td>14</td><td>14</td></tr>
+<tr><td>6</td><td>2</td><td>4</td><td>23</td></tr>
+<tr><td>6</td><td>2</td><td>5</td><td>22</td></tr>
+<tr><td>6</td><td>2</td><td>6</td><td>21</td></tr>
+<tr><td>6</td><td>2</td><td>7</td><td>20</td></tr>
+<tr><td>6</td><td>2</td><td>8</td><td>19</td></tr>
+<tr><td>6</td><td>2</td><td>9</td><td>18</td></tr>
+<tr><td>6</td><td>2</td><td>10</td><td>17</td></tr>
+<tr><td>6</td><td>2</td><td>11</td><td>16</td></tr>
+<tr><td>6</td><td>2</td><td>12</td><td>15</td></tr>
+<tr><td>6</td><td>2</td><td>13</td><td>14</td></tr>
+<tr><td>6</td><td>3</td><td>3</td><td>23</td></tr>
+<tr><td>6</td><td>3</td><td>4</td><td>22</td></tr>
+<tr><td>6</td><td>3</td><td>5</td><td>21</td></tr>
+<tr><td>6</td><td>3</td><td>6</td><td>20</td></tr>
+<tr><td>6</td><td>3</td><td>7</td><td>19</td></tr>
+<tr><td>6</td><td>3</td><td>8</td><td>18</td></tr>
+<tr><td>6</td><td>3</td><td>9</td><td>17</td></tr>
+<tr><td>6</td><td>3</td><td>10</td><td>16</td></tr>
+<tr><td>6</td><td>3</td><td>11</td><td>15</td></tr>
+<tr><td>6</td><td>3</td><td>12</td><td>14</td></tr>
+<tr><td>6</td><td>3</td><td>13</td><td>13</td></tr>
+</tbody></table>
+<p class='trunc'>&#8230; 40 of 127 shown</p>
+</div></details>
+<details id='sec-m5t2'><summary>t = 2 &nbsp;|&nbsp; w<sub>1</sub> = 11 &nbsp;|&nbsp; &#8721;w<sub>i</sub> = 35 &nbsp;|&nbsp; <strong>19</strong> semigroup(s)</summary><div class='card'><table class='pts'><thead><tr>
+<th>w<sub>1</sub></th>
+<th>w<sub>2</sub></th>
+<th>w<sub>3</sub></th>
+<th>w<sub>4</sub></th>
+</tr></thead><tbody>
+<tr><td>11</td><td>0</td><td>11</td><td>13</td></tr>
+<tr><td>11</td><td>0</td><td>12</td><td>12</td></tr>
+<tr><td>11</td><td>1</td><td>10</td><td>13</td></tr>
+<tr><td>11</td><td>1</td><td>11</td><td>12</td></tr>
+<tr><td>11</td><td>2</td><td>9</td><td>13</td></tr>
+<tr><td>11</td><td>2</td><td>10</td><td>12</td></tr>
+<tr><td>11</td><td>2</td><td>11</td><td>11</td></tr>
+<tr><td>11</td><td>3</td><td>8</td><td>13</td></tr>
+<tr><td>11</td><td>3</td><td>9</td><td>12</td></tr>
+<tr><td>11</td><td>3</td><td>10</td><td>11</td></tr>
+<tr><td>11</td><td>4</td><td>7</td><td>13</td></tr>
+<tr><td>11</td><td>4</td><td>8</td><td>12</td></tr>
+<tr><td>11</td><td>4</td><td>9</td><td>11</td></tr>
+<tr><td>11</td><td>5</td><td>6</td><td>13</td></tr>
+<tr><td>11</td><td>5</td><td>7</td><td>12</td></tr>
+<tr><td>11</td><td>5</td><td>8</td><td>11</td></tr>
+<tr><td>11</td><td>6</td><td>5</td><td>13</td></tr>
+<tr><td>11</td><td>6</td><td>6</td><td>12</td></tr>
+<tr><td>11</td><td>6</td><td>7</td><td>11</td></tr>
+</tbody></table>
+</div></details>
+<h3>m = 6</h3>
+<details id='sec-m6t1'><summary>t = 1 &nbsp;|&nbsp; w<sub>1</sub> = 7 &nbsp;|&nbsp; &#8721;w<sub>i</sub> = 45 &nbsp;|&nbsp; <strong>1701</strong> semigroup(s)</summary><div class='card'><table class='pts'><thead><tr>
+<th>w<sub>1</sub></th>
+<th>w<sub>2</sub></th>
+<th>w<sub>3</sub></th>
+<th>w<sub>4</sub></th>
+<th>w<sub>5</sub></th>
+</tr></thead><tbody>
+<tr><td>7</td><td>0</td><td>7</td><td>0</td><td>31</td></tr>
+<tr><td>7</td><td>0</td><td>7</td><td>1</td><td>30</td></tr>
+<tr><td>7</td><td>0</td><td>7</td><td>2</td><td>29</td></tr>
+<tr><td>7</td><td>0</td><td>7</td><td>3</td><td>28</td></tr>
+<tr><td>7</td><td>0</td><td>7</td><td>4</td><td>27</td></tr>
+<tr><td>7</td><td>0</td><td>7</td><td>5</td><td>26</td></tr>
+<tr><td>7</td><td>0</td><td>7</td><td>6</td><td>25</td></tr>
+<tr><td>7</td><td>0</td><td>7</td><td>7</td><td>24</td></tr>
+<tr><td>7</td><td>0</td><td>7</td><td>8</td><td>23</td></tr>
+<tr><td>7</td><td>0</td><td>7</td><td>9</td><td>22</td></tr>
+<tr><td>7</td><td>0</td><td>7</td><td>10</td><td>21</td></tr>
+<tr><td>7</td><td>0</td><td>7</td><td>11</td><td>20</td></tr>
+<tr><td>7</td><td>0</td><td>7</td><td>12</td><td>19</td></tr>
+<tr><td>7</td><td>0</td><td>7</td><td>13</td><td>18</td></tr>
+<tr><td>7</td><td>0</td><td>7</td><td>14</td><td>17</td></tr>
+<tr><td>7</td><td>0</td><td>7</td><td>15</td><td>16</td></tr>
+<tr><td>7</td><td>0</td><td>8</td><td>0</td><td>30</td></tr>
+<tr><td>7</td><td>0</td><td>8</td><td>1</td><td>29</td></tr>
+<tr><td>7</td><td>0</td><td>8</td><td>2</td><td>28</td></tr>
+<tr><td>7</td><td>0</td><td>8</td><td>3</td><td>27</td></tr>
+<tr><td>7</td><td>0</td><td>8</td><td>4</td><td>26</td></tr>
+<tr><td>7</td><td>0</td><td>8</td><td>5</td><td>25</td></tr>
+<tr><td>7</td><td>0</td><td>8</td><td>6</td><td>24</td></tr>
+<tr><td>7</td><td>0</td><td>8</td><td>7</td><td>23</td></tr>
+<tr><td>7</td><td>0</td><td>8</td><td>8</td><td>22</td></tr>
+<tr><td>7</td><td>0</td><td>8</td><td>9</td><td>21</td></tr>
+<tr><td>7</td><td>0</td><td>8</td><td>10</td><td>20</td></tr>
+<tr><td>7</td><td>0</td><td>8</td><td>11</td><td>19</td></tr>
+<tr><td>7</td><td>0</td><td>8</td><td>12</td><td>18</td></tr>
+<tr><td>7</td><td>0</td><td>8</td><td>13</td><td>17</td></tr>
+<tr><td>7</td><td>0</td><td>8</td><td>14</td><td>16</td></tr>
+<tr><td>7</td><td>0</td><td>8</td><td>15</td><td>15</td></tr>
+<tr><td>7</td><td>0</td><td>9</td><td>0</td><td>29</td></tr>
+<tr><td>7</td><td>0</td><td>9</td><td>1</td><td>28</td></tr>
+<tr><td>7</td><td>0</td><td>9</td><td>2</td><td>27</td></tr>
+<tr><td>7</td><td>0</td><td>9</td><td>3</td><td>26</td></tr>
+<tr><td>7</td><td>0</td><td>9</td><td>4</td><td>25</td></tr>
+<tr><td>7</td><td>0</td><td>9</td><td>5</td><td>24</td></tr>
+<tr><td>7</td><td>0</td><td>9</td><td>6</td><td>23</td></tr>
+<tr><td>7</td><td>0</td><td>9</td><td>7</td><td>22</td></tr>
+</tbody></table>
+<p class='trunc'>&#8230; 40 of 1701 shown</p>
+</div></details>
+<details id='sec-m6t2'><summary>t = 2 &nbsp;|&nbsp; w<sub>1</sub> = 13 &nbsp;|&nbsp; &#8721;w<sub>i</sub> = 45 &nbsp;|&nbsp; <strong>82</strong> semigroup(s)</summary><div class='card'><table class='pts'><thead><tr>
+<th>w<sub>1</sub></th>
+<th>w<sub>2</sub></th>
+<th>w<sub>3</sub></th>
+<th>w<sub>4</sub></th>
+<th>w<sub>5</sub></th>
+</tr></thead><tbody>
+<tr><td>13</td><td>0</td><td>13</td><td>0</td><td>19</td></tr>
+<tr><td>13</td><td>0</td><td>13</td><td>1</td><td>18</td></tr>
+<tr><td>13</td><td>0</td><td>13</td><td>2</td><td>17</td></tr>
+<tr><td>13</td><td>0</td><td>13</td><td>3</td><td>16</td></tr>
+<tr><td>13</td><td>0</td><td>13</td><td>4</td><td>15</td></tr>
+<tr><td>13</td><td>0</td><td>13</td><td>5</td><td>14</td></tr>
+<tr><td>13</td><td>0</td><td>13</td><td>6</td><td>13</td></tr>
+<tr><td>13</td><td>0</td><td>14</td><td>0</td><td>18</td></tr>
+<tr><td>13</td><td>0</td><td>14</td><td>1</td><td>17</td></tr>
+<tr><td>13</td><td>0</td><td>14</td><td>2</td><td>16</td></tr>
+<tr><td>13</td><td>0</td><td>14</td><td>3</td><td>15</td></tr>
+<tr><td>13</td><td>0</td><td>14</td><td>4</td><td>14</td></tr>
+<tr><td>13</td><td>0</td><td>15</td><td>0</td><td>17</td></tr>
+<tr><td>13</td><td>0</td><td>15</td><td>1</td><td>16</td></tr>
+<tr><td>13</td><td>0</td><td>15</td><td>2</td><td>15</td></tr>
+<tr><td>13</td><td>0</td><td>16</td><td>0</td><td>16</td></tr>
+<tr><td>13</td><td>1</td><td>12</td><td>1</td><td>18</td></tr>
+<tr><td>13</td><td>1</td><td>12</td><td>2</td><td>17</td></tr>
+<tr><td>13</td><td>1</td><td>12</td><td>3</td><td>16</td></tr>
+<tr><td>13</td><td>1</td><td>12</td><td>4</td><td>15</td></tr>
+<tr><td>13</td><td>1</td><td>12</td><td>5</td><td>14</td></tr>
+<tr><td>13</td><td>1</td><td>12</td><td>6</td><td>13</td></tr>
+<tr><td>13</td><td>1</td><td>13</td><td>0</td><td>18</td></tr>
+<tr><td>13</td><td>1</td><td>13</td><td>1</td><td>17</td></tr>
+<tr><td>13</td><td>1</td><td>13</td><td>2</td><td>16</td></tr>
+<tr><td>13</td><td>1</td><td>13</td><td>3</td><td>15</td></tr>
+<tr><td>13</td><td>1</td><td>13</td><td>4</td><td>14</td></tr>
+<tr><td>13</td><td>1</td><td>13</td><td>5</td><td>13</td></tr>
+<tr><td>13</td><td>1</td><td>14</td><td>0</td><td>17</td></tr>
+<tr><td>13</td><td>1</td><td>14</td><td>1</td><td>16</td></tr>
+<tr><td>13</td><td>1</td><td>14</td><td>2</td><td>15</td></tr>
+<tr><td>13</td><td>1</td><td>14</td><td>3</td><td>14</td></tr>
+<tr><td>13</td><td>1</td><td>15</td><td>0</td><td>16</td></tr>
+<tr><td>13</td><td>1</td><td>15</td><td>1</td><td>15</td></tr>
+<tr><td>13</td><td>2</td><td>11</td><td>2</td><td>17</td></tr>
+<tr><td>13</td><td>2</td><td>11</td><td>3</td><td>16</td></tr>
+<tr><td>13</td><td>2</td><td>11</td><td>4</td><td>15</td></tr>
+<tr><td>13</td><td>2</td><td>11</td><td>5</td><td>14</td></tr>
+<tr><td>13</td><td>2</td><td>11</td><td>6</td><td>13</td></tr>
+<tr><td>13</td><td>2</td><td>12</td><td>1</td><td>17</td></tr>
+</tbody></table>
+<p class='trunc'>&#8230; 40 of 82 shown</p>
+</div></details>
+</body></html>

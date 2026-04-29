@@ -17,5 +17,8 @@ wasm-bindgen = "0.2"
 primal = "0.3"
 num-traits = "0.2" # Zero, One traits used by the matrix module
 
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+rayon = "1"        # parallel iterator for the normaliz binary
+
 [dev-dependencies]
 proptest = "1"     # property-based tests for matrix algebra laws

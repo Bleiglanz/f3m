@@ -345,6 +345,49 @@ pub fn js_classify_table(s: &JsSemigroup) -> String {
 }
 
 /// Returns U(m), `U(m)·C_red`, and the U(m) pair-relations matrix as HTML tables.
+/// Render a five-row table for `one`, `one·U(m)`, `c₁`, `one·U(m)·c₁`, and `mg+(m-1)m/2`.
+///
+/// - `one_u[j]`   = column-j sum of U(m) (the product `one·U(m)`)
+/// - `c1[i]`      = first column of `C_red` (Kunz coefficients `c(i+1, 1)`)
+/// - `apery_sum`  = m·g + m·(m−1)/2 = sum of Apéry elements w₁,…,w_{m−1}
+/// - rows 4 and 5 each span all data columns; they should always be equal.
+fn render_one_vec(one_u: &[i64], c1: &[i64], apery_sum: i64) -> String {
+    use std::fmt::Write as _;
+    let dim = one_u.len();
+    let scalar: i64 = one_u.iter().zip(c1.iter()).map(|(&u, &c)| u * c).sum();
+    let mut html = "<table class=\"classify-table u-matrix-table\">\
+         <thead><tr><th></th>"
+        .to_string();
+    for b in 0..dim {
+        let _ = write!(html, "<th>{}</th>", b + 1);
+    }
+    html.push_str("</tr></thead><tbody><tr><th>one</th>");
+    for _ in 0..dim {
+        html.push_str("<td>1</td>");
+    }
+    html.push_str("</tr><tr><th>one\u{b7}U(m)</th>");
+    for &v in one_u {
+        let _ = write!(html, "<td>{v}</td>");
+    }
+    html.push_str("</tr><tr><th>c<sub>1</sub></th>");
+    for &v in c1 {
+        let _ = write!(html, "<td>{v}</td>");
+    }
+    let _ = write!(
+        html,
+        "</tr><tr><th>one\u{b7}U(m)\u{b7}c<sub>1</sub></th>\
+         <td colspan=\"{dim}\">{scalar}</td>\
+         </tr><tr><th>mg + (m\u{2212}1)m/2</th>\
+         <td colspan=\"{dim}\">{apery_sum}</td>",
+    );
+    html.push_str("</tr></tbody></table>");
+    html
+}
+
+/// HTML table for the Diag tab: `U(m)`, `one·U(m)`, `U(m)·C_red`, pair-relations.
+// ALLOW: pure HTML-builder; each block renders one distinct table — splitting further
+// would fragment the rendering pipeline without reducing logical complexity.
+#[allow(clippy::too_many_lines)]
 #[wasm_bindgen]
 #[must_use]
 pub fn js_diagonals_table(s: &JsSemigroup) -> String {
@@ -387,14 +430,20 @@ pub fn js_diagonals_table(s: &JsSemigroup) -> String {
         .flat_map(|a| (a..dim).map(move |b| format!("({},{})", a + 1, b + 1)))
         .collect();
     let pair_label = |r: usize| pair_labels[r].clone();
-
     let u_mat = u_matrix(mult);
     let html_u = render(&u_mat, "U(m)", &one_based, &one_based, &plain);
-
+    let one_u: Vec<i64> = (0..dim)
+        .map(|j| (0..dim).map(|a| u_mat[(a, j)]).sum())
+        .collect();
     let cr = c_red(sg);
+    #[allow(clippy::cast_possible_wrap)] // Kunz coefficients are always small
+    let c1: Vec<i64> = (0..dim).map(|i| cr[(i, 0)] as i64).collect();
+    // Selmer's formula: sum of Apéry elements w₁…w_{m−1} = m·g + m·(m−1)/2
+    #[allow(clippy::cast_possible_wrap)]
+    let apery_sum = (mult * sg.count_gap + mult * (mult - 1) / 2) as i64;
+    let html_one = render_one_vec(&one_u, &c1, apery_sum);
     let product = u_times_c_red(&cr);
     let sets = class_sets(sg);
-    // Column 0 (semigroup index 1) is the Apéry-set column of U·C_red.
     let classified = |_a: usize, b: usize, val: i64| {
         if b == 0 && val >= 0 {
             #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
@@ -421,7 +470,6 @@ pub fn js_diagonals_table(s: &JsSemigroup) -> String {
         &one_based,
         &classified,
     );
-
     let pair = u_pair_relations(mult);
     let pair_cell = |_a: usize, _b: usize, val: i64| match val {
         0 => "<td class=\"pm-zero\">0</td>".to_string(),
@@ -445,6 +493,7 @@ pub fn js_diagonals_table(s: &JsSemigroup) -> String {
          {mult}<sup>{}</sup></p>",
         mult - 2,
     );
+    let _ = write!(out, "<div class=\"table-wrap\">{html_one}</div>");
     let _ = write!(out, "<div class=\"table-wrap\">{html_uc}</div>");
     let _ = write!(out, "<div class=\"table-wrap\">{html_pair}</div>");
     out.push_str("</div>");

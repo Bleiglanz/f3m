@@ -755,36 +755,6 @@ pub fn to_i64(mat: &DenseMatrix<usize>) -> DenseMatrix<i64> {
     }
 }
 
-// ── Semiring matrix multiplication ────────────────────────────────────────────
-
-/// Matrix product `a × b` for types that support addition and multiplication
-/// but not negation (e.g. `usize`).
-///
-/// # Panics
-///
-/// Panics if `a.ncols() != b.nrows()`.
-#[must_use]
-pub fn mat_mul_unsigned<T>(a: &DenseMatrix<T>, b: &DenseMatrix<T>) -> DenseMatrix<T>
-where
-    T: Copy + Zero + Add<Output = T> + Mul<Output = T>,
-{
-    assert_eq!(a.cols, b.rows, "mat_mul_unsigned: incompatible dimensions");
-    let mut data = vec![T::zero(); a.rows * b.cols];
-    for i in 0..a.rows {
-        for k in 0..a.cols {
-            for j in 0..b.cols {
-                data[i * b.cols + j] =
-                    data[i * b.cols + j] + a.data[i * a.cols + k] * b.data[k * b.cols + j];
-            }
-        }
-    }
-    DenseMatrix {
-        rows: a.rows,
-        cols: b.cols,
-        data,
-    }
-}
-
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
@@ -792,7 +762,6 @@ mod tests {
     use super::*;
     use crate::math::compute;
 
-    // Helper: build a DenseMatrix<i64> from a flat row-major slice.
     fn mat_i(rows: usize, cols: usize, data: &[i64]) -> DenseMatrix<i64> {
         DenseMatrix::from_row_slice(rows, cols, data)
     }

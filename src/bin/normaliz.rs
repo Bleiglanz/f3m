@@ -27,8 +27,8 @@
 #![forbid(unsafe_code)]
 #![deny(clippy::all, clippy::pedantic, clippy::nursery)]
 
-use f3m::math::compute;
 use f3m::math::matrix::u_pair_relations;
+use f3m::math::{Semigroup, compute};
 use rayon::prelude::*;
 use std::collections::HashMap;
 use std::fmt::Write as _;
@@ -66,96 +66,98 @@ fn write_normaliz_files(g: usize) -> std::io::Result<()> {
     let overall = Instant::now();
     let counter = AtomicUsize::new(0);
 
-    pairs.into_par_iter().try_for_each(|(m, t)| -> std::io::Result<()> {
-        let n = m - 1;
-        let nrows = n * (n + 1) / 2;
-        let data = matrices[m - 2].as_slice();
+    pairs
+        .into_par_iter()
+        .try_for_each(|(m, t)| -> std::io::Result<()> {
+            let n = m - 1;
+            let nrows = n * (n + 1) / 2;
+            let data = matrices[m - 2].as_slice();
 
-        let mut buf = String::new();
-        let _ = writeln!(buf, "amb_space {n}");
-        let _ = writeln!(buf, "inequalities {nrows}");
-        for r in 0..nrows {
-            let _ = writeln!(buf, "{}", join_row((0..n).map(|c| data[r * n + c])));
-        }
+            let mut buf = String::new();
+            let _ = writeln!(buf, "amb_space {n}");
+            let _ = writeln!(buf, "inequalities {nrows}");
+            for r in 0..nrows {
+                let _ = writeln!(buf, "{}", join_row((0..n).map(|c| data[r * n + c])));
+            }
 
-        // Two affine equalities cut the Kunz cone to a bounded polytope.
-        // Normaliz inhom_equations row format: [a₁ … aₙ b] means a·x + b = 0.
-        // The ambient variable is x = C_red[:,0], so x_a = c(a+1, 1).
-        let selmer = m * g + m * (m - 1) / 2;
-        let w1 = m * t + 1;
+            // Two affine equalities cut the Kunz cone to a bounded polytope.
+            // Normaliz inhom_equations row format: [a₁ … aₙ b] means a·x + b = 0.
+            // The ambient variable is x = C_red[:,0], so x_a = c(a+1, 1).
+            let selmer = m * g + m * (m - 1) / 2;
+            let w1 = m * t + 1;
 
-        let _ = writeln!(buf, "inhom_equations 2");
+            let _ = writeln!(buf, "inhom_equations 2");
 
-        // Equation 1: ∑xᵢ = w₁  →  [1, 1, …, 1, −w1]
-        let mut eq1 = vec![1_i64; n + 1];
-        #[allow(clippy::cast_possible_wrap)]
-        {
-            eq1[n] = -(w1 as i64);
-        }
-        let _ = writeln!(buf, "{}", join_row(eq1.iter()));
-
-        // Equation 2: (1ᵀ U(m))·x = selmer  →  [col_sums_of_U, −selmer]
-        #[allow(clippy::cast_possible_wrap)]
-        let (ni, mi) = (n as i64, m as i64);
-        let mut eq2 = vec![0_i64; n + 1];
-        for (b, coeff) in eq2.iter_mut().enumerate().take(n) {
+            // Equation 1: ∑xᵢ = w₁  →  [1, 1, …, 1, −w1]
+            let mut eq1 = vec![1_i64; n + 1];
             #[allow(clippy::cast_possible_wrap)]
             {
-                *coeff = ni * (ni + 1) / 2 - mi * (ni - 1 - b as i64);
+                eq1[n] = -(w1 as i64);
             }
-        }
-        #[allow(clippy::cast_possible_wrap)]
-        {
-            eq2[n] = -(selmer as i64);
-        }
-        let _ = writeln!(buf, "{}", join_row(eq2.iter()));
+            let _ = writeln!(buf, "{}", join_row(eq1.iter()));
 
-        // Multiplicity-m constraint: κ_a = (w_a − (a+1))/m ≥ 1 for a = 1..n-1.
-        // Without these, the cone admits κ_a = 0 (w_a = a+1 < m), giving
-        // semigroups whose true multiplicity is < m — counted in a smaller-m cell.
-        if n > 1 {
-            let _ = writeln!(buf, "inhom_inequalities {}", n - 1);
-            for a in 1..n {
+            // Equation 2: (1ᵀ U(m))·x = selmer  →  [col_sums_of_U, −selmer]
+            #[allow(clippy::cast_possible_wrap)]
+            let (ni, mi) = (n as i64, m as i64);
+            let mut eq2 = vec![0_i64; n + 1];
+            for (b, coeff) in eq2.iter_mut().enumerate().take(n) {
                 #[allow(clippy::cast_possible_wrap)]
-                let (ki, min_w) = ((a + 1) as i64, (m + a + 1) as i64);
-                let _ = writeln!(
-                    buf,
-                    "{}",
-                    join_row(
-                        (0..n)
-                            .map(|b| if b < a { ki - mi } else { ki })
-                            .chain(std::iter::once(-min_w))
-                    )
-                );
+                {
+                    *coeff = ni * (ni + 1) / 2 - mi * (ni - 1 - b as i64);
+                }
             }
-        }
+            #[allow(clippy::cast_possible_wrap)]
+            {
+                eq2[n] = -(selmer as i64);
+            }
+            let _ = writeln!(buf, "{}", join_row(eq2.iter()));
 
-        let in_path = dir.join(format!("normaliz_g{g}_m{m}_t{t}.in"));
-        let out_path = dir.join(format!("normaliz_g{g}_m{m}_t{t}.out"));
-        fs::write(&in_path, &buf)?;
+            // Multiplicity-m constraint: κ_a = (w_a − (a+1))/m ≥ 1 for a = 1..n-1.
+            // Without these, the cone admits κ_a = 0 (w_a = a+1 < m), giving
+            // semigroups whose true multiplicity is < m — counted in a smaller-m cell.
+            if n > 1 {
+                let _ = writeln!(buf, "inhom_inequalities {}", n - 1);
+                for a in 1..n {
+                    #[allow(clippy::cast_possible_wrap)]
+                    let (ki, min_w) = ((a + 1) as i64, (m + a + 1) as i64);
+                    let _ = writeln!(
+                        buf,
+                        "{}",
+                        join_row(
+                            (0..n)
+                                .map(|b| if b < a { ki - mi } else { ki })
+                                .chain(std::iter::once(-min_w))
+                        )
+                    );
+                }
+            }
 
-        let idx = counter.fetch_add(1, Ordering::Relaxed) + 1;
-        if out_path.exists() {
-            println!("[{idx}/{total}] cached g={g} m={m} t={t} (n={n})");
-            return Ok(());
-        }
-        println!("[{idx}/{total}] starting g={g} m={m} t={t} (n={n}) ...");
-        let started = Instant::now();
-        let status = Command::new("normaliz").arg(&in_path).status()?;
-        let elapsed = started.elapsed();
-        println!(
-            "[{idx}/{total}] done g={g} m={m} t={t} in {:.2}s (total {:.2}s)",
-            elapsed.as_secs_f64(),
-            overall.elapsed().as_secs_f64(),
-        );
-        if !status.success() {
-            return Err(std::io::Error::other(format!(
-                "normaliz exited with code {} for g={g} m={m} t={t}",
-                status.code().unwrap_or(-1),
-            )));
-        }
-        Ok(())
-    })?;
+            let in_path = dir.join(format!("normaliz_g{g}_m{m}_t{t}.in"));
+            let out_path = dir.join(format!("normaliz_g{g}_m{m}_t{t}.out"));
+            fs::write(&in_path, &buf)?;
+
+            let idx = counter.fetch_add(1, Ordering::Relaxed) + 1;
+            if out_path.exists() {
+                println!("[{idx}/{total}] cached g={g} m={m} t={t} (n={n})");
+                return Ok(());
+            }
+            println!("[{idx}/{total}] starting g={g} m={m} t={t} (n={n}) ...");
+            let started = Instant::now();
+            let status = Command::new("normaliz").arg(&in_path).status()?;
+            let elapsed = started.elapsed();
+            println!(
+                "[{idx}/{total}] done g={g} m={m} t={t} in {:.2}s (total {:.2}s)",
+                elapsed.as_secs_f64(),
+                overall.elapsed().as_secs_f64(),
+            );
+            if !status.success() {
+                return Err(std::io::Error::other(format!(
+                    "normaliz exited with code {} for g={g} m={m} t={t}",
+                    status.code().unwrap_or(-1),
+                )));
+            }
+            Ok(())
+        })?;
     Ok(())
 }
 
@@ -217,14 +219,83 @@ fn apery_from_c1(m: usize, t: usize, c1: &[i64]) -> Vec<usize> {
     apery
 }
 
-/// Returns the minimal generators of the semigroup whose Apéry set is `apery`.
+/// Returns the [`Semigroup`] whose Apéry set is `apery` (and multiplicity `m`).
 ///
 /// Passes `{m} ∪ {w₁,…,w_{m−1}}` to [`compute`], which finds the minimal
-/// generating set by stripping redundant elements.
-fn generators_for_point(m: usize, apery: &[usize]) -> Vec<usize> {
+/// generating set by stripping redundant elements and computes all derived
+/// invariants (Frobenius, type, pseudo-Frobenius, etc.).
+fn semigroup_from_apery(m: usize, apery: &[usize]) -> Semigroup {
     let mut input: Vec<usize> = apery.iter().copied().filter(|&w| w > 0).collect();
     input.push(m);
-    compute(&input).gen_set
+    compute(&input)
+}
+
+/// Renders the shortprops-style data cells for one semigroup: f, e, σ, r, ra,
+/// fg, t, Sym, gen (textbox), PF (textbox), SPF (textbox / "—"), Wilf, 1/e.
+#[allow(clippy::cast_precision_loss)]
+fn props_cells(sg: &Semigroup) -> String {
+    let ps = sg.pseudo_and_special();
+    let pf_str = ps
+        .pf
+        .iter()
+        .map(usize::to_string)
+        .collect::<Vec<_>>()
+        .join(", ");
+    let gens_str = sg
+        .gen_set
+        .iter()
+        .map(usize::to_string)
+        .collect::<Vec<_>>()
+        .join(", ");
+
+    // SPF: group by diff, show as "diff=a-b=c-d &nbsp; diff2=e-f"
+    let spf_html = if ps.st == 0 {
+        "\u{2014}".to_string()
+    } else {
+        let mut seen: Vec<usize> = Vec::new();
+        for &(d, _) in &ps.special {
+            if !seen.contains(&d) {
+                seen.push(d);
+            }
+        }
+        #[allow(clippy::format_collect)]
+        seen.iter()
+            .map(|&d| {
+                let reps: String = ps
+                    .special
+                    .iter()
+                    .filter(|&&(dd, _)| dd == d)
+                    .map(|&(_, (i, j))| format!("={}-{}", sg.gen_set[i], sg.gen_set[j]))
+                    .collect();
+                format!("{d}{reps}")
+            })
+            .collect::<Vec<_>>()
+            .join("&nbsp; ")
+    };
+
+    let sym = if sg.is_symmetric() {
+        "\u{2705}"
+    } else {
+        "\u{1F6AB}"
+    };
+    let wilf = sg.wilf();
+    let inv_e = 1.0 / sg.e as f64;
+
+    format!(
+        "<td>{f}</td><td>{e}</td><td>{cg}</td><td>{r}</td><td>{ra}</td>\
+         <td>{fg}</td><td>{t}</td><td>{sym}</td>\
+         <td><input class=\"gens\" type=\"text\" readonly value=\"{gens_str}\"></td>\
+         <td><input class=\"pfs\" type=\"text\" readonly value=\"{pf_str}\"></td>\
+         <td class=\"spf\">{spf_html}</td>\
+         <td>{wilf:.4}</td><td>{inv_e:.4}</td>",
+        f = sg.f,
+        e = sg.e,
+        cg = sg.count_set,
+        r = sg.r,
+        ra = sg.ra,
+        fg = sg.fg,
+        t = ps.t,
+    )
 }
 
 // ── HTML generation ───────────────────────────────────────────────────────────
@@ -293,48 +364,64 @@ fn build_genus_section(g: usize, data: &[(usize, usize, usize, Vec<Vec<i64>>)]) 
         }
         let _ = writeln!(h, "<h3>m\u{a0}=\u{a0}{m}</h3>");
         for &&(_, t, count, ref pts) in &nonempty {
-            let w1 = m * t + 1;
-            let selmer = m * g + m * (m - 1) / 2;
-            let dim = m - 1;
-            let _ = write!(
-                h,
-                "<details id=\"sec-g{g}m{m}t{t}\">\
-                 <summary>t\u{a0}=\u{a0}{t} &nbsp;|\u{a0}\
-                 w<sub>1</sub>\u{a0}=\u{a0}{w1} &nbsp;|\u{a0}\
-                 \u{2211}w<sub>i</sub>\u{a0}=\u{a0}{selmer} &nbsp;|\u{a0}\
-                 <strong>{count}</strong> semigroup(s)</summary>\
-                 <div class=\"card\"><table class=\"pts\"><thead><tr>"
-            );
-            for i in 1..=dim {
-                let _ = write!(h, "<th>c<sub>{i},1</sub></th>");
-            }
-            h.push_str("<th>generators</th></tr></thead><tbody>");
-            for row in pts.iter().take(MAX_DISPLAY) {
-                h.push_str("<tr>");
-                for &v in row {
-                    let _ = write!(h, "<td>{v}</td>");
-                }
-                let apery = apery_from_c1(m, t, row);
-                let gens = generators_for_point(m, &apery);
-                let gens_str: Vec<_> = gens.iter().map(usize::to_string).collect();
-                let _ = write!(
-                    h,
-                    "<td><input class=\"gens\" type=\"text\" readonly \
-                     value=\"{}\"></td>",
-                    gens_str.join(", ")
-                );
-                h.push_str("</tr>");
-            }
-            h.push_str("</tbody></table>");
-            if count > MAX_DISPLAY {
-                let _ = write!(
-                    h,
-                    "<p class=\"trunc\">\u{2026} {MAX_DISPLAY} of {count} shown</p>"
-                );
-            }
-            h.push_str("</div></details>\n");
+            h.push_str(&build_card(g, m, t, count, pts));
         }
     }
+    h
+}
+
+/// Renders a single `<details>` card for fixed (g, m, t).
+fn build_card(g: usize, m: usize, t: usize, count: usize, pts: &[Vec<i64>]) -> String {
+    let w1 = m * t + 1;
+    let selmer = m * g + m * (m - 1) / 2;
+    let dim = m - 1;
+    let mut h = String::new();
+    let _ = write!(
+        h,
+        "<details id=\"sec-g{g}m{m}t{t}\">\
+         <summary>t\u{a0}=\u{a0}{t} &nbsp;|\u{a0}\
+         w<sub>1</sub>\u{a0}=\u{a0}{w1} &nbsp;|\u{a0}\
+         \u{2211}w<sub>i</sub>\u{a0}=\u{a0}{selmer} &nbsp;|\u{a0}\
+         <strong>{count}</strong> semigroup(s)</summary>\
+         <div class=\"card\"><table class=\"pts\"><thead><tr>"
+    );
+    for i in 1..=dim {
+        let _ = write!(h, "<th>c<sub>{i},1</sub></th>");
+    }
+    h.push_str(
+        "<th title=\"Frobenius number\">f</th>\
+         <th title=\"Embedding dimension\">e</th>\
+         <th title=\"Sporadic elements (count of S below f+1)\">\u{03C3}</th>\
+         <th title=\"Reflected gaps\">r</th>\
+         <th title=\"Reflected Apéry\">ra</th>\
+         <th title=\"Fundamental gaps\">fg</th>\
+         <th title=\"Type (|PF|)\">t</th>\
+         <th title=\"Symmetric?\">Sym</th>\
+         <th title=\"Minimal generators\">gen</th>\
+         <th title=\"Pseudo-Frobenius numbers\">PF</th>\
+         <th title=\"Special pseudo-Frobenius (diff = gen-gen, ∤ f)\">SPF</th>\
+         <th title=\"Wilf quotient σ/(f+1)\">Wilf</th>\
+         <th title=\"1/e\">1/e</th>\
+         </tr></thead><tbody>",
+    );
+    for row in pts.iter().take(MAX_DISPLAY) {
+        h.push_str("<tr>");
+        for &v in row {
+            let _ = write!(h, "<td>{v}</td>");
+        }
+        let apery = apery_from_c1(m, t, row);
+        let sg = semigroup_from_apery(m, &apery);
+        h.push_str(&props_cells(&sg));
+        h.push_str("</tr>");
+    }
+    h.push_str("</tbody></table>");
+    if count > MAX_DISPLAY {
+        let _ = write!(
+            h,
+            "<p class=\"trunc\">\u{2026} {MAX_DISPLAY} of {count} shown</p>"
+        );
+    }
+    h.push_str("</div></details>\n");
     h
 }
 
@@ -370,8 +457,9 @@ fn build_combined_html(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
          details>summary:hover{{color:#c00}}\n\
          .pts th{{background:#f0f4f8;color:#333}}\n\
          .pts td{{padding:1px 8px;font-size:.83em}}\n\
-         input.gens{{font-size:.82em;width:14em;border:1px solid #bbb;\
+         input.gens,input.pfs{{font-size:.82em;width:11em;border:1px solid #bbb;\
                      background:#fff;padding:2px 4px;cursor:text}}\n\
+         td.spf{{font-size:.82em;text-align:left;color:#a02050}}\n\
          .trunc{{color:#777;font-style:italic;font-size:.8em;margin:.3em 0 0}}\n\
          hr{{border:none;border-top:2px solid #ddd;margin:2em 0}}\n\
          </style>\n\
@@ -384,8 +472,8 @@ fn build_combined_html(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
          Each lattice point is one numerical semigroup. The columns\n\
          c<sub>i,1</sub> are the entries of the first column of the reduced Kunz\n\
          matrix C<sub>red</sub> (the ambient variable Normaliz reports);\n\
-         the <em>generators</em> column shows the recovered minimal generators\n\
-         for copy-paste.</p>\n"
+         the remaining columns mirror the in-app shortprops view\n\
+         (f, e, σ, r, ra, fg, t, Sym, generators, PF, SPF, Wilf, 1/e).</p>\n"
     );
 
     // grand summary table

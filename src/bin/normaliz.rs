@@ -131,9 +131,14 @@ fn write_normaliz_files(g: usize) -> std::io::Result<()> {
         }
 
         let in_path = dir.join(format!("normaliz_g{g}_m{m}_t{t}.in"));
+        let out_path = dir.join(format!("normaliz_g{g}_m{m}_t{t}.out"));
         fs::write(&in_path, &buf)?;
 
         let idx = counter.fetch_add(1, Ordering::Relaxed) + 1;
+        if out_path.exists() {
+            println!("[{idx}/{total}] cached g={g} m={m} t={t} (n={n})");
+            return Ok(());
+        }
         println!("[{idx}/{total}] starting g={g} m={m} t={t} (n={n}) ...");
         let started = Instant::now();
         let status = Command::new("normaliz").arg(&in_path).status()?;
@@ -204,7 +209,7 @@ fn apery_from_c1(m: usize, t: usize, c1: &[i64]) -> Vec<usize> {
     for k in 1..m - 1 {
         #[allow(clippy::cast_possible_wrap, clippy::cast_sign_loss)]
         let next = apery[k] as i64 + w1 as i64 - m as i64 * c1[k - 1];
-        #[allow(clippy::cast_sign_loss)]
+        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
         {
             apery[k + 1] = next as usize;
         }

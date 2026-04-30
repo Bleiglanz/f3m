@@ -88,6 +88,18 @@ if there are two numbers: let the new input be <m,km+1,km+2,...,km+m-1>, do this
    (a+b)≡1 mod m and a,b≠1 is ≥ 1) the new Apéry vector is
    (0, w₁+m, w₂, ..., w_{m-1}); otherwise the result equals the input.
 
+37) [DONE] we can compute the diagonals d_i = sum_j=1^j=(m-1) c_{j,i-j} from the U(m) matrix for 1<=i<=m-1
+by computing sum_j=1^j=(m-1) (1/m)[U_j+U_{i-j}-U_i], this should give a new (m-1)x(m-1) matrix D(m)
+such that D(m) c_1 (where c_1 is the first column of C_red) is the vector (d_1,...,d_{m-1})
+Show this D(m) in the Diag Tab together with the product D(m) c_1
+Also verify in the tests that w_i+d_i=f+m+r
+
+38) [DONE] we can also compute the zero diag by simply adding
+sum_j=1^j=(m-1) (1/m)[U_j+U_{m-j}] - we should get a row vector zd(m) such that
+the scalar product zd(m) c_1 = f+ m r
+show this row in the Diag-Tab also
+
+
 
 
 

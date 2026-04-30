@@ -741,6 +741,89 @@ pub fn u_pair_relations(m: usize) -> DenseMatrix<i64> {
     }
 }
 
+// ── Zero-diagonal row vector ──────────────────────────────────────────────────
+
+/// Computes the zero-diagonal row vector zd(m) as a 1×(m−1) matrix.
+///
+/// The entry at column `b` (0-indexed) is:
+///
+/// ```text
+/// zd(m)[b] = (1/m) · Σ_{j=1}^{m−1} (U_j[b] + U_{m−j}[b])
+///           = 2b − m + 3
+/// ```
+///
+/// The integer formula `2b − m + 3` is exact because each column sum of
+/// U(m) equals `m·(2b − m + 3) / 2`, and the factor of 2 from the
+/// symmetric pairing cancels the denominator.
+///
+/// **Key property:** `zd(m) · c₁ = f + m + r`, where `c₁` is the first
+/// column of `C_red`, `f` is the Frobenius number, `m` the multiplicity, and
+/// `r` the number of reflected gaps.
+///
+/// # Panics
+///
+/// Panics if `m < 2`.
+#[must_use]
+pub fn zd_vector(m: usize) -> DenseMatrix<i64> {
+    assert!(m >= 2, "zd_vector requires m ≥ 2");
+    let n = m - 1;
+    #[allow(clippy::cast_possible_wrap)]
+    let data: Vec<i64> = (0..n)
+        .map(|b| {
+            let bi = b as i64;
+            let mi = m as i64;
+            2 * bi - mi + 3
+        })
+        .collect();
+    DenseMatrix {
+        rows: 1,
+        cols: n,
+        data,
+    }
+}
+
+// ── Diagonal matrix D(m) ─────────────────────────────────────────────────────
+
+/// Computes the (m−1)×(m−1) anti-diagonal coefficient matrix D(m).
+///
+/// Row `a` (0-indexed, corresponding to semigroup index `i = a + 1`) is:
+///
+/// ```text
+/// D(m)[a][b] = (1/m) · Σ_{j=1}^{m−1} (U_j[b] + U_{(i−j) mod m}[b] − U_i[b])
+///            = zd(m)[b] − U(m)[a][b]
+/// ```
+///
+/// The compact form follows because the sum over `j` of `U_{(i−j) mod m}[b]`
+/// equals the full column sum of U(m) minus `U_i[b]`, and `(1/m)` times
+/// twice the column sum equals `zd(m)[b]`.
+///
+/// **Key property:** `D(m) · c₁ = (d₁, …, d_{m−1})ᵀ` where
+/// `dᵢ = Σ_{j=1}^{m−1} c(j, (i−j) mod m)` is the sum of Kunz
+/// anti-diagonal entries at position `i`.  Combined with the Apéry
+/// elements, `wᵢ + dᵢ = f + m + r` for all `i ∈ {1, …, m−1}`.
+///
+/// # Panics
+///
+/// Panics if `m < 2`.
+#[must_use]
+pub fn d_matrix(m: usize) -> DenseMatrix<i64> {
+    assert!(m >= 2, "d_matrix requires m ≥ 2");
+    let n = m - 1;
+    let zd = zd_vector(m);
+    let u = u_matrix(m);
+    let mut data = vec![0i64; n * n];
+    for a in 0..n {
+        for b in 0..n {
+            data[a * n + b] = zd[(0, b)] - u[(a, b)];
+        }
+    }
+    DenseMatrix {
+        rows: n,
+        cols: n,
+        data,
+    }
+}
+
 // ── usize → i64 conversion ────────────────────────────────────────────────────
 
 /// Converts a `DenseMatrix<usize>` to `DenseMatrix<i64>` so that signed
@@ -1667,6 +1750,149 @@ mod tests {
             for col in 0..n {
                 let expected = if col + 1 < i { -1 } else { 1 };
                 assert_eq!(p[(row_idx, col)], expected, "m={m} col={col}");
+            }
+        }
+    }
+
+    // ── zd_vector ─────────────────────────────────────────────────────────────
+
+    #[test]
+    fn zd_vector_m3_known() {
+        // zd(3)[b] = 2b − 3 + 3 = 2b; entries: [0, 2]
+        let zd = zd_vector(3);
+        assert_eq!(zd.nrows(), 1);
+        assert_eq!(zd.ncols(), 2);
+        assert_eq!(zd[(0, 0)], 0);
+        assert_eq!(zd[(0, 1)], 2);
+    }
+
+    #[test]
+    fn zd_vector_m4_known() {
+        // zd(4)[b] = 2b − 4 + 3 = 2b − 1; entries: [−1, 1, 3]
+        let zd = zd_vector(4);
+        assert_eq!(zd.nrows(), 1);
+        assert_eq!(zd.ncols(), 3);
+        assert_eq!(zd[(0, 0)], -1);
+        assert_eq!(zd[(0, 1)], 1);
+        assert_eq!(zd[(0, 2)], 3);
+    }
+
+    #[test]
+    fn zd_vector_entry_formula() {
+        // zd(m)[b] = 2b − m + 3 for b = 0..m−2.
+        for m in 2..=9 {
+            let zd = zd_vector(m);
+            for b in 0..(m - 1) {
+                #[allow(clippy::cast_possible_wrap)]
+                let expected = 2 * b as i64 - m as i64 + 3;
+                assert_eq!(zd[(0, b)], expected, "zd({m})[{b}]");
+            }
+        }
+    }
+
+    #[test]
+    fn zd_times_c1_equals_f_plus_m_plus_r() {
+        // zd(m) · c₁ = f + m + r  for each test semigroup.
+        for gens in &[
+            vec![3usize, 5, 7],
+            vec![4, 5],
+            vec![6, 9, 20],
+            vec![5, 7, 11],
+            vec![6, 7, 8, 9],
+            vec![7, 11, 13, 17, 19],
+        ] {
+            let s = compute(gens);
+            let m = s.m;
+            let n = m - 1;
+            let zd = zd_vector(m);
+            let cr = c_red(&s);
+            #[allow(clippy::cast_possible_wrap)]
+            let dot: i64 = (0..n).map(|b| zd[(0, b)] * cr[(b, 0)] as i64).sum();
+            #[allow(clippy::cast_possible_wrap)]
+            let expected = (s.f + m + s.r) as i64;
+            assert_eq!(
+                dot, expected,
+                "⟨{gens:?}⟩: zd·c₁ = {dot}, f+m+r = {expected}"
+            );
+        }
+    }
+
+    // ── d_matrix ──────────────────────────────────────────────────────────────
+
+    #[test]
+    fn d_matrix_equals_zd_minus_u() {
+        // D(m)[a][b] = zd(m)[b] − U(m)[a][b].
+        for m in 2..=8 {
+            let d = d_matrix(m);
+            let zd = zd_vector(m);
+            let u = u_matrix(m);
+            let n = m - 1;
+            for a in 0..n {
+                for b in 0..n {
+                    assert_eq!(d[(a, b)], zd[(0, b)] - u[(a, b)], "D({m})[{a}][{b}]");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn d_matrix_times_c1_gives_diag_sums() {
+        // D(m) · c₁ = (d₁, …, d_{m−1}) where dᵢ = sg.diag(i).
+        for gens in &[
+            vec![3usize, 5, 7],
+            vec![4, 5],
+            vec![6, 9, 20],
+            vec![5, 7, 11],
+            vec![6, 7, 8, 9],
+            vec![7, 11, 13, 17, 19],
+        ] {
+            let s = compute(gens);
+            let m = s.m;
+            let n = m - 1;
+            let d = d_matrix(m);
+            let cr = c_red(&s);
+            for i in 1..=n {
+                #[allow(clippy::cast_possible_wrap)]
+                let product_row: i64 = (0..n).map(|b| d[(i - 1, b)] * cr[(b, 0)] as i64).sum();
+                #[allow(clippy::cast_possible_wrap)]
+                let expected = s.diag(i) as i64;
+                assert_eq!(
+                    product_row, expected,
+                    "⟨{gens:?}⟩: D·c₁[{i}] = {product_row}, diag({i}) = {expected}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn w_plus_d_equals_f_plus_m_plus_r() {
+        // wᵢ + dᵢ = f + m + r for all i ∈ {1, …, m−1}.
+        for gens in &[
+            vec![3usize, 5, 7],
+            vec![4, 5],
+            vec![6, 9, 20],
+            vec![5, 7, 11],
+            vec![6, 7, 8, 9],
+            vec![7, 11, 13, 17, 19],
+        ] {
+            let s = compute(gens);
+            let m = s.m;
+            let n = m - 1;
+            let d = d_matrix(m);
+            let cr = c_red(&s);
+            #[allow(clippy::cast_possible_wrap)]
+            let target = (s.f + m + s.r) as i64;
+            for i in 1..=n {
+                #[allow(clippy::cast_possible_wrap)]
+                let di: i64 = (0..n).map(|b| d[(i - 1, b)] * cr[(b, 0)] as i64).sum();
+                #[allow(clippy::cast_possible_wrap)]
+                let wi = s.apery_set[i] as i64;
+                assert_eq!(
+                    wi + di,
+                    target,
+                    "⟨{gens:?}⟩: w_{i} + d_{i} = {}, expected f+m+r = {target}",
+                    wi + di
+                );
             }
         }
     }

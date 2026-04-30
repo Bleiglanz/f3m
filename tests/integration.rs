@@ -5,7 +5,7 @@
 
 use f3m::math::{
     compute, gcd,
-    matrix::{c_red, u_matrix},
+    matrix::{c_red, d_matrix, u_matrix, zd_vector},
 };
 
 #[test]
@@ -109,6 +109,31 @@ fn check(
     #[allow(clippy::cast_possible_wrap)]
     let apery_sum_selmer = (m * g + m * (m - 1) / 2) as i64;
     assert_eq!(scalar, apery_sum_selmer, "Selmer identity for {gens:?}");
+
+    // zd(m)·c₁ = f + m + r = 2g + m − 1
+    let zd = zd_vector(m);
+    #[allow(clippy::cast_possible_wrap)]
+    let zd_dot: i64 = (0..dim).map(|b| zd[(0, b)] * c1[b]).sum();
+    #[allow(clippy::cast_possible_wrap)]
+    let f_plus_m_plus_r = (f + m + s.r) as i64;
+    #[allow(clippy::cast_possible_wrap)]
+    let two_g_plus_m_minus_1 = (2 * g + m - 1) as i64;
+    assert_eq!(zd_dot, f_plus_m_plus_r, "zd·c₁ = f+m+r for {gens:?}");
+    assert_eq!(zd_dot, two_g_plus_m_minus_1, "zd·c₁ = 2g+m−1 for {gens:?}");
+
+    // wᵢ + dᵢ = f + m + r for all i ∈ {1, …, m−1}
+    let d_mat = d_matrix(m);
+    for i in 1..=dim {
+        #[allow(clippy::cast_possible_wrap)]
+        let di: i64 = (0..dim).map(|b| d_mat[(i - 1, b)] * c1[b]).sum();
+        #[allow(clippy::cast_possible_wrap)]
+        let wi = s.apery_set[i] as i64;
+        assert_eq!(
+            wi + di,
+            f_plus_m_plus_r,
+            "w_{i} + d_{i} = f+m+r for {gens:?}"
+        );
+    }
 }
 
 // ── Examples from gap/test.g (first block, ng1–ng10) ─────────────────────

@@ -306,7 +306,7 @@ fn build_genus_section(g: usize, data: &[(usize, usize, usize, Vec<Vec<i64>>)]) 
                  <div class=\"card\"><table class=\"pts\"><thead><tr>"
             );
             for i in 1..=dim {
-                let _ = write!(h, "<th>w<sub>{i}</sub></th>");
+                let _ = write!(h, "<th>c<sub>{i},1</sub></th>");
             }
             h.push_str("<th>generators</th></tr></thead><tbody>");
             for row in pts.iter().take(MAX_DISPLAY) {
@@ -381,8 +381,11 @@ fn build_combined_html(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
          <p>Each polytope is cut from the Kunz cone by fixing multiplicity <em>m</em>,\n\
          first Ap\u{e9}ry element w<sub>1</sub>&nbsp;=&nbsp;mt+1, and Selmer sum\n\
          \u{2211}w<sub>i</sub>&nbsp;=&nbsp;mg+m(m\u{2212}1)/2.\n\
-         Each lattice point is one numerical semigroup; the <em>generators</em> column\n\
-         shows its minimal generators for copy-paste.</p>\n"
+         Each lattice point is one numerical semigroup. The columns\n\
+         c<sub>i,1</sub> are the entries of the first column of the reduced Kunz\n\
+         matrix C<sub>red</sub> (the ambient variable Normaliz reports);\n\
+         the <em>generators</em> column shows the recovered minimal generators\n\
+         for copy-paste.</p>\n"
     );
 
     // grand summary table

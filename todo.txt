@@ -99,6 +99,10 @@ sum_j=1^j=(m-1) (1/m)[U_j+U_{m-j}] - we should get a row vector zd(m) such that
 the scalar product zd(m) c_1 = f+ m r
 show this row in the Diag-Tab also
 
+39) [DONE] in the normaliz code - let the user input be a gmax and compute the
+semigroups for all g=2...<=gmax
+then create only ONE html file in the end, called "semigroup_g_from2to{gmax}
+don't use a dark mode for this html
 
 
 

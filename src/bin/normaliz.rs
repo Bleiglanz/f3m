@@ -27,12 +27,15 @@
 #![forbid(unsafe_code)]
 #![deny(clippy::all, clippy::pedantic, clippy::nursery)]
 
+use f3m::math::compute;
 use f3m::math::matrix::u_pair_relations;
+use rayon::prelude::*;
 use std::collections::HashMap;
 use std::fmt::Write as _;
 use std::fs;
 use std::path::Path;
 use std::process::Command;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Instant;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -61,9 +64,9 @@ fn write_normaliz_files(g: usize) -> std::io::Result<()> {
 
     let total = pairs.len();
     let overall = Instant::now();
-    // TEMPORARY: sequential loop with progress prints to identify slow pairs.
-    // Restore `pairs.into_par_iter().try_for_each(...)` once timing is understood.
-    for (idx, (m, t)) in pairs.into_iter().enumerate() {
+    let counter = AtomicUsize::new(0);
+
+    pairs.into_par_iter().try_for_each(|(m, t)| -> std::io::Result<()> {
         let n = m - 1;
         let nrows = n * (n + 1) / 2;
         let data = matrices[m - 2].as_slice();
@@ -84,9 +87,7 @@ fn write_normaliz_files(g: usize) -> std::io::Result<()> {
         let _ = writeln!(buf, "inhom_equations 2");
 
         // Equation 1: ∑xᵢ = w₁  →  [1, 1, …, 1, −w1]
-        // U(m) row 0 is all-ones and (U·C_red)[0][0] = w₁, so (1,…,1)·x = w₁.
         let mut eq1 = vec![1_i64; n + 1];
-        // ALLOW: w1 = mt+1 ≤ mg+1 for any reasonable genus — well within i64::MAX
         #[allow(clippy::cast_possible_wrap)]
         {
             eq1[n] = -(w1 as i64);
@@ -94,8 +95,6 @@ fn write_normaliz_files(g: usize) -> std::io::Result<()> {
         let _ = writeln!(buf, "{}", join_row(eq1.iter()));
 
         // Equation 2: (1ᵀ U(m))·x = selmer  →  [col_sums_of_U, −selmer]
-        // Column b of U(m) sums to n(n+1)/2 − m(n−1−b); weighting x by these
-        // sums recovers ∑wᵢ = selmer via ∑_a (U·C_red)[a][0] = ∑wᵢ.
         #[allow(clippy::cast_possible_wrap)]
         let (ni, mi) = (n as i64, m as i64);
         let mut eq2 = vec![0_i64; n + 1];
@@ -105,22 +104,18 @@ fn write_normaliz_files(g: usize) -> std::io::Result<()> {
                 *coeff = ni * (ni + 1) / 2 - mi * (ni - 1 - b as i64);
             }
         }
-        // ALLOW: selmer = mg+m(m-1)/2 is genus-scale, far below i64::MAX
         #[allow(clippy::cast_possible_wrap)]
         {
             eq2[n] = -(selmer as i64);
         }
         let _ = writeln!(buf, "{}", join_row(eq2.iter()));
 
-        // Multiplicity-m constraint: κ_a = (w_a − (a+1))/m ≥ 1 for a = 1..n-1,
-        // i.e. w_a ≥ m + a + 1, encoded as U(m)[a]·x ≥ m + a + 1.
-        // (a=0 holds automatically: w₁ = mt+1 ≥ m+1 for t ≥ 1.)
-        // Without these, the cone admits κ_a = 0 (w_a = a+1 < m), which gives
+        // Multiplicity-m constraint: κ_a = (w_a − (a+1))/m ≥ 1 for a = 1..n-1.
+        // Without these, the cone admits κ_a = 0 (w_a = a+1 < m), giving
         // semigroups whose true multiplicity is < m — counted in a smaller-m cell.
         if n > 1 {
             let _ = writeln!(buf, "inhom_inequalities {}", n - 1);
             for a in 1..n {
-                // U(m)[a][b] = a+1 if b ≥ a, else a+1−m.
                 #[allow(clippy::cast_possible_wrap)]
                 let (ki, min_w) = ((a + 1) as i64, (m + a + 1) as i64);
                 let _ = writeln!(
@@ -138,16 +133,13 @@ fn write_normaliz_files(g: usize) -> std::io::Result<()> {
         let in_path = dir.join(format!("normaliz_g{g}_m{m}_t{t}.in"));
         fs::write(&in_path, &buf)?;
 
-        println!(
-            "[{}/{total}] starting g={g} m={m} t={t} (n={n}, nrows={nrows}) ...",
-            idx + 1,
-        );
+        let idx = counter.fetch_add(1, Ordering::Relaxed) + 1;
+        println!("[{idx}/{total}] starting g={g} m={m} t={t} (n={n}) ...");
         let started = Instant::now();
         let status = Command::new("normaliz").arg(&in_path).status()?;
         let elapsed = started.elapsed();
         println!(
-            "[{}/{total}] finished g={g} m={m} t={t} in {:.2}s (total elapsed: {:.2}s)",
-            idx + 1,
+            "[{idx}/{total}] done g={g} m={m} t={t} in {:.2}s (total {:.2}s)",
             elapsed.as_secs_f64(),
             overall.elapsed().as_secs_f64(),
         );
@@ -157,7 +149,8 @@ fn write_normaliz_files(g: usize) -> std::io::Result<()> {
                 status.code().unwrap_or(-1),
             )));
         }
-    }
+        Ok(())
+    })?;
     Ok(())
 }
 
@@ -178,7 +171,6 @@ fn parse_out_file(path: &Path) -> std::io::Result<(usize, Vec<Vec<i64>>)> {
     if count == 0 {
         return Ok((0, Vec::new()));
     }
-    // Detail sections live after the *** separator.
     let sep_pos = content.find("***").unwrap_or(content.len());
     let after = &content[sep_pos..];
     let marker = format!("{count} lattice points in polytope (module generators):");
@@ -196,6 +188,38 @@ fn parse_out_file(path: &Path) -> std::io::Result<(usize, Vec<Vec<i64>>)> {
         }
     }
     Ok((count, points))
+}
+
+// ── Generator recovery ────────────────────────────────────────────────────────
+
+/// Recovers the Apéry set `[w₀=0, w₁, …, w_{m−1}]` from `m`, `t`, and the
+/// first column `c1` of `C_red` (the lattice point from Normaliz).
+///
+/// Uses the recurrence `w_{k+1} = w_k + w₁ − m·c1[k−1]` for k = 1..m−2,
+/// with w₁ = m·t + 1.
+fn apery_from_c1(m: usize, t: usize, c1: &[i64]) -> Vec<usize> {
+    let w1 = m * t + 1;
+    let mut apery = vec![0usize; m];
+    apery[1] = w1;
+    for k in 1..m - 1 {
+        #[allow(clippy::cast_possible_wrap, clippy::cast_sign_loss)]
+        let next = apery[k] as i64 + w1 as i64 - m as i64 * c1[k - 1];
+        #[allow(clippy::cast_sign_loss)]
+        {
+            apery[k + 1] = next as usize;
+        }
+    }
+    apery
+}
+
+/// Returns the minimal generators of the semigroup whose Apéry set is `apery`.
+///
+/// Passes `{m} ∪ {w₁,…,w_{m−1}}` to [`compute`], which finds the minimal
+/// generating set by stripping redundant elements.
+fn generators_for_point(m: usize, apery: &[usize]) -> Vec<usize> {
+    let mut input: Vec<usize> = apery.iter().copied().filter(|&w| w > 0).collect();
+    input.push(m);
+    compute(&input).gen_set
 }
 
 // ── HTML generation ───────────────────────────────────────────────────────────
@@ -279,12 +303,21 @@ fn build_genus_section(g: usize, data: &[(usize, usize, usize, Vec<Vec<i64>>)]) 
             for i in 1..=dim {
                 let _ = write!(h, "<th>w<sub>{i}</sub></th>");
             }
-            h.push_str("</tr></thead><tbody>");
+            h.push_str("<th>generators</th></tr></thead><tbody>");
             for row in pts.iter().take(MAX_DISPLAY) {
                 h.push_str("<tr>");
                 for &v in row {
                     let _ = write!(h, "<td>{v}</td>");
                 }
+                let apery = apery_from_c1(m, t, row);
+                let gens = generators_for_point(m, &apery);
+                let gens_str: Vec<_> = gens.iter().map(usize::to_string).collect();
+                let _ = write!(
+                    h,
+                    "<td><input class=\"gens\" type=\"text\" readonly \
+                     value=\"{}\"></td>",
+                    gens_str.join(", ")
+                );
                 h.push_str("</tr>");
             }
             h.push_str("</tbody></table>");
@@ -332,6 +365,8 @@ fn build_combined_html(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
          details>summary:hover{{color:#c00}}\n\
          .pts th{{background:#f0f4f8;color:#333}}\n\
          .pts td{{padding:1px 8px;font-size:.83em}}\n\
+         input.gens{{font-size:.82em;width:14em;border:1px solid #bbb;\
+                     background:#fff;padding:2px 4px;cursor:text}}\n\
          .trunc{{color:#777;font-style:italic;font-size:.8em;margin:.3em 0 0}}\n\
          hr{{border:none;border-top:2px solid #ddd;margin:2em 0}}\n\
          </style>\n\
@@ -341,7 +376,8 @@ fn build_combined_html(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
          <p>Each polytope is cut from the Kunz cone by fixing multiplicity <em>m</em>,\n\
          first Ap\u{e9}ry element w<sub>1</sub>&nbsp;=&nbsp;mt+1, and Selmer sum\n\
          \u{2211}w<sub>i</sub>&nbsp;=&nbsp;mg+m(m\u{2212}1)/2.\n\
-         Each lattice point is one numerical semigroup with those parameters.</p>\n"
+         Each lattice point is one numerical semigroup; the <em>generators</em> column\n\
+         shows its minimal generators for copy-paste.</p>\n"
     );
 
     // grand summary table

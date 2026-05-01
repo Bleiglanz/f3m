@@ -104,6 +104,16 @@ semigroups for all g=2...<=gmax
 then create only ONE html file in the end, called "semigroup_g_from2to{gmax}
 don't use a dark mode for this html
 
+40) [DONE] in normaliz we
+know for given g there
+-is only one with m=2 (c_11 = 2g+1) - no need to call normaliz
+-is only one with m=g+1  (c1 = (1,1,1,1,..,3), i.e. t=1, w1=m+1, wi=m+i etc)
+no need to compute them
+another reduction could be that
+there are no semigroups if m+t > g+2
+i.e. t>g+2-m, because then we always have the gaps 0m+1,1m+1,...,(t-1)m+1 and the obvious 2,...,m-1
+so g>= t + m -2
+
 
 
 

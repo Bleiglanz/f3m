@@ -57,9 +57,13 @@ fn write_normaliz_files(g: usize) -> std::io::Result<()> {
     // Precompute pair-relations matrices once per m — they don't depend on t.
     let matrices: Vec<_> = (2..=g + 1).map(u_pair_relations).collect();
 
-    // t=0 (w₁=1) is omitted: 1 ∈ S forces m=1, which is out of scope.
-    let pairs: Vec<(usize, usize)> = (2..=g + 1)
-        .flat_map(|m| (1..=g).map(move |t| (m, t)))
+    // Skip pairs handled by closed-form shortcuts and pairs ruled out by genus:
+    //  • m = 2 has the unique solution ⟨2, 2g+1⟩ (synthesised in HTML).
+    //  • m = g+1 has the unique solution ⟨m, m+1, …, 2m−1⟩ (synthesised).
+    //  • t > g+2−m is empty: such a w₁ forces ≥ t+(m−2) gaps (proof in todo #40).
+    // t starts at 1 because w₁ ≡ 1 (mod m) and w₁ ≥ m+1 for m ≥ 2.
+    let pairs: Vec<(usize, usize)> = (3..=g)
+        .flat_map(|m| (1..=g + 2 - m).map(move |t| (m, t)))
         .collect();
 
     let total = pairs.len();
@@ -227,6 +231,28 @@ fn semigroup_from_apery(m: usize, apery: &[usize]) -> Semigroup {
     let mut input: Vec<usize> = apery.iter().copied().filter(|&w| w > 0).collect();
     input.push(m);
     compute(&input)
+}
+
+/// Closed-form lattice point for the trivially-determined cells `m = 2` and
+/// `m = g+1`, returning `(t, lattice)`.
+///
+/// • `m = 2`: only ⟨2, 2g+1⟩ has genus g; Apéry = (0, 2g+1), so c₁,₁ = 2g+1
+///   and t = g.
+/// • `m = g+1`: only ⟨m, m+1, …, 2m−1⟩ has genus g; Apéry = (0, m+1, …, 2m−1),
+///   so c₁ = (1, 1, …, 1, 3) and t = 1.
+fn synthetic_lattice(g: usize, m: usize) -> Option<(usize, Lattice)> {
+    #[allow(clippy::cast_possible_wrap)]
+    if m == 2 {
+        let pt = vec![(2 * g + 1) as i64];
+        Some((g, (pt, compute(&[2, 2 * g + 1]))))
+    } else if m == g + 1 && g >= 2 {
+        let mut pt: Vec<i64> = vec![1; m - 2];
+        pt.push(3);
+        let gens: Vec<usize> = (m..2 * m).collect();
+        Some((1, (pt, compute(&gens))))
+    } else {
+        None
+    }
 }
 
 /// Renders the shortprops-style data cells for one semigroup: f, e, σ, r, ra,
@@ -577,7 +603,13 @@ fn write_combined_html(gmax: usize) -> std::io::Result<()> {
     for g in 2..=gmax {
         let mut data: GenusData = Vec::new();
         for m in 2..=g + 1 {
-            for t in 1..=g {
+            // m=2 and m=g+1 have a unique closed-form solution; skip Normaliz I/O.
+            if let Some((t, lattice)) = synthetic_lattice(g, m) {
+                data.push((m, t, 1, vec![lattice]));
+                continue;
+            }
+            // For m ∈ 3..=g, only t ≤ g+2−m can be non-empty (todo #40 pruning).
+            for t in 1..=g + 2 - m {
                 let path = dir.join(format!("normaliz_g{g}_m{m}_t{t}.out"));
                 match parse_out_file(&path) {
                     Ok((count, points)) => {

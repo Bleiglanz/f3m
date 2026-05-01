@@ -332,15 +332,23 @@ type Lattice = (Vec<i64>, Semigroup);
 
 type GenusData = Vec<(usize, usize, usize, Vec<Lattice>)>;
 
-/// Builds the HTML section for one genus (no `<html>` wrapper).
-fn build_genus_section(g: usize, data: &GenusData) -> String {
-    let count_map: HashMap<(usize, usize), usize> =
-        data.iter().map(|(m, t, c, _)| ((*m, *t), *c)).collect();
+/// True iff this lattice point's first coordinate is zero.
+fn is_c11_zero(l: &Lattice) -> bool {
+    l.0.first() == Some(&0)
+}
+
+/// Renders a single m × t count table for genus `g`, counting only lattice
+/// points satisfying `pred`. Returns the HTML and the grand total.
+fn build_count_table<F>(g: usize, data: &GenusData, pred: F) -> (String, usize)
+where
+    F: Fn(&Lattice) -> bool,
+{
+    let count_map: HashMap<(usize, usize), usize> = data
+        .iter()
+        .map(|(m, t, _, lats)| ((*m, *t), lats.iter().filter(|l| pred(l)).count()))
+        .collect();
 
     let mut h = String::new();
-    let _ = writeln!(h, "<h2 id=\"g{g}\">Genus g\u{a0}=\u{a0}{g}</h2>");
-
-    // count table
     h.push_str("<table><thead><tr><th class=\"lbl\">m \\ t</th>");
     for t in 1..=g {
         let _ = write!(h, "<th>{t}</th>");
@@ -376,9 +384,27 @@ fn build_genus_section(g: usize, data: &GenusData) -> String {
         let _ = write!(h, "<td class=\"sum\">{ct}</td>");
     }
     let _ = writeln!(h, "<td class=\"sum\">{grand}</td></tr></tfoot></table>");
+    (h, grand)
+}
+
+/// Builds the HTML section for one genus (no `<html>` wrapper).
+fn build_genus_section(g: usize, data: &GenusData) -> String {
+    let mut h = String::new();
+    let _ = writeln!(h, "<h2 id=\"g{g}\">Genus g\u{a0}=\u{a0}{g}</h2>");
+
+    let (all_table, grand) = build_count_table(g, data, |_| true);
+    h.push_str(&all_table);
     let _ = writeln!(
         h,
         "<p><strong>Total: {grand} numerical semigroup(s) of genus {g}.</strong></p>"
+    );
+
+    let (zero_table, zero_grand) = build_count_table(g, data, is_c11_zero);
+    h.push_str("<p class=\"sub-label\">(of which c<sub>1,1</sub>\u{a0}=\u{a0}0)</p>\n");
+    h.push_str(&zero_table);
+    let _ = writeln!(
+        h,
+        "<p><strong>Of which {zero_grand} have c<sub>1,1</sub>\u{a0}=\u{a0}0.</strong></p>"
     );
 
     // detail cards
@@ -451,10 +477,17 @@ fn build_card(g: usize, m: usize, t: usize, count: usize, pts: &[Lattice]) -> St
     h
 }
 
-/// Builds the "Solutions per multiplicity" section: one table per `m`,
-/// listing every lattice point (across all g and t) with its c<sub>i,1</sub>
-/// coordinates and the recovered minimal generators.
-fn build_per_m_section(all_data: &[(usize, GenusData)]) -> String {
+/// Renders the per-multiplicity tables under `heading`, including only lattice
+/// points satisfying `pred` and using `id_prefix` for the per-m anchors.
+fn build_per_m_tables<F>(
+    all_data: &[(usize, GenusData)],
+    heading: &str,
+    id_prefix: &str,
+    pred: F,
+) -> String
+where
+    F: Fn(&Lattice) -> bool,
+{
     let mut all_m: Vec<usize> = all_data
         .iter()
         .flat_map(|(_, d)| d.iter().map(|(m, _, _, _)| *m))
@@ -463,7 +496,7 @@ fn build_per_m_section(all_data: &[(usize, GenusData)]) -> String {
     all_m.dedup();
 
     let mut h = String::new();
-    h.push_str("<h2>Solutions per multiplicity</h2>\n");
+    let _ = writeln!(h, "<h2>{heading}</h2>");
 
     for m in all_m {
         let mut rows: Vec<(usize, usize, &Lattice)> = all_data
@@ -473,6 +506,7 @@ fn build_per_m_section(all_data: &[(usize, GenusData)]) -> String {
                     .filter(move |(dm, _, _, _)| *dm == m)
                     .flat_map(move |(_, t, _, pts)| pts.iter().map(move |l| (*g, *t, l)))
             })
+            .filter(|(_, _, l)| pred(l))
             .collect();
         if rows.is_empty() {
             continue;
@@ -482,7 +516,7 @@ fn build_per_m_section(all_data: &[(usize, GenusData)]) -> String {
         let dim = m - 1;
         let _ = writeln!(
             h,
-            "<h3 id=\"m{m}\">m\u{a0}=\u{a0}{m} &nbsp;\
+            "<h3 id=\"{id_prefix}m{m}\">m\u{a0}=\u{a0}{m} &nbsp;\
              <span style=\"font-weight:normal;color:#666\">({} solution(s))</span></h3>",
             rows.len()
         );
@@ -509,6 +543,19 @@ fn build_per_m_section(all_data: &[(usize, GenusData)]) -> String {
         }
         h.push_str("</tbody></table>\n");
     }
+    h
+}
+
+/// Builds both the full "Solutions per multiplicity" section and a parallel
+/// filtered view restricted to lattice points with c<sub>1,1</sub> = 0.
+fn build_per_m_section(all_data: &[(usize, GenusData)]) -> String {
+    let mut h = build_per_m_tables(all_data, "Solutions per multiplicity", "", |_| true);
+    h.push_str(&build_per_m_tables(
+        all_data,
+        "Solutions per multiplicity (c\u{2081},\u{2081}\u{a0}=\u{a0}0)",
+        "z-",
+        is_c11_zero,
+    ));
     h
 }
 
@@ -547,6 +594,7 @@ fn build_combined_html(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
          input.gens,input.pfs{{font-size:.82em;width:11em;border:1px solid #bbb;\
                      background:#fff;padding:2px 4px;cursor:text}}\n\
          td.spf{{font-size:.82em;text-align:left;color:#a02050}}\n\
+         p.sub-label{{color:#666;font-style:italic;margin:.6em 0 .2em}}\n\
          .trunc{{color:#777;font-style:italic;font-size:.8em;margin:.3em 0 0}}\n\
          hr{{border:none;border-top:2px solid #ddd;margin:2em 0}}\n\
          </style>\n\

@@ -125,6 +125,11 @@ fn write_normaliz_files(g: usize) -> std::io::Result<()> {
             //      c_{m-1,1} ≤ (selmer − S_min) / m  where S_min = (m-3)m + (m-2)(m-1)/2 − 1.
             //      LP-derivable from existing constraints, but stating it explicitly
             //      gives Normaliz a tighter bounding box for lattice enumeration.
+            //
+            //  Note: the symmetric bound c_{1,1} ≤ 2t − 1 was tested and turned out
+            //  net-neutral on g=10 (within timing noise) — apparently Normaliz already
+            //  derives it from the multiplicity rows + eq1, unlike (b) which
+            //  combines eq2 with all multiplicity rows.
             #[allow(clippy::cast_possible_wrap)]
             let s_min = if m >= 3 {
                 (m - 3) * m + (m - 2) * (m - 1) / 2 - 1

@@ -601,9 +601,12 @@ fn build_combined_html(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
          </head>\n\
          <body>\n\
          <h1>Numerical Semigroups \u{2014} genus 2 to {gmax}</h1>\n\
-         <p>Each polytope is cut from the Kunz cone by fixing multiplicity <em>m</em>,\n\
+         <p>Each polytope is the <strong>Waldi Polytope</strong> cut by fixing multiplicity <em>m</em>,\n\
          first Ap\u{e9}ry element w<sub>1</sub>&nbsp;=&nbsp;mt+1, and Selmer sum\n\
          \u{2211}w<sub>i</sub>&nbsp;=&nbsp;mg+m(m\u{2212}1)/2.\n\
+         The Waldi Polytope is an affine transformation of the standard\n\
+         <em>Kunz Polytope</em> from the literature (the latter uses\n\
+         q<sub>i</sub>&nbsp;=&nbsp;(w<sub>i</sub>&minus;i)/m).\n\
          Each lattice point is one numerical semigroup. The columns\n\
          c<sub>i,1</sub> are the entries of the first column of the reduced Kunz\n\
          matrix C<sub>red</sub> (the ambient variable Normaliz reports);\n\

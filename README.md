@@ -243,7 +243,7 @@ src/
     tilt.rs                   — tilt grid HTML
     js_eval.rs                — eval_expr WASM export
     jsgraph.rs                — graph edge data
-  bin/normaliz.rs             — CLI: enumerate semigroups via the Kunz cone using Normaliz (see below)
+  bin/normaliz.rs             — CLI: enumerate semigroups via the Waldi Polytope using Normaliz (see below)
   main.rs                     — unused binary stub
 pkg/                          — wasm-pack output (gitignored; built by `wasm-pack build` and in CI)
 jsmodules/
@@ -295,12 +295,25 @@ number = [0-9]+
 
 ## Normaliz CLI (`cargo run --bin normaliz`)
 
-A separate native binary that enumerates **all** numerical semigroups of bounded genus via the Kunz cone.
+A separate native binary that enumerates **all** numerical semigroups of bounded genus via the **Waldi Polytope**.
 
-For each genus g and multiplicity m ∈ 2..=g+1 and Apéry-class parameter t ∈ 1..=g, it writes a Normaliz input file describing the polytope cut from the Kunz cone by fixing m, w₁ = mt+1, and the Selmer sum ∑wᵢ = mg + m(m−1)/2; lattice points correspond bijectively to numerical semigroups with those parameters. The binary invokes the external [`normaliz`](https://www.normaliz.uni-osnabrueck.de) tool (must be on `PATH`) to compute the lattice points and writes a single combined HTML report to `normaliz/semigroup_g_from2to{gmax}.html` with per-genus and per-multiplicity tables, generators, and shortprops-style invariants.
+### Waldi vs. Kunz Polytope
+
+The literature uses **Kunz coordinates** q_i = (w_i − i)/m, and the Kunz cone is `q_i + q_j ≥ q_{(i+j) mod m}` together with `q_i ≥ 1`. We use a different coordinate system here: the entries c_{i,1} of the first column of the reduced Kunz coefficient matrix C_red. The two are related by the **affine** map
+
+```
+c_{i,1}   = q_1 + q_i − q_{i+1}    for i = 1..m−2
+c_{m−1,1} = q_1 + q_{m−1} + 1
+```
+
+whose linear part has determinant m, so the q-lattice maps to a sublattice of index m in c-space. We call the polytope cut out in c-coordinates the **Waldi Polytope** to distinguish it from the standard Kunz Polytope; the two are affinely equivalent (and therefore enumerate the same semigroups).
+
+### What the binary does
+
+For each genus g and multiplicity m ∈ 2..=g+1 and Apéry-class parameter t ∈ 1..=g, it writes a Normaliz input file describing the Waldi Polytope cut by fixing m, w₁ = mt+1, and the Selmer sum ∑wᵢ = mg + m(m−1)/2; lattice points correspond bijectively to numerical semigroups with those parameters. The binary invokes the external [`normaliz`](https://www.normaliz.uni-osnabrueck.de) tool (must be on `PATH`) to compute the lattice points and writes a single combined HTML report to `normaliz/semigroup_g_from2to{gmax}.html` with per-genus and per-multiplicity tables, generators, and shortprops-style invariants.
 
 ```bash
 cargo run --release --bin normaliz [gmax]   # default gmax = 10
 ```
 
-Cached `.out` files are reused; only missing pairs are recomputed.
+Cached `.out` files are reused; only missing pairs are recomputed. The trivial cells m = 2 and m = g+1 (each having a unique closed-form solution) and the empty cells t > g+2−m are skipped entirely.

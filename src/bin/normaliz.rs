@@ -425,6 +425,76 @@ fn build_card(g: usize, m: usize, t: usize, count: usize, pts: &[Vec<i64>]) -> S
     h
 }
 
+/// Builds the "Solutions per multiplicity" section: one table per `m`,
+/// listing every lattice point (across all g and t) with its c<sub>i,1</sub>
+/// coordinates and the recovered minimal generators.
+fn build_per_m_section(all_data: &[(usize, GenusData)]) -> String {
+    // Collect distinct multiplicities.
+    let mut all_m: Vec<usize> = all_data
+        .iter()
+        .flat_map(|(_, d)| d.iter().map(|(m, _, _, _)| *m))
+        .collect();
+    all_m.sort_unstable();
+    all_m.dedup();
+
+    let mut h = String::new();
+    h.push_str("<h2>Solutions per multiplicity</h2>\n");
+
+    for m in all_m {
+        // Gather (g, t, point) rows for this m.
+        let mut rows: Vec<(usize, usize, &Vec<i64>)> = Vec::new();
+        for (g, data) in all_data {
+            for (dm, t, _, pts) in data {
+                if *dm == m {
+                    for pt in pts {
+                        rows.push((*g, *t, pt));
+                    }
+                }
+            }
+        }
+        if rows.is_empty() {
+            continue;
+        }
+        rows.sort_by(|a, b| (a.0, a.1, a.2.as_slice()).cmp(&(b.0, b.1, b.2.as_slice())));
+
+        let dim = m - 1;
+        let _ = writeln!(
+            h,
+            "<h3 id=\"m{m}\">m\u{a0}=\u{a0}{m} &nbsp;\
+             <span style=\"font-weight:normal;color:#666\">({} solution(s))</span></h3>",
+            rows.len()
+        );
+        h.push_str(
+            "<table class=\"pts\"><thead><tr>\
+                    <th>g</th><th>t</th>",
+        );
+        for i in 1..=dim {
+            let _ = write!(h, "<th>c<sub>{i},1</sub></th>");
+        }
+        h.push_str("<th>generators</th></tr></thead><tbody>");
+        for (g, t, pt) in rows {
+            let _ = write!(h, "<tr><td>{g}</td><td>{t}</td>");
+            for &v in pt {
+                let _ = write!(h, "<td>{v}</td>");
+            }
+            let apery = apery_from_c1(m, t, pt);
+            let sg = semigroup_from_apery(m, &apery);
+            let gens_str = sg
+                .gen_set
+                .iter()
+                .map(usize::to_string)
+                .collect::<Vec<_>>()
+                .join(", ");
+            let _ = write!(
+                h,
+                "<td><input class=\"gens\" type=\"text\" readonly value=\"{gens_str}\"></td></tr>"
+            );
+        }
+        h.push_str("</tbody></table>\n");
+    }
+    h
+}
+
 /// Builds the full combined HTML page (light mode) for genera 2..=gmax.
 fn build_combined_html(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
     let mut h = String::new();
@@ -497,6 +567,8 @@ fn build_combined_html(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
         "</tbody><tfoot><tr><th class=\"lbl\">Total</th>\
          <td class=\"sum\">{grand_total}</td></tr></tfoot></table>"
     );
+
+    h.push_str(&build_per_m_section(all_data));
 
     // per-genus sections
     for (g, data) in all_data {

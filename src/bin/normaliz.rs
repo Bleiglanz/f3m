@@ -581,23 +581,27 @@ fn write_count_cells(h: &mut String, counts: &[usize], is_total: bool) {
     }
 }
 
-/// Tally for one genus: scalar invariants and three distributions
-/// (by multiplicity m, by embedding dimension e, by type t).
+/// Tally for one genus: scalar invariants and four distributions
+/// (by multiplicity m, by embedding dimension e, by type t, by reflected gaps r).
 struct GenusTally {
     total: usize,
     zero: usize,
     w1gen: usize,
     sym: usize,
+    asym: usize,
     by_m: Vec<usize>,
     by_e: Vec<usize>,
     by_t: Vec<usize>,
+    by_r: Vec<usize>,
 }
 
 fn tally_genus(data: &GenusData, cols: usize) -> GenusTally {
     let mut by_m = vec![0usize; cols];
     let mut by_e = vec![0usize; cols];
     let mut by_t = vec![0usize; cols];
-    let (mut total, mut zero, mut w1gen, mut sym) = (0usize, 0usize, 0usize, 0usize);
+    let mut by_r = vec![0usize; cols];
+    let (mut total, mut zero, mut w1gen, mut sym, mut asym) =
+        (0usize, 0usize, 0usize, 0usize, 0usize);
     for (m, _, _, lats) in data {
         for (pt, sg) in lats {
             total += 1;
@@ -610,6 +614,9 @@ fn tally_genus(data: &GenusData, cols: usize) -> GenusTally {
             if sg.is_symmetric() {
                 sym += 1;
             }
+            if sg.r == 1 {
+                asym += 1;
+            }
             if *m < cols {
                 by_m[*m] += 1;
             }
@@ -619,6 +626,9 @@ fn tally_genus(data: &GenusData, cols: usize) -> GenusTally {
             if sg.t < cols {
                 by_t[sg.t] += 1;
             }
+            if sg.r < cols {
+                by_r[sg.r] += 1;
+            }
         }
     }
     GenusTally {
@@ -626,9 +636,11 @@ fn tally_genus(data: &GenusData, cols: usize) -> GenusTally {
         zero,
         w1gen,
         sym,
+        asym,
         by_m,
         by_e,
         by_t,
+        by_r,
     }
 }
 
@@ -665,11 +677,12 @@ fn build_distribution_table(
     h
 }
 
-/// Builds the four "Total semigroups per genus" summary tables:
-///  1. Scalars: g, N(g), N'(g) c_{1,1}=0, N''(g) w₁∈gen, `N_sym`(g).
+/// Builds the five "Total semigroups per genus" summary tables:
+///  1. Scalars: g, N(g), N'(g) c_{1,1}=0, N''(g) w₁∈gen, `N_sym`(g), `N_asym`(g).
 ///  2. Distribution by multiplicity m.
 ///  3. Distribution by embedding dimension e.
 ///  4. Distribution by type t.
+///  5. Distribution by reflected gaps r.
 fn build_grand_summary(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
     let cols = gmax + 2;
     let mut h = String::new();
@@ -683,35 +696,31 @@ fn build_grand_summary(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
          <th title=\"Count of semigroups where w_1 is a minimal generator\">\
          N''(g) w<sub>1</sub>\u{2208}gen</th>\
          <th title=\"Count of symmetric semigroups (t = 1, equivalently g = (f+1)/2)\">\
-         N<sub>sym</sub>(g)</th></tr></thead><tbody>",
+         N<sub>sym</sub>(g)</th>\
+         <th title=\"Count of almost-symmetric semigroups (r = 1)\">\
+         N<sub>asym</sub>(g)</th></tr></thead><tbody>",
     );
-    let mut grand_total = 0usize;
-    let mut grand_zero = 0usize;
-    let mut grand_w1gen = 0usize;
-    let mut grand_sym = 0usize;
+    // Column order: total, c_{1,1}=0, w_1∈gen, symmetric, almost-symmetric.
+    let mut totals = [0usize; 5];
     for (g, data) in all_data {
         let row = tally_genus(data, cols);
-        grand_total += row.total;
-        grand_zero += row.zero;
-        grand_w1gen += row.w1gen;
-        grand_sym += row.sym;
-        let _ = writeln!(
-            h,
-            "<tr><td class=\"lbl\"><a href=\"#g{g}\">{g}</a></td>\
-             <td class=\"sum\">{}</td><td class=\"sum\">{}</td>\
-             <td class=\"sum\">{}</td><td class=\"sum\">{}</td></tr>",
-            row.total, row.zero, row.w1gen, row.sym,
-        );
+        let cells = [row.total, row.zero, row.w1gen, row.sym, row.asym];
+        for (acc, c) in totals.iter_mut().zip(cells.iter()) {
+            *acc += *c;
+        }
+        let _ = write!(h, "<tr><td class=\"lbl\"><a href=\"#g{g}\">{g}</a></td>");
+        for c in cells {
+            let _ = write!(h, "<td class=\"sum\">{c}</td>");
+        }
+        h.push_str("</tr>\n");
     }
-    let _ = writeln!(
-        h,
-        "</tbody><tfoot><tr><th class=\"lbl\">Total</th>\
-         <td class=\"sum\">{grand_total}</td><td class=\"sum\">{grand_zero}</td>\
-         <td class=\"sum\">{grand_w1gen}</td><td class=\"sum\">{grand_sym}</td>\
-         </tr></tfoot></table>"
-    );
+    h.push_str("</tbody><tfoot><tr><th class=\"lbl\">Total</th>");
+    for c in totals {
+        let _ = write!(h, "<td class=\"sum\">{c}</td>");
+    }
+    h.push_str("</tr></tfoot></table>\n");
 
-    // (2) By multiplicity, (3) by embedding dim, (4) by type
+    // (2) By multiplicity, (3) by embedding dim, (4) by type, (5) by reflected gaps
     h.push_str(&build_distribution_table(
         "By multiplicity m",
         "m",
@@ -732,6 +741,13 @@ fn build_grand_summary(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
         cols,
         all_data,
         |t| t.by_t.clone(),
+    ));
+    h.push_str(&build_distribution_table(
+        "By reflected gaps r",
+        "r",
+        cols,
+        all_data,
+        |t| t.by_r.clone(),
     ));
     h
 }

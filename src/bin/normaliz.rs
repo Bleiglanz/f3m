@@ -116,21 +116,51 @@ fn write_normaliz_files(g: usize) -> std::io::Result<()> {
             }
             let _ = writeln!(buf, "{}", join_row(eq2.iter()));
 
-            // Multiplicity-m constraint: κ_a = (w_a − (a+1))/m ≥ 1 for a = 1..n-1.
-            // Without these, the cone admits κ_a = 0 (w_a = a+1 < m), giving
-            // semigroups whose true multiplicity is < m — counted in a smaller-m cell.
-            if n > 1 {
-                let _ = writeln!(buf, "inhom_inequalities {}", n - 1);
-                for a in 1..n {
-                    #[allow(clippy::cast_possible_wrap)]
-                    let (ki, min_w) = ((a + 1) as i64, (m + a + 1) as i64);
+            // Inhomogeneous inequalities:
+            //  (a) Multiplicity-m: κ_a = (w_a − (a+1))/m ≥ 1 for a = 1..n-1.
+            //      Without these, κ_a = 0 (w_a = a+1 < m) gives semigroups
+            //      with true multiplicity < m — counted in a smaller-m cell.
+            //  (b) Upper bound on c_{m-1,1}: from w_{m-1} ≤ selmer − w₁ − Σ_{i=2..m-2}(m+i)
+            //      (using the multiplicity lower bounds), get
+            //      c_{m-1,1} ≤ (selmer − S_min) / m  where S_min = (m-3)m + (m-2)(m-1)/2 − 1.
+            //      LP-derivable from existing constraints, but stating it explicitly
+            //      gives Normaliz a tighter bounding box for lattice enumeration.
+            #[allow(clippy::cast_possible_wrap)]
+            let s_min = if m >= 3 {
+                (m - 3) * m + (m - 2) * (m - 1) / 2 - 1
+            } else {
+                0
+            };
+            let upper_extra = usize::from(n >= 1);
+            let total_ineq = n.saturating_sub(1) + upper_extra;
+            if total_ineq > 0 {
+                let _ = writeln!(buf, "inhom_inequalities {total_ineq}");
+                if n > 1 {
+                    for a in 1..n {
+                        #[allow(clippy::cast_possible_wrap)]
+                        let (ki, min_w) = ((a + 1) as i64, (m + a + 1) as i64);
+                        let _ = writeln!(
+                            buf,
+                            "{}",
+                            join_row(
+                                (0..n)
+                                    .map(|b| if b < a { ki - mi } else { ki })
+                                    .chain(std::iter::once(-min_w))
+                            )
+                        );
+                    }
+                }
+                if upper_extra == 1 {
+                    // Row: −c_{m-1,1} + bound ≥ 0  →  [0 0 … 0 −1 bound]
+                    #[allow(clippy::cast_possible_wrap, clippy::cast_sign_loss)]
+                    let bound = ((selmer - s_min) / m) as i64;
                     let _ = writeln!(
                         buf,
                         "{}",
                         join_row(
                             (0..n)
-                                .map(|b| if b < a { ki - mi } else { ki })
-                                .chain(std::iter::once(-min_w))
+                                .map(|b| if b == n - 1 { -1 } else { 0 })
+                                .chain(std::iter::once(bound))
                         )
                     );
                 }

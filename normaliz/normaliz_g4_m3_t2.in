@@ -6,5 +6,6 @@ inequalities 3
 inhom_equations 2
 1 1 -7
 0 3 -15
-inhom_inequalities 1
+inhom_inequalities 2
 -1 2 -5
+0 -1 5

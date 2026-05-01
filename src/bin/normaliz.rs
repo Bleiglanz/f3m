@@ -134,13 +134,12 @@ fn write_normaliz_files(g: usize) -> std::io::Result<()> {
 
             let in_path = dir.join(format!("normaliz_g{g}_m{m}_t{t}.in"));
             let out_path = dir.join(format!("normaliz_g{g}_m{m}_t{t}.out"));
-            fs::write(&in_path, &buf)?;
-
             let idx = counter.fetch_add(1, Ordering::Relaxed) + 1;
             if out_path.exists() {
                 println!("[{idx}/{total}] cached g={g} m={m} t={t} (n={n})");
                 return Ok(());
             }
+            fs::write(&in_path, &buf)?;
             println!("[{idx}/{total}] starting g={g} m={m} t={t} (n={n}) ...");
             let started = Instant::now();
             let status = Command::new("normaliz").arg(&in_path).status()?;
@@ -302,10 +301,13 @@ fn props_cells(sg: &Semigroup) -> String {
 
 const MAX_DISPLAY: usize = 40;
 
-type GenusData = Vec<(usize, usize, usize, Vec<Vec<i64>>)>;
+/// One Normaliz lattice point paired with its computed [`Semigroup`].
+type Lattice = (Vec<i64>, Semigroup);
+
+type GenusData = Vec<(usize, usize, usize, Vec<Lattice>)>;
 
 /// Builds the HTML section for one genus (no `<html>` wrapper).
-fn build_genus_section(g: usize, data: &[(usize, usize, usize, Vec<Vec<i64>>)]) -> String {
+fn build_genus_section(g: usize, data: &GenusData) -> String {
     let count_map: HashMap<(usize, usize), usize> =
         data.iter().map(|(m, t, c, _)| ((*m, *t), *c)).collect();
 
@@ -371,7 +373,7 @@ fn build_genus_section(g: usize, data: &[(usize, usize, usize, Vec<Vec<i64>>)]) 
 }
 
 /// Renders a single `<details>` card for fixed (g, m, t).
-fn build_card(g: usize, m: usize, t: usize, count: usize, pts: &[Vec<i64>]) -> String {
+fn build_card(g: usize, m: usize, t: usize, count: usize, pts: &[Lattice]) -> String {
     let w1 = m * t + 1;
     let selmer = m * g + m * (m - 1) / 2;
     let dim = m - 1;
@@ -404,14 +406,12 @@ fn build_card(g: usize, m: usize, t: usize, count: usize, pts: &[Vec<i64>]) -> S
          <th title=\"1/e\">1/e</th>\
          </tr></thead><tbody>",
     );
-    for row in pts.iter().take(MAX_DISPLAY) {
+    for (pt, sg) in pts.iter().take(MAX_DISPLAY) {
         h.push_str("<tr>");
-        for &v in row {
+        for &v in pt {
             let _ = write!(h, "<td>{v}</td>");
         }
-        let apery = apery_from_c1(m, t, row);
-        let sg = semigroup_from_apery(m, &apery);
-        h.push_str(&props_cells(&sg));
+        h.push_str(&props_cells(sg));
         h.push_str("</tr>");
     }
     h.push_str("</tbody></table>");
@@ -429,7 +429,6 @@ fn build_card(g: usize, m: usize, t: usize, count: usize, pts: &[Vec<i64>]) -> S
 /// listing every lattice point (across all g and t) with its c<sub>i,1</sub>
 /// coordinates and the recovered minimal generators.
 fn build_per_m_section(all_data: &[(usize, GenusData)]) -> String {
-    // Collect distinct multiplicities.
     let mut all_m: Vec<usize> = all_data
         .iter()
         .flat_map(|(_, d)| d.iter().map(|(m, _, _, _)| *m))
@@ -441,21 +440,18 @@ fn build_per_m_section(all_data: &[(usize, GenusData)]) -> String {
     h.push_str("<h2>Solutions per multiplicity</h2>\n");
 
     for m in all_m {
-        // Gather (g, t, point) rows for this m.
-        let mut rows: Vec<(usize, usize, &Vec<i64>)> = Vec::new();
-        for (g, data) in all_data {
-            for (dm, t, _, pts) in data {
-                if *dm == m {
-                    for pt in pts {
-                        rows.push((*g, *t, pt));
-                    }
-                }
-            }
-        }
+        let mut rows: Vec<(usize, usize, &Lattice)> = all_data
+            .iter()
+            .flat_map(|(g, data)| {
+                data.iter()
+                    .filter(move |(dm, _, _, _)| *dm == m)
+                    .flat_map(move |(_, t, _, pts)| pts.iter().map(move |l| (*g, *t, l)))
+            })
+            .collect();
         if rows.is_empty() {
             continue;
         }
-        rows.sort_by(|a, b| (a.0, a.1, a.2.as_slice()).cmp(&(b.0, b.1, b.2.as_slice())));
+        rows.sort_unstable_by(|a, b| (a.0, a.1, &a.2.0).cmp(&(b.0, b.1, &b.2.0)));
 
         let dim = m - 1;
         let _ = writeln!(
@@ -464,21 +460,16 @@ fn build_per_m_section(all_data: &[(usize, GenusData)]) -> String {
              <span style=\"font-weight:normal;color:#666\">({} solution(s))</span></h3>",
             rows.len()
         );
-        h.push_str(
-            "<table class=\"pts\"><thead><tr>\
-                    <th>g</th><th>t</th>",
-        );
+        h.push_str("<table class=\"pts\"><thead><tr><th>g</th><th>t</th>");
         for i in 1..=dim {
             let _ = write!(h, "<th>c<sub>{i},1</sub></th>");
         }
         h.push_str("<th>generators</th></tr></thead><tbody>");
-        for (g, t, pt) in rows {
+        for (g, t, (pt, sg)) in rows {
             let _ = write!(h, "<tr><td>{g}</td><td>{t}</td>");
             for &v in pt {
                 let _ = write!(h, "<td>{v}</td>");
             }
-            let apery = apery_from_c1(m, t, pt);
-            let sg = semigroup_from_apery(m, &apery);
             let gens_str = sg
                 .gen_set
                 .iter()
@@ -589,7 +580,17 @@ fn write_combined_html(gmax: usize) -> std::io::Result<()> {
             for t in 1..=g {
                 let path = dir.join(format!("normaliz_g{g}_m{m}_t{t}.out"));
                 match parse_out_file(&path) {
-                    Ok((count, points)) => data.push((m, t, count, points)),
+                    Ok((count, points)) => {
+                        let lattices: Vec<Lattice> = points
+                            .into_par_iter()
+                            .map(|pt| {
+                                let apery = apery_from_c1(m, t, &pt);
+                                let sg = semigroup_from_apery(m, &apery);
+                                (pt, sg)
+                            })
+                            .collect();
+                        data.push((m, t, count, lattices));
+                    }
                     Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
                     Err(e) => return Err(e),
                 }

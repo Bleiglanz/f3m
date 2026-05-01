@@ -615,22 +615,30 @@ fn build_combined_html(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
     h.push_str(
         "<h2>Total semigroups per genus</h2>\n\
          <table><thead><tr><th class=\"lbl\">g</th>\
-         <th>N(g)</th></tr></thead><tbody>",
+         <th>N(g)</th><th title=\"Count of semigroups with c_{1,1}=0\">\
+         N'(g) c<sub>1,1</sub>=0</th></tr></thead><tbody>",
     );
     let mut grand_total = 0usize;
+    let mut grand_zero = 0usize;
     for (g, data) in all_data {
         let total: usize = data.iter().map(|(_, _, c, _)| c).sum();
+        let zero: usize = data
+            .iter()
+            .map(|(_, _, _, lats)| lats.iter().filter(|l| is_c11_zero(l)).count())
+            .sum();
         grand_total += total;
+        grand_zero += zero;
         let _ = writeln!(
             h,
             "<tr><td class=\"lbl\"><a href=\"#g{g}\">{g}</a></td>\
-             <td class=\"sum\">{total}</td></tr>"
+             <td class=\"sum\">{total}</td><td class=\"sum\">{zero}</td></tr>"
         );
     }
     let _ = writeln!(
         h,
         "</tbody><tfoot><tr><th class=\"lbl\">Total</th>\
-         <td class=\"sum\">{grand_total}</td></tr></tfoot></table>"
+         <td class=\"sum\">{grand_total}</td>\
+         <td class=\"sum\">{grand_zero}</td></tr></tfoot></table>"
     );
 
     h.push_str(&build_per_m_section(all_data));

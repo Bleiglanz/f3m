@@ -12,13 +12,17 @@ A browser-based tool for computing properties of numerical semigroups from a lis
 | Frobenius number | f | Largest integer not in the semigroup |
 | Embedding dimension | e | Number of minimal generators |
 | Genus | g | Number of gaps |
-| Sporadic elements | c−g | Elements below f that are in the semigroup |
+| Sporadic elements | σ | Elements below f+1 that are in the semigroup (= c−g) |
+| Reflected gaps | r | Gaps n where f − n is also a gap |
+| Reflected Apéry | ra | Apéry elements w where w − m is a reflected gap |
+| Fundamental gaps | fg | Gaps not expressible as a sum of two smaller gaps |
 | Type | t | Cardinality of PF(S) |
 | Symmetric | ✅/🚫 | Whether t = 1 (equivalently f + 1 = 2g) |
-| Wilf quotient | — | (c−g) / (f+1) vs 1/e; Wilf conjecture says ≥ 1/e |
 | Generators | gen | Minimal generating set |
 | Pseudo-Frobenius | PF(S) | Gaps x such that x + s ∈ S for all s ∈ S \ {0} |
-| Special PF | SPF | Count of PF elements of the form gen[i] − gen[j] |
+| Special PF | SPF | PF elements of the form gen[i] − gen[j] that don't divide f |
+| Wilf quotient | — | σ/(f+1); Wilf conjecture says ≥ 1/e |
+| 1/e | — | Wilf-conjecture lower bound |
 
 ### Input
 
@@ -77,6 +81,8 @@ These appear in the toolbar (after the separator) when applicable:
 |---|---|
 | S/2 | Replace generators with those of S/2 = { x : 2x ∈ S } |
 | S=SYM/2 | Compute the symmetric partner S̄ such that S = S̄/2 (Rosales–García-Sánchez 2008) |
+| K(S) | Canonical ideal: numerical semigroup with generators { f − p : p ∈ PF(S), p ≠ f } |
+| w₁+m | Apéry shift ⟨m, w₁+m, w₂, …, w_{m−1}⟩ — Kunz-cone neighbour reached by adding (2,1,…,1) to row 1 of C; shown when w₁ is a minimal generator |
 | +PF | Add every pseudo-Frobenius number other than f as a generator (shown when t > 1) |
 | +refl | Add all reflected gaps as generators |
 | glue | Self-gluing: compute m·S + x·S where x is the first generator with gcd(m, x) = 1 (shown when such x exists) |
@@ -214,7 +220,7 @@ python3 -m http.server 8080
 # open http://localhost:8080
 ```
 
-The `pkg/` directory contains committed build artifacts and is updated by `wasm-pack build`.
+The `pkg/` directory is gitignored. Run `wasm-pack build --target web` locally before serving; the deployed GitHub Pages site builds it in CI via `.github/workflows/pages.yml`.
 
 ---
 
@@ -223,9 +229,11 @@ The `pkg/` directory contains committed build artifacts and is updated by `wasm-
 ```
 src/
   lib.rs                      — crate root: module declarations + tests
-  math/mod.rs                 — Semigroup struct, compute(), gcd, GAP code generation
+  math/mod.rs                 — compute(), gcd, GAP code generation
+  math/semigroup.rs           — Semigroup struct, derived invariants
+  math/matrix.rs              — DenseMatrix, U(m), C_red, c_red(), u_times_c_red(), pair_relations
   math/glue.rs                — self-gluing: self_glue(), can_self_glue()
-  math/symmetric_partner.rs  — symmetric_partner(): constructs S̄ with S = S̄/2 (Rosales–García-Sánchez 2008)
+  math/symmetric_partner.rs   — symmetric_partner(): constructs S̄ with S = S̄/2 (Rosales–García-Sánchez 2008)
   eva/mod.rs                  — arithmetic expression evaluator (usize, recursive indexing)
   jshelpers/
     mod.rs                    — JsSemigroup, shared helpers, js_compute, js_classify_table
@@ -235,13 +243,15 @@ src/
     tilt.rs                   — tilt grid HTML
     js_eval.rs                — eval_expr WASM export
     jsgraph.rs                — graph edge data
+  bin/normaliz.rs             — CLI: enumerate semigroups via the Kunz cone using Normaliz (see below)
   main.rs                     — unused binary stub
-pkg/                          — wasm-pack output (committed): f3m.js, f3m_bg.wasm, *.d.ts
+pkg/                          — wasm-pack output (gitignored; built by `wasm-pack build` and in CI)
 jsmodules/
   app.js                      — main SPA logic
   graph.js                    — vis-network graph rendering
   view3d.js                   — Three.js 3D view
 gap/                          — example GAP scripts for manual verification
+normaliz/                     — input/output files and combined HTML produced by the normaliz binary
 index.html                    — single-page frontend
 style.css                     — styles
 ```
@@ -280,3 +290,17 @@ number = [0-9]+
 ```
 
 `eval_expr` in `jshelpers` pre-processes the input string — substituting `a[i]`/`q[i]` (with recursively evaluated indices) and scalar variables — before passing it to the evaluator.
+
+---
+
+## Normaliz CLI (`cargo run --bin normaliz`)
+
+A separate native binary that enumerates **all** numerical semigroups of bounded genus via the Kunz cone.
+
+For each genus g and multiplicity m ∈ 2..=g+1 and Apéry-class parameter t ∈ 1..=g, it writes a Normaliz input file describing the polytope cut from the Kunz cone by fixing m, w₁ = mt+1, and the Selmer sum ∑wᵢ = mg + m(m−1)/2; lattice points correspond bijectively to numerical semigroups with those parameters. The binary invokes the external [`normaliz`](https://www.normaliz.uni-osnabrueck.de) tool (must be on `PATH`) to compute the lattice points and writes a single combined HTML report to `normaliz/semigroup_g_from2to{gmax}.html` with per-genus and per-multiplicity tables, generators, and shortprops-style invariants.
+
+```bash
+cargo run --release --bin normaliz [gmax]   # default gmax = 10
+```
+
+Cached `.out` files are reused; only missing pairs are recomputed.

@@ -576,18 +576,26 @@ document.getElementById('random-btn').addEventListener('click', guarded(() => {
 document.getElementById('random3f-btn').addEventListener('click', guarded(() => { _computeLabel = 'Rnd3m'; randWithMultiplier(3); }));
 document.getElementById('random2f-btn').addEventListener('click', guarded(() => { _computeLabel = 'Rnd2m'; randWithMultiplier(2); }));
 
-// "Symmetric": retry random samples until a symmetric semigroup is found.
-document.getElementById('random-symmetric-btn').addEventListener('click', guarded(() => {
+// Retry random samples until one matches `predicate`. Used for the Sym and
+// r=1 buttons (and any future "find a random S with property P").
+function findRandomMatching(predicate, label, description) {
   for (let attempt = 0; attempt < 10000; attempt++) {
     const nums = randNums();
-    if (js_compute(nums.join(', ')).is_symmetric) { // peek without storing
+    if (predicate(js_compute(nums.join(', ')))) { // peek without storing
       gensInput.value = nums.join(', ');
-      _computeLabel = 'Sym';
+      _computeLabel = label;
       compute();
       return;
     }
   }
-  showError('Could not find a symmetric semigroup after 10000 attempts.');
+  showError(`Could not find ${description} after 10000 attempts.`);
+}
+
+document.getElementById('random-symmetric-btn').addEventListener('click', guarded(() => {
+  findRandomMatching(s => s.is_symmetric, 'Sym', 'a symmetric semigroup');
+}));
+document.getElementById('random-r1-btn').addEventListener('click', guarded(() => {
+  findRandomMatching(s => s.r === 1, 'r=1', 'an almost-symmetric semigroup (r = 1)');
 }));
 
 // "Prime": pick a random subset of 4–8 primes from the fixed list.

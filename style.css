@@ -46,7 +46,9 @@
 }
 
 /* ─── Dark theme via prefers-color-scheme ───────────────────────── */
-@media (prefers-color-scheme: dark) {
+/* Mobile (≤720px) always renders in light mode — touch screens in dim
+   environments suffered from low contrast on small screens. */
+@media (prefers-color-scheme: dark) and (min-width: 721px) {
   :root {
     --bg:       #161a20;
     --surface:  #1d222a;

@@ -50,16 +50,6 @@ pub(super) fn span(cls: &str, n: usize, data_n: bool) -> String {
     }
 }
 
-/// Render `=<span sg-gen>a</span>-<span sg-gen>b</span>` for one SPF generator pair.
-/// If `data_n` is true, both spans get `data-n` attributes for click-to-toggle.
-pub(super) fn spf_pair(gen_i: usize, gen_j: usize, data_n: bool) -> String {
-    format!(
-        "={}-{}",
-        span("sg-gen", gen_i, data_n),
-        span("sg-gen", gen_j, data_n)
-    )
-}
-
 /// Cast a `usize` slice to `Vec<u32>` for WASM transfer.
 ///
 /// Semigroup values are always small (well below `u32::MAX`) so saturation acts
@@ -178,28 +168,6 @@ impl JsSemigroup {
     pub fn type_t(&self) -> usize {
         self.0.pseudo_and_special().t
     }
-    /// Special pseudo-Frobenius numbers (PF that arise as a generator difference).
-    #[wasm_bindgen(getter)]
-    #[must_use]
-    pub fn special_pf(&self) -> Vec<u32> {
-        let diffs: Vec<usize> = self
-            .0
-            .pseudo_and_special()
-            .special
-            .iter()
-            .map(|&(diff, _)| diff)
-            .collect();
-        to_u32(&diffs)
-    }
-
-    /// Special pseudo-Frobenius numbers grouped as printable `=a−b` strings.
-    #[wasm_bindgen(getter)]
-    #[must_use]
-    pub fn special_pf_str(&self) -> Vec<String> {
-        let ps = self.0.pseudo_and_special();
-        shortprops_table::spf_grouped(&ps.special, &self.0.gen_set)
-    }
-
     /// Add `n` as a generator if it is a gap, else remove it from the generating set.
     #[must_use]
     pub fn toggle(&self, n: usize) -> Self {

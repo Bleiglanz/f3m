@@ -4,25 +4,14 @@
 //! derive further properties on demand.
 
 use super::compute;
-use std::collections;
 
-/// One special pseudo-Frobenius number, paired with the indices of the two
-/// generators whose difference produced it: `(diff, (i, j))` with `i > j`.
-pub type SpecialPf = (usize, (usize, usize));
-
-/// Pseudo-Frobenius numbers and the special pseudo-Frobenius numbers (those
-/// that arise as differences of generators) of a semigroup.
+/// Pseudo-Frobenius numbers of a semigroup.
 #[derive(Debug, Clone)]
 pub struct PseudoSpecial {
     /// Pseudo-Frobenius numbers PF(S): gaps `x` such that `x + s ∈ S` for every `s ∈ S \ {0}`.
     pub pf: Vec<usize>,
     /// Type of S = `pf.len()`.
     pub t: usize,
-    /// Special PF: elements of PF(S) expressible as `gen[i] − gen[j]` (`i > j`)
-    /// that don't divide `f`, paired with `(i, j)`.
-    pub special: Vec<SpecialPf>,
-    /// Cardinality of the special set (= `special.len()`).
-    pub st: usize,
 }
 
 /// All computed properties of a numerical semigroup S = <`gen_set`>.
@@ -178,27 +167,12 @@ impl Semigroup {
         (0..self.m).map(|j| self.kunz(index + j, j)).sum()
     }
 
-    /// Computes PF(S) and the special pseudo-Frobenius numbers.
-    ///
-    /// Returns a `PseudoSpecial` describing both sets and their cardinalities.
+    /// Returns PF(S) and `t = |PF(S)|`.
     #[must_use]
     pub fn pseudo_and_special(&self) -> PseudoSpecial {
         let pf = self.pf_set.clone();
         let t = pf.len();
-
-        // Special PF: elements of PF(S) that equal gen[i]-gen[j] (i>j) and don't divide f
-        let pf_lookup: collections::HashSet<usize> = pf.iter().copied().collect();
-        let mut special: Vec<(usize, (usize, usize))> = Vec::new();
-        for i in 1..self.gen_set.len() {
-            for j in 0..i {
-                let diff = self.gen_set[i] - self.gen_set[j];
-                if pf_lookup.contains(&diff) && !self.f.is_multiple_of(diff) {
-                    special.push((diff, (i, j)));
-                }
-            }
-        }
-        let st = special.len();
-        PseudoSpecial { pf, t, special, st }
+        PseudoSpecial { pf, t }
     }
 
     /// Toggle generator `n`: if `n` is a gap, add it as a new generator;

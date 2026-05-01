@@ -20,7 +20,6 @@ A browser-based tool for computing properties of numerical semigroups from a lis
 | Symmetric | ✅/🚫 | Whether t = 1 (equivalently f + 1 = 2g) |
 | Generators | gen | Minimal generating set |
 | Pseudo-Frobenius | PF(S) | Gaps x such that x + s ∈ S for all s ∈ S \ {0} |
-| Special PF | SPF | PF elements of the form gen[i] − gen[j] that don't divide f |
 | Wilf quotient | — | σ/(f+1); Wilf conjecture says ≥ 1/e |
 | 1/e | — | Wilf-conjecture lower bound |
 
@@ -91,7 +90,7 @@ These appear in the toolbar (after the separator) when applicable:
 
 Every computed semigroup is appended to a summary table with rows labelled S₀, S₁, … The last column shows the set-containment relation (⊂, =, ⊃, ?) between the new entry and the previous one. Click a row number to restore that semigroup as the current input.
 
-Summary columns: **#** index:label, **toggle** set operation, **m** multiplicity, **f** Frobenius number, **e** embedding dimension, **g** genus (gaps), **σ** semigroup elements below the conductor, **r** reflected gaps, **ra** Apéry elements w where w−m is a reflected gap, **fg** fundamental gaps (gaps not a sum of two gaps), **t** type, **Sym** symmetric?, **gen** generators, **PF** pseudo-Frobenius numbers, **SPF** special pseudo-Frobenius, **Wilf** Wilf quotient σ/(f+1), **1/e** Wilf conjecture lower bound, **expr** expression, **value** evaluated result, **⊆?** set-containment relation.
+Summary columns: **#** index:label, **toggle** set operation, **m** multiplicity, **f** Frobenius number, **e** embedding dimension, **g** genus (gaps), **σ** semigroup elements below the conductor, **r** reflected gaps, **ra** Apéry elements w where w−m is a reflected gap, **fg** fundamental gaps (gaps not a sum of two gaps), **t** type, **Sym** symmetric?, **gen** generators, **PF** pseudo-Frobenius numbers, **Wilf** Wilf quotient σ/(f+1), **1/e** Wilf conjecture lower bound, **expr** expression, **value** evaluated result, **⊆?** set-containment relation.
 
 The GAP tab accumulates a full [GAP](https://gap-packages.github.io/numericalsgps/) script for all entries that can be verified with the `NumericalSgps` package. A **Copy** button copies it to the clipboard.
 

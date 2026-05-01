@@ -291,7 +291,7 @@ fn synthetic_lattice(g: usize, m: usize) -> Option<(usize, Lattice)> {
 }
 
 /// Renders the shortprops-style data cells for one semigroup: f, e, σ, r, ra,
-/// fg, t, Sym, gen (textbox), PF (textbox), SPF (textbox / "—"), Wilf, 1/e.
+/// fg, t, Sym, gen (textbox), PF (textbox), Wilf, 1/e.
 #[allow(clippy::cast_precision_loss)]
 fn props_cells(sg: &Semigroup) -> String {
     let ps = sg.pseudo_and_special();
@@ -308,31 +308,6 @@ fn props_cells(sg: &Semigroup) -> String {
         .collect::<Vec<_>>()
         .join(", ");
 
-    // SPF: group by diff, show as "diff=a-b=c-d &nbsp; diff2=e-f"
-    let spf_html = if ps.st == 0 {
-        "\u{2014}".to_string()
-    } else {
-        let mut seen: Vec<usize> = Vec::new();
-        for &(d, _) in &ps.special {
-            if !seen.contains(&d) {
-                seen.push(d);
-            }
-        }
-        #[allow(clippy::format_collect)]
-        seen.iter()
-            .map(|&d| {
-                let reps: String = ps
-                    .special
-                    .iter()
-                    .filter(|&&(dd, _)| dd == d)
-                    .map(|&(_, (i, j))| format!("={}-{}", sg.gen_set[i], sg.gen_set[j]))
-                    .collect();
-                format!("{d}{reps}")
-            })
-            .collect::<Vec<_>>()
-            .join("&nbsp; ")
-    };
-
     let sym = if sg.is_symmetric() {
         "\u{2705}"
     } else {
@@ -346,7 +321,6 @@ fn props_cells(sg: &Semigroup) -> String {
          <td>{fg}</td><td>{t}</td><td>{sym}</td>\
          <td><input class=\"gens\" type=\"text\" readonly value=\"{gens_str}\"></td>\
          <td><input class=\"pfs\" type=\"text\" readonly value=\"{pf_str}\"></td>\
-         <td class=\"spf\">{spf_html}</td>\
          <td>{wilf:.4}</td><td>{inv_e:.4}</td>",
         f = sg.f,
         e = sg.e,
@@ -488,7 +462,6 @@ fn build_card(g: usize, m: usize, t: usize, count: usize, pts: &[Lattice]) -> St
          <th title=\"Symmetric?\">Sym</th>\
          <th title=\"Minimal generators\">gen</th>\
          <th title=\"Pseudo-Frobenius numbers\">PF</th>\
-         <th title=\"Special pseudo-Frobenius (diff = gen-gen, ∤ f)\">SPF</th>\
          <th title=\"Wilf quotient σ/(f+1)\">Wilf</th>\
          <th title=\"1/e\">1/e</th>\
          </tr></thead><tbody>",
@@ -798,7 +771,6 @@ fn build_combined_html(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
          .pts td{{padding:1px 8px;font-size:.83em}}\n\
          input.gens,input.pfs{{font-size:.82em;width:11em;border:1px solid #bbb;\
                      background:#fff;padding:2px 4px;cursor:text}}\n\
-         td.spf{{font-size:.82em;text-align:left;color:#a02050}}\n\
          p.sub-label{{color:#666;font-style:italic;margin:.6em 0 .2em}}\n\
          th.sep,td.sep{{border-left:2px solid #888}}\n\
          .trunc{{color:#777;font-style:italic;font-size:.8em;margin:.3em 0 0}}\n\
@@ -817,7 +789,7 @@ fn build_combined_html(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
          c<sub>i,1</sub> are the entries of the first column of the reduced Kunz\n\
          matrix C<sub>red</sub> (the ambient variable Normaliz reports);\n\
          the remaining columns mirror the in-app shortprops view\n\
-         (f, e, σ, r, ra, fg, t, Sym, generators, PF, SPF, Wilf, 1/e).</p>\n"
+         (f, e, σ, r, ra, fg, t, Sym, generators, PF, Wilf, 1/e).</p>\n"
     );
 
     h.push_str(&build_grand_summary(gmax, all_data));

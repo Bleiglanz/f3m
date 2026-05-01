@@ -559,6 +559,128 @@ fn build_per_m_section(all_data: &[(usize, GenusData)]) -> String {
     h
 }
 
+/// Writes a row of count cells (one cell per array entry) into `h`. The first
+/// cell gets a `sep` border. `is_total` styles non-zero cells with `class=sum`.
+fn write_count_cells(h: &mut String, counts: &[usize], is_total: bool) {
+    for (idx, &c) in counts.iter().enumerate() {
+        let sep = if idx == 0 { " sep" } else { "" };
+        if c == 0 {
+            let _ = write!(h, "<td class=\"zero{sep}\">\u{b7}</td>");
+        } else if is_total {
+            let _ = write!(h, "<td class=\"sum{sep}\">{c}</td>");
+        } else {
+            let _ = write!(h, "<td class=\"{}\">{c}</td>", sep.trim());
+        }
+    }
+}
+
+/// Tally for one genus: total count, c_{1,1}=0 count, w₁∈gen count,
+/// distribution by multiplicity, distribution by embedding dimension.
+struct GenusTally {
+    total: usize,
+    zero: usize,
+    w1gen: usize,
+    by_m: Vec<usize>,
+    by_e: Vec<usize>,
+}
+
+fn tally_genus(data: &GenusData, cols: usize) -> GenusTally {
+    let mut by_m = vec![0usize; cols];
+    let mut by_e = vec![0usize; cols];
+    let (mut total, mut zero, mut w1gen) = (0usize, 0usize, 0usize);
+    for (m, _, _, lats) in data {
+        for (pt, sg) in lats {
+            total += 1;
+            if pt.first() == Some(&0) {
+                zero += 1;
+            }
+            if sg.gen_set.contains(&sg.apery_set[1]) {
+                w1gen += 1;
+            }
+            if *m < cols {
+                by_m[*m] += 1;
+            }
+            if sg.e < cols {
+                by_e[sg.e] += 1;
+            }
+        }
+    }
+    GenusTally {
+        total,
+        zero,
+        w1gen,
+        by_m,
+        by_e,
+    }
+}
+
+/// Builds the grand "Total semigroups per genus" summary table with per-`m`
+/// and per-`e` distribution columns. Columns from left to right:
+/// `g`, `N(g)`, `N'(g) c_{1,1}=0`, `N''(g) w₁∈gen`, `m=0..=gmax+1`,
+/// `e=0..=gmax+1`. Rows are one per genus, plus a `Total` footer.
+fn build_grand_summary(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
+    let cols = gmax + 2;
+    let mut h = String::new();
+    h.push_str(
+        "<h2>Total semigroups per genus</h2>\n\
+         <table><thead><tr><th class=\"lbl\">g</th>\
+         <th>N(g)</th>\
+         <th title=\"Count of semigroups with c_{1,1}=0\">N'(g) c<sub>1,1</sub>=0</th>\
+         <th title=\"Count of semigroups where w_1 is a minimal generator\">\
+         N''(g) w<sub>1</sub>\u{2208}gen</th>",
+    );
+    for idx in 0..cols {
+        let sep = if idx == 0 { "sep" } else { "" };
+        let _ = write!(h, "<th class=\"{sep}\">m={idx}</th>");
+    }
+    for idx in 0..cols {
+        let sep = if idx == 0 { "sep" } else { "" };
+        let _ = write!(h, "<th class=\"{sep}\">e={idx}</th>");
+    }
+    h.push_str("</tr></thead><tbody>");
+
+    let mut grand = GenusTally {
+        total: 0,
+        zero: 0,
+        w1gen: 0,
+        by_m: vec![0; cols],
+        by_e: vec![0; cols],
+    };
+
+    for (g, data) in all_data {
+        let row = tally_genus(data, cols);
+        grand.total += row.total;
+        grand.zero += row.zero;
+        grand.w1gen += row.w1gen;
+        for (i, &c) in row.by_m.iter().enumerate() {
+            grand.by_m[i] += c;
+        }
+        for (i, &c) in row.by_e.iter().enumerate() {
+            grand.by_e[i] += c;
+        }
+        let _ = write!(
+            h,
+            "<tr><td class=\"lbl\"><a href=\"#g{g}\">{g}</a></td>\
+             <td class=\"sum\">{}</td><td class=\"sum\">{}</td><td class=\"sum\">{}</td>",
+            row.total, row.zero, row.w1gen,
+        );
+        write_count_cells(&mut h, &row.by_m, false);
+        write_count_cells(&mut h, &row.by_e, false);
+        h.push_str("</tr>\n");
+    }
+
+    h.push_str("</tbody><tfoot><tr><th class=\"lbl\">Total</th>");
+    let _ = write!(
+        h,
+        "<td class=\"sum\">{}</td><td class=\"sum\">{}</td><td class=\"sum\">{}</td>",
+        grand.total, grand.zero, grand.w1gen,
+    );
+    write_count_cells(&mut h, &grand.by_m, true);
+    write_count_cells(&mut h, &grand.by_e, true);
+    h.push_str("</tr></tfoot></table>\n");
+    h
+}
+
 /// Builds the full combined HTML page (light mode) for genera 2..=gmax.
 fn build_combined_html(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
     let mut h = String::new();
@@ -595,6 +717,7 @@ fn build_combined_html(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
                      background:#fff;padding:2px 4px;cursor:text}}\n\
          td.spf{{font-size:.82em;text-align:left;color:#a02050}}\n\
          p.sub-label{{color:#666;font-style:italic;margin:.6em 0 .2em}}\n\
+         th.sep,td.sep{{border-left:2px solid #888}}\n\
          .trunc{{color:#777;font-style:italic;font-size:.8em;margin:.3em 0 0}}\n\
          hr{{border:none;border-top:2px solid #ddd;margin:2em 0}}\n\
          </style>\n\
@@ -614,35 +737,7 @@ fn build_combined_html(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
          (f, e, σ, r, ra, fg, t, Sym, generators, PF, SPF, Wilf, 1/e).</p>\n"
     );
 
-    // grand summary table
-    h.push_str(
-        "<h2>Total semigroups per genus</h2>\n\
-         <table><thead><tr><th class=\"lbl\">g</th>\
-         <th>N(g)</th><th title=\"Count of semigroups with c_{1,1}=0\">\
-         N'(g) c<sub>1,1</sub>=0</th></tr></thead><tbody>",
-    );
-    let mut grand_total = 0usize;
-    let mut grand_zero = 0usize;
-    for (g, data) in all_data {
-        let total: usize = data.iter().map(|(_, _, c, _)| c).sum();
-        let zero: usize = data
-            .iter()
-            .map(|(_, _, _, lats)| lats.iter().filter(|l| is_c11_zero(l)).count())
-            .sum();
-        grand_total += total;
-        grand_zero += zero;
-        let _ = writeln!(
-            h,
-            "<tr><td class=\"lbl\"><a href=\"#g{g}\">{g}</a></td>\
-             <td class=\"sum\">{total}</td><td class=\"sum\">{zero}</td></tr>"
-        );
-    }
-    let _ = writeln!(
-        h,
-        "</tbody><tfoot><tr><th class=\"lbl\">Total</th>\
-         <td class=\"sum\">{grand_total}</td>\
-         <td class=\"sum\">{grand_zero}</td></tr></tfoot></table>"
-    );
+    h.push_str(&build_grand_summary(gmax, all_data));
 
     h.push_str(&build_per_m_section(all_data));
 

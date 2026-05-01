@@ -5,11 +5,9 @@ use crate::math::Semigroup;
 use wasm_bindgen::prelude::*;
 
 /// Render a `<td>` with a count that reveals a hover popup listing the items.
-/// `left` adds the `left` alignment class used for generator/PF columns.
-fn popup_cell(left: bool, count: usize, content: &str) -> String {
-    let cls = if left { "left has-popup" } else { "has-popup" };
+fn popup_cell(count: usize, content: &str) -> String {
     format!(
-        "<td class=\"{cls}\"><span class=\"popup-count\">{count}</span>\
+        "<td class=\"left has-popup\"><span class=\"popup-count\">{count}</span>\
          <div class=\"popup\">{content}</div></td>",
     )
 }
@@ -19,8 +17,6 @@ fn popup_cell(left: bool, count: usize, content: &str) -> String {
 /// gen and PF show counts with a hover popup listing the actual values.
 #[allow(clippy::cast_precision_loss)]
 pub(super) fn shortprop_cells(sg: &Semigroup) -> String {
-    let ps = sg.pseudo_and_special();
-    let (pf, t) = (ps.pf, ps.t);
     let fmt_spans = |items: &[usize], cls: &str| -> String {
         items
             .iter()
@@ -28,9 +24,8 @@ pub(super) fn shortprop_cells(sg: &Semigroup) -> String {
             .collect::<Vec<_>>()
             .join(", ")
     };
-    let gen_td = popup_cell(true, sg.e, &fmt_spans(&sg.gen_set, "sg-gen"));
-    let pf_td = popup_cell(true, t, &fmt_spans(&pf, "sg-pf"));
-    let r = sg.r;
+    let gen_td = popup_cell(sg.e, &fmt_spans(&sg.gen_set, "sg-gen"));
+    let pf_td = popup_cell(sg.t, &fmt_spans(&sg.pf_set, "sg-pf"));
     format!(
         "<td>{m}</td><td>{f}</td><td>{e}</td><td>{g}</td><td>{cg}</td>\
          <td>{r}</td><td>{ra}</td><td>{fg}</td><td>{t}</td><td>{sym}</td>\
@@ -41,10 +36,10 @@ pub(super) fn shortprop_cells(sg: &Semigroup) -> String {
         e = sg.e,
         g = sg.count_gap,
         cg = sg.count_set,
-        r = r,
+        r = sg.r,
         ra = sg.ra,
         fg = sg.fg,
-        t = t,
+        t = sg.t,
         sym = if sg.is_symmetric() {
             "\u{2705}"
         } else {

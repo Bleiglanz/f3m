@@ -207,8 +207,7 @@ pub fn gap_block(sg: &Semigroup, idx: usize) -> String {
         .iter()
         .map(usize::to_string)
         .collect::<Vec<_>>();
-    let ps = sg.pseudo_and_special();
-    let pf_strs = ps.pf.iter().map(usize::to_string).collect::<Vec<_>>();
+    let pf_strs = sg.pf_set.iter().map(usize::to_string).collect::<Vec<_>>();
     let sym = if sg.is_symmetric() { "true" } else { "false" };
     let mut out = String::new();
     writeln!(out, "# ── Semigroup {idx}: <{}> ──", gens.join(", ")).unwrap();
@@ -245,7 +244,7 @@ pub fn gap_block(sg: &Semigroup, idx: usize) -> String {
     writeln!(
         out,
         "Assert(0, TypeOfNumericalSemigroup(ng{idx}) = {});",
-        ps.t
+        sg.t
     )
     .unwrap();
     if sg.m >= 2 {

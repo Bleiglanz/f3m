@@ -294,9 +294,8 @@ fn synthetic_lattice(g: usize, m: usize) -> Option<(usize, Lattice)> {
 /// fg, t, Sym, gen (textbox), PF (textbox), Wilf, 1/e.
 #[allow(clippy::cast_precision_loss)]
 fn props_cells(sg: &Semigroup) -> String {
-    let ps = sg.pseudo_and_special();
-    let pf_str = ps
-        .pf
+    let pf_str = sg
+        .pf_set
         .iter()
         .map(usize::to_string)
         .collect::<Vec<_>>()
@@ -313,8 +312,6 @@ fn props_cells(sg: &Semigroup) -> String {
     } else {
         "\u{1F6AB}"
     };
-    let wilf = sg.wilf();
-    let inv_e = 1.0 / sg.e as f64;
 
     format!(
         "<td>{f}</td><td>{e}</td><td>{cg}</td><td>{r}</td><td>{ra}</td>\
@@ -328,7 +325,9 @@ fn props_cells(sg: &Semigroup) -> String {
         r = sg.r,
         ra = sg.ra,
         fg = sg.fg,
-        t = ps.t,
+        t = sg.t,
+        wilf = sg.wilf(),
+        inv_e = 1.0 / sg.e as f64,
     )
 }
 

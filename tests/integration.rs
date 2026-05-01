@@ -68,14 +68,12 @@ fn check(
     assert_eq!(s.count_set, c, "c     for {gens:?}");
     assert_eq!(s.is_symmetric(), sym, "sym   for {gens:?}");
     assert_eq!(s.apery_set.as_slice(), apery, "apery for {gens:?}");
-    let ps = s.pseudo_and_special();
-    let mut actual_pf = ps.pf;
-    let actual_t = ps.t;
+    let mut actual_pf = s.pf_set.clone();
     actual_pf.sort_unstable();
     let mut expected_pf = pf.to_vec();
     expected_pf.sort_unstable();
     assert_eq!(actual_pf, expected_pf, "pf    for {gens:?}");
-    assert_eq!(actual_t, t, "type  for {gens:?}");
+    assert_eq!(s.t, t, "type  for {gens:?}");
     assert_eq!(f + m, *apery.iter().max().unwrap(), "f ist max apery -m");
     assert_eq!(s.count_set + s.r, s.count_gap, "g ist sigma + r");
     assert_eq!(s.f + s.r + 2, 2 * s.count_gap + 1, "f+r+2=2g+1");

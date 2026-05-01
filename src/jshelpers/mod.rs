@@ -35,7 +35,7 @@ pub(super) struct ClassSets {
 pub(super) fn class_sets(sg: &Semigroup) -> ClassSets {
     ClassSets {
         gens: sg.gen_set.iter().copied().collect(),
-        pf_set: sg.pseudo_and_special().pf.into_iter().collect(),
+        pf_set: sg.pf_set.iter().copied().collect(),
         blobs: sg.blob().into_iter().collect(),
     }
 }
@@ -160,13 +160,13 @@ impl JsSemigroup {
     #[wasm_bindgen(getter)]
     #[must_use]
     pub fn pf(&self) -> Vec<u32> {
-        to_u32(&self.0.pseudo_and_special().pf)
+        to_u32(&self.0.pf_set)
     }
     /// Type t = |PF(S)|.
     #[wasm_bindgen(getter)]
     #[must_use]
     pub fn type_t(&self) -> usize {
-        self.0.pseudo_and_special().t
+        self.0.t
     }
     /// Add `n` as a generator if it is a gap, else remove it from the generating set.
     #[must_use]

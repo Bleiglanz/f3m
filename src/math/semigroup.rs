@@ -5,15 +5,6 @@
 
 use super::compute;
 
-/// Pseudo-Frobenius numbers of a semigroup.
-#[derive(Debug, Clone)]
-pub struct PseudoSpecial {
-    /// Pseudo-Frobenius numbers PF(S): gaps `x` such that `x + s ∈ S` for every `s ∈ S \ {0}`.
-    pub pf: Vec<usize>,
-    /// Type of S = `pf.len()`.
-    pub t: usize,
-}
-
 /// All computed properties of a numerical semigroup S = <`gen_set`>.
 #[derive(Debug, Clone)]
 pub struct Semigroup {
@@ -167,14 +158,6 @@ impl Semigroup {
         (0..self.m).map(|j| self.kunz(index + j, j)).sum()
     }
 
-    /// Returns PF(S) and `t = |PF(S)|`.
-    #[must_use]
-    pub fn pseudo_and_special(&self) -> PseudoSpecial {
-        let pf = self.pf_set.clone();
-        let t = pf.len();
-        PseudoSpecial { pf, t }
-    }
-
     /// Toggle generator `n`: if `n` is a gap, add it as a new generator;
     /// if `n` is a minimal generator, remove it and recompute the generator set.
     /// Returns `self` unchanged if the operation would produce an empty generator set.
@@ -225,13 +208,7 @@ impl Semigroup {
     #[must_use]
     pub fn compute_add_all_pf(&self) -> Self {
         let mut current_gen_set = self.gen_set.clone();
-        let mut current_pf: Vec<usize> = self
-            .pseudo_and_special()
-            .pf
-            .into_iter()
-            .filter(|&x| x != self.f)
-            .collect();
-        current_gen_set.append(&mut current_pf);
+        current_gen_set.extend(self.pf_set.iter().copied().filter(|&x| x != self.f));
         compute(&current_gen_set)
     }
 

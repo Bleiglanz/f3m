@@ -609,12 +609,13 @@ fn write_count_cells(h: &mut String, counts: &[usize], is_total: bool) {
     }
 }
 
-/// Tally for one genus: total count, c_{1,1}=0 count, w₁∈gen count,
-/// distribution by multiplicity, distribution by embedding dimension.
+/// Tally for one genus: total count, c_{1,1}=0 count, w₁∈gen count, symmetric
+/// count, distribution by multiplicity, distribution by embedding dimension.
 struct GenusTally {
     total: usize,
     zero: usize,
     w1gen: usize,
+    sym: usize,
     by_m: Vec<usize>,
     by_e: Vec<usize>,
 }
@@ -622,7 +623,7 @@ struct GenusTally {
 fn tally_genus(data: &GenusData, cols: usize) -> GenusTally {
     let mut by_m = vec![0usize; cols];
     let mut by_e = vec![0usize; cols];
-    let (mut total, mut zero, mut w1gen) = (0usize, 0usize, 0usize);
+    let (mut total, mut zero, mut w1gen, mut sym) = (0usize, 0usize, 0usize, 0usize);
     for (m, _, _, lats) in data {
         for (pt, sg) in lats {
             total += 1;
@@ -631,6 +632,9 @@ fn tally_genus(data: &GenusData, cols: usize) -> GenusTally {
             }
             if sg.gen_set.contains(&sg.apery_set[1]) {
                 w1gen += 1;
+            }
+            if sg.is_symmetric() {
+                sym += 1;
             }
             if *m < cols {
                 by_m[*m] += 1;
@@ -644,6 +648,7 @@ fn tally_genus(data: &GenusData, cols: usize) -> GenusTally {
         total,
         zero,
         w1gen,
+        sym,
         by_m,
         by_e,
     }
@@ -651,8 +656,8 @@ fn tally_genus(data: &GenusData, cols: usize) -> GenusTally {
 
 /// Builds the grand "Total semigroups per genus" summary table with per-`m`
 /// and per-`e` distribution columns. Columns from left to right:
-/// `g`, `N(g)`, `N'(g) c_{1,1}=0`, `N''(g) w₁∈gen`, `m=0..=gmax+1`,
-/// `e=0..=gmax+1`. Rows are one per genus, plus a `Total` footer.
+/// `g`, `N(g)`, `N'(g) c_{1,1}=0`, `N''(g) w₁∈gen`, `N_sym(g)`,
+/// `m=0..=gmax+1`, `e=0..=gmax+1`. Rows are one per genus, plus a `Total` footer.
 fn build_grand_summary(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
     let cols = gmax + 2;
     let mut h = String::new();
@@ -662,7 +667,9 @@ fn build_grand_summary(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
          <th>N(g)</th>\
          <th title=\"Count of semigroups with c_{1,1}=0\">N'(g) c<sub>1,1</sub>=0</th>\
          <th title=\"Count of semigroups where w_1 is a minimal generator\">\
-         N''(g) w<sub>1</sub>\u{2208}gen</th>",
+         N''(g) w<sub>1</sub>\u{2208}gen</th>\
+         <th title=\"Count of symmetric semigroups (t = 1, equivalently g = (f+1)/2)\">\
+         N<sub>sym</sub>(g)</th>",
     );
     for idx in 0..cols {
         let sep = if idx == 0 { "sep" } else { "" };
@@ -678,6 +685,7 @@ fn build_grand_summary(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
         total: 0,
         zero: 0,
         w1gen: 0,
+        sym: 0,
         by_m: vec![0; cols],
         by_e: vec![0; cols],
     };
@@ -687,6 +695,7 @@ fn build_grand_summary(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
         grand.total += row.total;
         grand.zero += row.zero;
         grand.w1gen += row.w1gen;
+        grand.sym += row.sym;
         for (i, &c) in row.by_m.iter().enumerate() {
             grand.by_m[i] += c;
         }
@@ -696,8 +705,9 @@ fn build_grand_summary(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
         let _ = write!(
             h,
             "<tr><td class=\"lbl\"><a href=\"#g{g}\">{g}</a></td>\
-             <td class=\"sum\">{}</td><td class=\"sum\">{}</td><td class=\"sum\">{}</td>",
-            row.total, row.zero, row.w1gen,
+             <td class=\"sum\">{}</td><td class=\"sum\">{}</td>\
+             <td class=\"sum\">{}</td><td class=\"sum\">{}</td>",
+            row.total, row.zero, row.w1gen, row.sym,
         );
         write_count_cells(&mut h, &row.by_m, false);
         write_count_cells(&mut h, &row.by_e, false);
@@ -707,8 +717,9 @@ fn build_grand_summary(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
     h.push_str("</tbody><tfoot><tr><th class=\"lbl\">Total</th>");
     let _ = write!(
         h,
-        "<td class=\"sum\">{}</td><td class=\"sum\">{}</td><td class=\"sum\">{}</td>",
-        grand.total, grand.zero, grand.w1gen,
+        "<td class=\"sum\">{}</td><td class=\"sum\">{}</td>\
+         <td class=\"sum\">{}</td><td class=\"sum\">{}</td>",
+        grand.total, grand.zero, grand.w1gen, grand.sym,
     );
     write_count_cells(&mut h, &grand.by_m, true);
     write_count_cells(&mut h, &grand.by_e, true);

@@ -21,8 +21,12 @@
 //! (using `wᵢ ≥ i` for every Apéry element).
 //!
 //! Usage: `cargo run --bin normaliz [gmax]`  (gmax defaults to 10)
-//! Computes all genera g = 2..=gmax and writes one HTML file
-//! `./normaliz/semigroup_g_from2to{gmax}.html` (light mode).
+//! Computes all genera g = 2..=gmax and writes two HTML files (light mode):
+//!  - `./normaliz/semigroup_g_from2to{gmax}_summary.html` — five aggregate
+//!    tables (totals, by m, by e, by t, by r).
+//!  - `./normaliz/semigroup_g_from2to{gmax}_list.html` — one row per
+//!    semigroup, ordered by (g, m, t), with the same shortprops columns
+//!    used in the in-app view plus `c_{1,1} … c_{1,gmax}` (zero-padded).
 
 #![forbid(unsafe_code)]
 #![deny(clippy::all, clippy::pedantic, clippy::nursery)]
@@ -30,7 +34,6 @@
 use f3m::math::matrix::u_pair_relations;
 use f3m::math::{Semigroup, compute};
 use rayon::prelude::*;
-use std::collections::HashMap;
 use std::fmt::Write as _;
 use std::fs;
 use std::path::Path;
@@ -333,238 +336,10 @@ fn props_cells(sg: &Semigroup) -> String {
 
 // ── HTML generation ───────────────────────────────────────────────────────────
 
-const MAX_DISPLAY: usize = 40;
-
 /// One Normaliz lattice point paired with its computed [`Semigroup`].
 type Lattice = (Vec<i64>, Semigroup);
 
 type GenusData = Vec<(usize, usize, usize, Vec<Lattice>)>;
-
-/// True iff this lattice point's first coordinate is zero.
-fn is_c11_zero(l: &Lattice) -> bool {
-    l.0.first() == Some(&0)
-}
-
-/// Renders a single m × t count table for genus `g`, counting only lattice
-/// points satisfying `pred`. Returns the HTML and the grand total.
-fn build_count_table<F>(g: usize, data: &GenusData, pred: F) -> (String, usize)
-where
-    F: Fn(&Lattice) -> bool,
-{
-    let count_map: HashMap<(usize, usize), usize> = data
-        .iter()
-        .map(|(m, t, _, lats)| ((*m, *t), lats.iter().filter(|l| pred(l)).count()))
-        .collect();
-
-    let mut h = String::new();
-    h.push_str("<table><thead><tr><th class=\"lbl\">m \\ t</th>");
-    for t in 1..=g {
-        let _ = write!(h, "<th>{t}</th>");
-    }
-    h.push_str("<th class=\"sum\">\u{3a3}</th></tr></thead><tbody>");
-
-    let mut col_totals = vec![0usize; g + 1];
-    let mut grand = 0usize;
-    for m in 2..=g + 1 {
-        let _ = write!(h, "<tr><th class=\"lbl\">m\u{a0}=\u{a0}{m}</th>");
-        let mut row_sum = 0usize;
-        for (t, ct) in col_totals.iter_mut().enumerate().skip(1).take(g) {
-            let c = count_map.get(&(m, t)).copied().unwrap_or(0);
-            *ct += c;
-            row_sum += c;
-            if c == 0 {
-                h.push_str("<td class=\"zero\">\u{b7}</td>");
-            } else {
-                let _ = write!(
-                    h,
-                    "<td class=\"pos\" onclick=\"\
-                     document.getElementById('sec-g{g}m{m}t{t}')\
-                     .scrollIntoView({{behavior:'smooth'}})\">{c}</td>"
-                );
-            }
-        }
-        grand += row_sum;
-        let _ = write!(h, "<td class=\"sum\">{row_sum}</td></tr>");
-    }
-
-    h.push_str("</tbody><tfoot><tr><th class=\"lbl\">\u{3a3}</th>");
-    for ct in col_totals.iter().skip(1) {
-        let _ = write!(h, "<td class=\"sum\">{ct}</td>");
-    }
-    let _ = writeln!(h, "<td class=\"sum\">{grand}</td></tr></tfoot></table>");
-    (h, grand)
-}
-
-/// Builds the HTML section for one genus (no `<html>` wrapper).
-fn build_genus_section(g: usize, data: &GenusData) -> String {
-    let mut h = String::new();
-    let _ = writeln!(h, "<h2 id=\"g{g}\">Genus g\u{a0}=\u{a0}{g}</h2>");
-
-    let (all_table, grand) = build_count_table(g, data, |_| true);
-    h.push_str(&all_table);
-    let _ = writeln!(
-        h,
-        "<p><strong>Total: {grand} numerical semigroup(s) of genus {g}.</strong></p>"
-    );
-
-    let (zero_table, zero_grand) = build_count_table(g, data, is_c11_zero);
-    h.push_str("<p class=\"sub-label\">(of which c<sub>1,1</sub>\u{a0}=\u{a0}0)</p>\n");
-    h.push_str(&zero_table);
-    let _ = writeln!(
-        h,
-        "<p><strong>Of which {zero_grand} have c<sub>1,1</sub>\u{a0}=\u{a0}0.</strong></p>"
-    );
-
-    // detail cards
-    for m in 2..=g + 1 {
-        let nonempty: Vec<_> = data
-            .iter()
-            .filter(|&&(dm, _, c, _)| dm == m && c > 0)
-            .collect();
-        if nonempty.is_empty() {
-            continue;
-        }
-        let _ = writeln!(h, "<h3>m\u{a0}=\u{a0}{m}</h3>");
-        for &&(_, t, count, ref pts) in &nonempty {
-            h.push_str(&build_card(g, m, t, count, pts));
-        }
-    }
-    h
-}
-
-/// Renders a single `<details>` card for fixed (g, m, t).
-fn build_card(g: usize, m: usize, t: usize, count: usize, pts: &[Lattice]) -> String {
-    let w1 = m * t + 1;
-    let selmer = m * g + m * (m - 1) / 2;
-    let dim = m - 1;
-    let mut h = String::new();
-    let _ = write!(
-        h,
-        "<details id=\"sec-g{g}m{m}t{t}\">\
-         <summary>t\u{a0}=\u{a0}{t} &nbsp;|\u{a0}\
-         w<sub>1</sub>\u{a0}=\u{a0}{w1} &nbsp;|\u{a0}\
-         \u{2211}w<sub>i</sub>\u{a0}=\u{a0}{selmer} &nbsp;|\u{a0}\
-         <strong>{count}</strong> semigroup(s)</summary>\
-         <div class=\"card\"><table class=\"pts\"><thead><tr>"
-    );
-    for i in 1..=dim {
-        let _ = write!(h, "<th>c<sub>{i},1</sub></th>");
-    }
-    h.push_str(
-        "<th title=\"Frobenius number\">f</th>\
-         <th title=\"Embedding dimension\">e</th>\
-         <th title=\"Sporadic elements (count of S below f+1)\">\u{03C3}</th>\
-         <th title=\"Reflected gaps\">r</th>\
-         <th title=\"Reflected Apéry\">ra</th>\
-         <th title=\"Fundamental gaps\">fg</th>\
-         <th title=\"Type (|PF|)\">t</th>\
-         <th title=\"Symmetric?\">Sym</th>\
-         <th title=\"Minimal generators\">gen</th>\
-         <th title=\"Pseudo-Frobenius numbers\">PF</th>\
-         <th title=\"Wilf quotient σ/(f+1)\">Wilf</th>\
-         <th title=\"1/e\">1/e</th>\
-         </tr></thead><tbody>",
-    );
-    for (pt, sg) in pts.iter().take(MAX_DISPLAY) {
-        h.push_str("<tr>");
-        for &v in pt {
-            let _ = write!(h, "<td>{v}</td>");
-        }
-        h.push_str(&props_cells(sg));
-        h.push_str("</tr>");
-    }
-    h.push_str("</tbody></table>");
-    if count > MAX_DISPLAY {
-        let _ = write!(
-            h,
-            "<p class=\"trunc\">\u{2026} {MAX_DISPLAY} of {count} shown</p>"
-        );
-    }
-    h.push_str("</div></details>\n");
-    h
-}
-
-/// Renders the per-multiplicity tables under `heading`, including only lattice
-/// points satisfying `pred` and using `id_prefix` for the per-m anchors.
-fn build_per_m_tables<F>(
-    all_data: &[(usize, GenusData)],
-    heading: &str,
-    id_prefix: &str,
-    pred: F,
-) -> String
-where
-    F: Fn(&Lattice) -> bool,
-{
-    let mut all_m: Vec<usize> = all_data
-        .iter()
-        .flat_map(|(_, d)| d.iter().map(|(m, _, _, _)| *m))
-        .collect();
-    all_m.sort_unstable();
-    all_m.dedup();
-
-    let mut h = String::new();
-    let _ = writeln!(h, "<h2>{heading}</h2>");
-
-    for m in all_m {
-        let mut rows: Vec<(usize, usize, &Lattice)> = all_data
-            .iter()
-            .flat_map(|(g, data)| {
-                data.iter()
-                    .filter(move |(dm, _, _, _)| *dm == m)
-                    .flat_map(move |(_, t, _, pts)| pts.iter().map(move |l| (*g, *t, l)))
-            })
-            .filter(|(_, _, l)| pred(l))
-            .collect();
-        if rows.is_empty() {
-            continue;
-        }
-        rows.sort_unstable_by(|a, b| (a.0, a.1, &a.2.0).cmp(&(b.0, b.1, &b.2.0)));
-
-        let dim = m - 1;
-        let _ = writeln!(
-            h,
-            "<h3 id=\"{id_prefix}m{m}\">m\u{a0}=\u{a0}{m} &nbsp;\
-             <span style=\"font-weight:normal;color:#666\">({} solution(s))</span></h3>",
-            rows.len()
-        );
-        h.push_str("<table class=\"pts\"><thead><tr><th>g</th><th>t</th>");
-        for i in 1..=dim {
-            let _ = write!(h, "<th>c<sub>{i},1</sub></th>");
-        }
-        h.push_str("<th>generators</th></tr></thead><tbody>");
-        for (g, t, (pt, sg)) in rows {
-            let _ = write!(h, "<tr><td>{g}</td><td>{t}</td>");
-            for &v in pt {
-                let _ = write!(h, "<td>{v}</td>");
-            }
-            let gens_str = sg
-                .gen_set
-                .iter()
-                .map(usize::to_string)
-                .collect::<Vec<_>>()
-                .join(", ");
-            let _ = write!(
-                h,
-                "<td><input class=\"gens\" type=\"text\" readonly value=\"{gens_str}\"></td></tr>"
-            );
-        }
-        h.push_str("</tbody></table>\n");
-    }
-    h
-}
-
-/// Builds both the full "Solutions per multiplicity" section and a parallel
-/// filtered view restricted to lattice points with c<sub>1,1</sub> = 0.
-fn build_per_m_section(all_data: &[(usize, GenusData)]) -> String {
-    let mut h = build_per_m_tables(all_data, "Solutions per multiplicity", "", |_| true);
-    h.push_str(&build_per_m_tables(
-        all_data,
-        "Solutions per multiplicity (c\u{2081},\u{2081}\u{a0}=\u{a0}0)",
-        "z-",
-        is_c11_zero,
-    ));
-    h
-}
 
 /// Writes a row of count cells (one cell per array entry) into `h`. The first
 /// cell gets a `sep` border. `is_total` styles non-zero cells with `class=sum`.
@@ -589,19 +364,28 @@ struct GenusTally {
     w1gen: usize,
     sym: usize,
     asym: usize,
+    /// Count of semigroups where the largest generator equals f+m equals 2g+1.
+    ae_fm_2g_plus_1: usize,
+    /// Count of semigroups where the largest generator equals f+m equals 2g.
+    ae_fm_2g: usize,
+    /// Counts bucketed by where f sits relative to m:
+    /// `[f<m, m<f<2m, 2m<f<3m, 3m<f]`. f never equals km for k ≥ 1
+    /// (km ∈ S since m is a generator), so the four buckets partition all rows.
+    f_vs_m: [usize; 4],
     by_m: Vec<usize>,
     by_e: Vec<usize>,
     by_t: Vec<usize>,
     by_r: Vec<usize>,
 }
 
-fn tally_genus(data: &GenusData, cols: usize) -> GenusTally {
+fn tally_genus(g: usize, data: &GenusData, cols: usize) -> GenusTally {
     let mut by_m = vec![0usize; cols];
     let mut by_e = vec![0usize; cols];
     let mut by_t = vec![0usize; cols];
     let mut by_r = vec![0usize; cols];
-    let (mut total, mut zero, mut w1gen, mut sym, mut asym) =
-        (0usize, 0usize, 0usize, 0usize, 0usize);
+    let mut f_vs_m = [0usize; 4];
+    let (mut total, mut zero, mut w1gen, mut sym, mut asym, mut ae_fm_2g_plus_1, mut ae_fm_2g) =
+        (0usize, 0usize, 0usize, 0usize, 0usize, 0usize, 0usize);
     for (m, _, _, lats) in data {
         for (pt, sg) in lats {
             total += 1;
@@ -617,6 +401,45 @@ fn tally_genus(data: &GenusData, cols: usize) -> GenusTally {
             if sg.r == 1 {
                 asym += 1;
             }
+            // Refinement: ae = f + m (i.e. f+m is the largest minimal generator).
+            // Two empirical predictions: when ae=f+m=2g+1 then r=m-2,
+            // and when ae=f+m=2g then r=m-1. Asserted to surface any counter-examples.
+            if sg.max_gen == sg.f + sg.m {
+                let fm = sg.f + sg.m;
+                if fm == 2 * g + 1 {
+                    assert_eq!(
+                        sg.r,
+                        sg.m - 2,
+                        "ae=f+m=2g+1 should imply r=m-2; got g={g} m={} r={} f={} gens={:?}",
+                        sg.m,
+                        sg.r,
+                        sg.f,
+                        sg.gen_set,
+                    );
+                    ae_fm_2g_plus_1 += 1;
+                } else if fm == 2 * g {
+                    assert_eq!(
+                        sg.r,
+                        sg.m - 1,
+                        "ae=f+m=2g should imply r=m-1; got g={g} m={} r={} f={} gens={:?}",
+                        sg.m,
+                        sg.r,
+                        sg.f,
+                        sg.gen_set,
+                    );
+                    ae_fm_2g += 1;
+                }
+            }
+            let bucket = if sg.f < sg.m {
+                0
+            } else if sg.f < 2 * sg.m {
+                1
+            } else if sg.f < 3 * sg.m {
+                2
+            } else {
+                3
+            };
+            f_vs_m[bucket] += 1;
             if *m < cols {
                 by_m[*m] += 1;
             }
@@ -637,6 +460,9 @@ fn tally_genus(data: &GenusData, cols: usize) -> GenusTally {
         w1gen,
         sym,
         asym,
+        ae_fm_2g_plus_1,
+        ae_fm_2g,
+        f_vs_m,
         by_m,
         by_e,
         by_t,
@@ -663,7 +489,7 @@ fn build_distribution_table(
     h.push_str("</tr></thead><tbody>");
     let mut grand = vec![0usize; cols];
     for (g, data) in all_data {
-        let row = pick(&tally_genus(data, cols));
+        let row = pick(&tally_genus(*g, data, cols));
         for (i, &c) in row.iter().enumerate() {
             grand[i] += c;
         }
@@ -677,18 +503,9 @@ fn build_distribution_table(
     h
 }
 
-/// Builds the five "Total semigroups per genus" summary tables:
-///  1. Scalars: g, N(g), N'(g) c_{1,1}=0, N''(g) w₁∈gen, `N_sym`(g), `N_asym`(g).
-///  2. Distribution by multiplicity m.
-///  3. Distribution by embedding dimension e.
-///  4. Distribution by type t.
-///  5. Distribution by reflected gaps r.
-fn build_grand_summary(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
-    let cols = gmax + 2;
+/// Renders the per-genus scalars table, its column legend, and the empirical note.
+fn build_scalars_table(cols: usize, all_data: &[(usize, GenusData)]) -> String {
     let mut h = String::new();
-    h.push_str("<h2>Total semigroups per genus</h2>\n");
-
-    // (1) Scalars
     h.push_str(
         "<table><thead><tr><th class=\"lbl\">g</th>\
          <th>N(g)</th>\
@@ -698,27 +515,104 @@ fn build_grand_summary(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
          <th title=\"Count of symmetric semigroups (t = 1, equivalently g = (f+1)/2)\">\
          N<sub>sym</sub>(g)</th>\
          <th title=\"Count of almost-symmetric semigroups (r = 1)\">\
-         N<sub>asym</sub>(g)</th></tr></thead><tbody>",
+         N<sub>asym</sub>(g)</th>\
+         <th class=\"sep\" title=\"Frobenius f &lt; multiplicity m (the unique \
+         ordinary semigroup of genus g)\">f&lt;m</th>\
+         <th title=\"m &lt; Frobenius f &lt; 2m\">m&lt;f&lt;2m</th>\
+         <th title=\"2m &lt; Frobenius f &lt; 3m\">2m&lt;f&lt;3m</th>\
+         <th title=\"3m &lt; Frobenius f\">3m&lt;f</th>\
+         <th class=\"sep\" title=\"Largest minimal generator equals f+m equals 2g+1\">\
+         ae=f+m=2g+1</th>\
+         <th title=\"Largest minimal generator equals f+m equals 2g\">\
+         ae=f+m=2g</th>\
+         </tr></thead><tbody>",
     );
-    // Column order: total, c_{1,1}=0, w_1∈gen, symmetric, almost-symmetric.
-    let mut totals = [0usize; 5];
+    let sep_at = |i: usize| if i == 5 || i == 9 { "sum sep" } else { "sum" };
+    let mut totals = [0usize; 11];
     for (g, data) in all_data {
-        let row = tally_genus(data, cols);
-        let cells = [row.total, row.zero, row.w1gen, row.sym, row.asym];
+        let row = tally_genus(*g, data, cols);
+        let cells = [
+            row.total,
+            row.zero,
+            row.w1gen,
+            row.sym,
+            row.asym,
+            row.f_vs_m[0],
+            row.f_vs_m[1],
+            row.f_vs_m[2],
+            row.f_vs_m[3],
+            row.ae_fm_2g_plus_1,
+            row.ae_fm_2g,
+        ];
         for (acc, c) in totals.iter_mut().zip(cells.iter()) {
             *acc += *c;
         }
         let _ = write!(h, "<tr><td class=\"lbl\"><a href=\"#g{g}\">{g}</a></td>");
-        for c in cells {
-            let _ = write!(h, "<td class=\"sum\">{c}</td>");
+        for (i, c) in cells.iter().enumerate() {
+            let _ = write!(h, "<td class=\"{}\">{c}</td>", sep_at(i));
         }
         h.push_str("</tr>\n");
     }
     h.push_str("</tbody><tfoot><tr><th class=\"lbl\">Total</th>");
-    for c in totals {
-        let _ = write!(h, "<td class=\"sum\">{c}</td>");
+    for (i, c) in totals.iter().enumerate() {
+        let _ = write!(h, "<td class=\"{}\">{c}</td>", sep_at(i));
     }
     h.push_str("</tr></tfoot></table>\n");
+    h.push_str(
+        "<dl class=\"legend\">\
+         <dt>g</dt><dd>genus = number of gaps.</dd>\
+         <dt>N(g)</dt><dd>total number of numerical semigroups of genus g.</dd>\
+         <dt>N'(g) c<sub>1,1</sub>=0</dt>\
+         <dd>those whose reduced Kunz coefficient c<sub>1,1</sub>=0, \
+         equivalently w<sub>1</sub>=m+1.</dd>\
+         <dt>N''(g) w<sub>1</sub>\u{2208}gen</dt>\
+         <dd>those where the smallest non-zero Ap\u{e9}ry element w<sub>1</sub> \
+         is a minimal generator.</dd>\
+         <dt>N<sub>sym</sub>(g)</dt><dd>symmetric semigroups: type t=1, \
+         equivalently g=(f+1)/2.</dd>\
+         <dt>N<sub>asym</sub>(g)</dt><dd>almost-symmetric semigroups, \
+         identified here by exactly one reflected gap (r=1).</dd>\
+         <dt>f&lt;m, m&lt;f&lt;2m, 2m&lt;f&lt;3m, 3m&lt;f</dt>\
+         <dd>partition of all semigroups by where the Frobenius number sits \
+         relative to the multiplicity. f never equals km for k\u{a0}\u{2265}\u{a0}1 \
+         since km\u{a0}\u{2208}\u{a0}S.</dd>\
+         <dt>ae=f+m=2g+1, ae=f+m=2g</dt>\
+         <dd>counts of semigroups in which f+m is itself the largest minimal \
+         generator (a<sub>e</sub>=f+m) and additionally equals 2g+1 or 2g, \
+         respectively. Empirically these come paired with r=m\u{2212}2 \
+         and r=m\u{2212}1 (asserted at runtime).</dd>\
+         </dl>\n\
+         <p class=\"note\">Empirical: <code>f&lt;m</code> is always 1 (the unique \
+         ordinary semigroup \u{27e8}g+1,\u{2026},2g+1\u{27e9}); \
+         <code>m&lt;f&lt;2m</code> matches \
+         <a href=\"https://oeis.org/A000071\">OEIS A000071</a> \
+         (F(n+2)\u{2212}1) for g\u{a0}=\u{a0}2..10: \
+         1,\u{a0}2,\u{a0}4,\u{a0}7,\u{a0}12,\u{a0}20,\u{a0}33,\u{a0}54,\u{a0}88.</p>\n\
+         <p class=\"note\">The <code>ae=f+m=2g</code> column is <em>not</em> in \
+         bijection with N<sub>asym</sub>(g+1) via the closure map \
+         S\u{a0}\u{21a6}\u{a0}S\u{a0}\u{222a}\u{a0}{f}. Reason: for every g\u{a0}\u{2265}\u{a0}2 \
+         there is exactly one almost-symmetric S of genus g+1 whose closure is the \
+         <em>ordinary</em> semigroup of genus g, and ordinary always satisfies \
+         ae=f+m=2g+1 \u{2014} so it lands in the neighbouring \
+         <code>ae=f+m=2g+1</code> column instead. (For g+1=2 that S is \
+         \u{27e8}3,4,5\u{27e9} itself; for g+1\u{a0}\u{2265}\u{a0}3 it is \
+         \u{27e8}g+1,\u{a0}g+2,\u{a0}\u{2026},\u{a0}2g+1,\u{a0}2g+3\u{27e9}.) \
+         For g+1\u{a0}=\u{a0}2..10 this accounts for 9 of the 30 \
+         almost-symmetric semigroups; the remaining 21 do close into the \
+         <code>ae=f+m=2g</code> column at genus g.</p>\n",
+    );
+    h
+}
+
+/// Builds the five "Total semigroups per genus" summary tables: scalars,
+/// then distributions by multiplicity m, embedding dimension e, type t,
+/// and reflected gaps r.
+fn build_grand_summary(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
+    let cols = gmax + 2;
+    let mut h = String::new();
+    h.push_str("<h2>Total semigroups per genus</h2>\n");
+
+    h.push_str(&build_scalars_table(cols, all_data));
 
     // (2) By multiplicity, (3) by embedding dim, (4) by type, (5) by reflected gaps
     h.push_str(&build_distribution_table(
@@ -752,76 +646,179 @@ fn build_grand_summary(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
     h
 }
 
-/// Builds the full combined HTML page (light mode) for genera 2..=gmax.
-fn build_combined_html(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
-    let mut h = String::new();
-    let _ = write!(
-        h,
+/// Shared `<head>` + opening `<body>` and `<h1>` for both pages.
+fn html_head(title: &str, intro: &str) -> String {
+    format!(
         "<!DOCTYPE html>\n\
          <html lang=\"en\">\n\
          <head>\n\
          <meta charset=\"UTF-8\">\n\
-         <title>Numerical Semigroups g=2\u{2026}{gmax}</title>\n\
+         <title>{title}</title>\n\
          <style>\n\
          *{{box-sizing:border-box}}\n\
          body{{background:#fff;color:#222;font-family:monospace;\
-               margin:2em auto;max-width:1200px;padding:0 1.5em}}\n\
+               margin:2em auto;max-width:1400px;padding:0 1.5em}}\n\
          h1,h2,h3{{color:#1a1a8e;margin:.6em 0 .3em}}\n\
          p{{margin:.3em 0 .8em;line-height:1.5}}\n\
+         a{{color:#1565c0}}\n\
          table{{border-collapse:collapse;margin:.5em 0;font-size:.87em}}\n\
          th,td{{padding:3px 10px;border:1px solid #ccc;text-align:right}}\n\
          thead th,tfoot td{{background:#f0f4f8;color:#333}}\n\
          th.lbl{{text-align:left;color:#333}}\n\
          td.zero{{color:#ccc}}\n\
-         td.pos{{background:#e3f2fd;color:#1565c0;font-weight:bold;cursor:pointer}}\n\
-         td.pos:hover{{background:#1565c0;color:#fff}}\n\
+         td.pos{{background:#e3f2fd;color:#1565c0;font-weight:bold}}\n\
          td.sum{{color:#1a1a8e;font-weight:bold}}\n\
-         .card{{background:#f8f9fa;border-radius:6px;padding:10px 14px;margin:4px 0 8px}}\n\
-         details{{margin:3px 0}}\n\
-         details>summary{{cursor:pointer;color:#1565c0;list-style:none;padding:4px 2px}}\n\
-         details>summary::before{{content:\"\\25b6 \";font-size:.8em}}\n\
-         details[open]>summary::before{{content:\"\\25bc \";font-size:.8em}}\n\
-         details>summary:hover{{color:#c00}}\n\
-         .pts th{{background:#f0f4f8;color:#333}}\n\
-         .pts td{{padding:1px 8px;font-size:.83em}}\n\
          input.gens,input.pfs{{font-size:.82em;width:11em;border:1px solid #bbb;\
                      background:#fff;padding:2px 4px;cursor:text}}\n\
-         p.sub-label{{color:#666;font-style:italic;margin:.6em 0 .2em}}\n\
          th.sep,td.sep{{border-left:2px solid #888}}\n\
-         .trunc{{color:#777;font-style:italic;font-size:.8em;margin:.3em 0 0}}\n\
-         hr{{border:none;border-top:2px solid #ddd;margin:2em 0}}\n\
+         .scroll{{overflow-x:auto}}\n\
+         dl.legend{{display:grid;grid-template-columns:max-content 1fr;gap:.2em .8em;\
+                    margin:.4em 0 .8em;font-size:.85em;line-height:1.4}}\n\
+         dl.legend dt{{color:#1a1a8e;font-weight:bold;text-align:right}}\n\
+         dl.legend dd{{margin:0;color:#333}}\n\
+         p.note{{font-size:.85em;color:#555;background:#f8f9fa;\
+                 border-left:3px solid #1565c0;padding:.4em .8em;margin:.6em 0}}\n\
+         code{{background:#f0f4f8;padding:0 .25em;border-radius:3px}}\n\
          </style>\n\
          </head>\n\
          <body>\n\
-         <h1>Numerical Semigroups \u{2014} genus 2 to {gmax}</h1>\n\
-         <p>Each polytope is the <strong>Waldi Polytope</strong> cut by fixing multiplicity <em>m</em>,\n\
-         first Ap\u{e9}ry element w<sub>1</sub>&nbsp;=&nbsp;mt+1, and Selmer sum\n\
-         \u{2211}w<sub>i</sub>&nbsp;=&nbsp;mg+m(m\u{2212}1)/2.\n\
-         The Waldi Polytope is an affine transformation of the standard\n\
-         <em>Kunz Polytope</em> from the literature (the latter uses\n\
-         q<sub>i</sub>&nbsp;=&nbsp;(w<sub>i</sub>&minus;i)/m).\n\
-         Each lattice point is one numerical semigroup. The columns\n\
-         c<sub>i,1</sub> are the entries of the first column of the reduced Kunz\n\
-         matrix C<sub>red</sub> (the ambient variable Normaliz reports);\n\
-         the remaining columns mirror the in-app shortprops view\n\
-         (f, e, σ, r, ra, fg, t, Sym, generators, PF, Wilf, 1/e).</p>\n"
-    );
+         <h1>{title}</h1>\n\
+         {intro}",
+    )
+}
 
-    h.push_str(&build_grand_summary(gmax, all_data));
+/// Renders the m × t count table for one genus: rows m = 2..g+1, columns
+/// t = 1..g, with row/column totals.
+fn build_genus_count_table(g: usize, data: &GenusData) -> String {
+    let counts: std::collections::HashMap<(usize, usize), usize> = data
+        .iter()
+        .map(|(m, t, _, lats)| ((*m, *t), lats.len()))
+        .collect();
 
-    h.push_str(&build_per_m_section(all_data));
-
-    // per-genus sections
-    for (g, data) in all_data {
-        h.push_str("<hr>\n");
-        h.push_str(&build_genus_section(*g, data));
+    let mut h = String::new();
+    let _ = writeln!(h, "<h2 id=\"g{g}\">Genus g\u{a0}=\u{a0}{g}</h2>");
+    h.push_str("<table><thead><tr><th class=\"lbl\">m \\ t</th>");
+    for t in 1..=g {
+        let _ = write!(h, "<th>{t}</th>");
     }
+    h.push_str("<th class=\"sum\">\u{3a3}</th></tr></thead><tbody>");
 
+    let mut col_totals = vec![0usize; g + 1];
+    let mut grand = 0usize;
+    for m in 2..=g + 1 {
+        let _ = write!(h, "<tr><th class=\"lbl\">m\u{a0}=\u{a0}{m}</th>");
+        let mut row_sum = 0usize;
+        for (t, ct) in col_totals.iter_mut().enumerate().skip(1).take(g) {
+            let c = counts.get(&(m, t)).copied().unwrap_or(0);
+            *ct += c;
+            row_sum += c;
+            if c == 0 {
+                h.push_str("<td class=\"zero\">\u{b7}</td>");
+            } else {
+                let _ = write!(h, "<td class=\"pos\">{c}</td>");
+            }
+        }
+        grand += row_sum;
+        let _ = write!(h, "<td class=\"sum\">{row_sum}</td></tr>");
+    }
+    h.push_str("</tbody><tfoot><tr><th class=\"lbl\">\u{3a3}</th>");
+    for ct in col_totals.iter().skip(1) {
+        let _ = write!(h, "<td class=\"sum\">{ct}</td>");
+    }
+    let _ = writeln!(h, "<td class=\"sum\">{grand}</td></tr></tfoot></table>");
+    h
+}
+
+/// Builds the summary page: five aggregate tables across all genera, then one
+/// m × t count table per genus.
+fn build_summary_html(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
+    let title = format!("Numerical Semigroups \u{2014} genus 2 to {gmax} (summary)");
+    let intro = format!(
+        "<p>Aggregate counts for all numerical semigroups with\n\
+         genus g\u{a0}\u{2208}\u{a0}2..{gmax}. For the full per-semigroup list,\n\
+         see <a href=\"semigroup_g_from2to{gmax}_list.html\">\
+         semigroup_g_from2to{gmax}_list.html</a>.</p>\n"
+    );
+    let mut h = html_head(&title, &intro);
+    h.push_str(&build_grand_summary(gmax, all_data));
+    for (g, data) in all_data {
+        h.push_str(&build_genus_count_table(*g, data));
+    }
     h.push_str("</body></html>\n");
     h
 }
 
-fn write_combined_html(gmax: usize) -> std::io::Result<()> {
+/// Builds the list page: one row per semigroup, ordered by (g, m, t), with
+/// shortprops columns followed by `c_{1,1} … c_{1,gmax}` (zero-padded).
+fn build_list_html(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
+    let title = format!("Numerical Semigroups \u{2014} genus 2 to {gmax} (list)");
+    let intro = format!(
+        "<p>One row per numerical semigroup, ordered by (g, m, t). Columns\n\
+         c<sub>1,j</sub> are entries of the first column of the reduced Kunz\n\
+         matrix C<sub>red</sub>; rows with m\u{2212}1\u{a0}&lt;\u{a0}{gmax} are\n\
+         zero-padded to {gmax} columns. For aggregate counts, see\n\
+         <a href=\"semigroup_g_from2to{gmax}_summary.html\">\
+         semigroup_g_from2to{gmax}_summary.html</a>.</p>\n"
+    );
+    let mut h = html_head(&title, &intro);
+
+    h.push_str(
+        "<div class=\"scroll\"><table><thead><tr>\
+         <th>g</th>\
+         <th title=\"Frobenius number\">f</th>\
+         <th title=\"Embedding dimension\">e</th>\
+         <th title=\"Sporadic elements (count of S below f+1)\">\u{03c3}</th>\
+         <th title=\"Reflected gaps\">r</th>\
+         <th title=\"Reflected Ap\u{e9}ry\">ra</th>\
+         <th title=\"Fundamental gaps\">fg</th>\
+         <th title=\"Type (|PF|)\">t</th>\
+         <th title=\"Symmetric?\">Sym</th>\
+         <th title=\"Minimal generators\">gen</th>\
+         <th title=\"Pseudo-Frobenius numbers\">PF</th>\
+         <th title=\"Wilf quotient \u{03c3}/(f+1)\">Wilf</th>\
+         <th title=\"1/e\">1/e</th>",
+    );
+    for j in 1..=gmax {
+        let cls = if j == 1 { " class=\"sep\"" } else { "" };
+        let _ = write!(h, "<th{cls}>c<sub>1,{j}</sub></th>");
+    }
+    h.push_str("</tr></thead><tbody>\n");
+
+    let mut rows: Vec<(usize, usize, usize, &Vec<i64>, &Semigroup)> = Vec::new();
+    for (g, data) in all_data {
+        for (m, t, _, lats) in data {
+            for (pt, sg) in lats {
+                rows.push((*g, *m, *t, pt, sg));
+            }
+        }
+    }
+    rows.sort_unstable_by(|a, b| (a.0, a.1, a.2, a.3).cmp(&(b.0, b.1, b.2, b.3)));
+
+    let mut last_g: Option<usize> = None;
+    for (g, _m, _t, c1, sg) in rows {
+        // Anchor the first row of each new genus so summary-page links land
+        // at the right place.
+        let id_attr = if last_g == Some(g) {
+            String::new()
+        } else {
+            last_g = Some(g);
+            format!(" id=\"g{g}\"")
+        };
+        let _ = write!(h, "<tr{id_attr}><td>{g}</td>");
+        h.push_str(&props_cells(sg));
+        for j in 0..gmax {
+            let v = c1.get(j).copied().unwrap_or(0);
+            let cls = if j == 0 { " class=\"sep\"" } else { "" };
+            let _ = write!(h, "<td{cls}>{v}</td>");
+        }
+        h.push_str("</tr>\n");
+    }
+    h.push_str("</tbody></table></div>\n</body></html>\n");
+    h
+}
+
+/// Loads all parsed Normaliz output for genera 2..=gmax.
+fn load_all_data(gmax: usize) -> std::io::Result<Vec<(usize, GenusData)>> {
     let dir = Path::new("normaliz");
     let mut all_data: Vec<(usize, GenusData)> = Vec::new();
     for g in 2..=gmax {
@@ -854,11 +851,80 @@ fn write_combined_html(gmax: usize) -> std::io::Result<()> {
         }
         all_data.push((g, data));
     }
-    let html = build_combined_html(gmax, &all_data);
-    let out = dir.join(format!("semigroup_g_from2to{gmax}.html"));
-    fs::write(&out, html.as_bytes())?;
-    println!("wrote normaliz/semigroup_g_from2to{gmax}.html");
+    Ok(all_data)
+}
+
+fn write_html_files(gmax: usize, all_data: &[(usize, GenusData)]) -> std::io::Result<()> {
+    let dir = Path::new("normaliz");
+
+    let summary_path = dir.join(format!("semigroup_g_from2to{gmax}_summary.html"));
+    fs::write(&summary_path, build_summary_html(gmax, all_data).as_bytes())?;
+    println!("wrote {}", summary_path.display());
+
+    let list_path = dir.join(format!("semigroup_g_from2to{gmax}_list.html"));
+    fs::write(&list_path, build_list_html(gmax, all_data).as_bytes())?;
+    println!("wrote {}", list_path.display());
+
     Ok(())
+}
+
+/// Diagnostic: for every almost-symmetric (`r = 1`) semigroup S, build
+/// S' = S ∪ {f} and report which ones do *not* satisfy `ae(S') = f(S') +
+/// m(S') = 2·g(S')`. Prints a header line plus one row per anomaly.
+fn print_asym_anomalies(all_data: &[(usize, GenusData)]) {
+    println!(
+        "\n── almost-symmetric S, S\u{2032} = S \u{222a} {{f}}: \
+         is ae(S\u{2032}) = f(S\u{2032}) + m(S\u{2032}) = 2\u{00b7}g(S\u{2032})? ──"
+    );
+    let fmt = |xs: &[usize]| {
+        xs.iter()
+            .map(usize::to_string)
+            .collect::<Vec<_>>()
+            .join(", ")
+    };
+    let mut total = 0usize;
+    let mut anomalies = 0usize;
+    for (_g, data) in all_data {
+        for (_m, _t, _, lats) in data {
+            for (_pt, sg) in lats {
+                if sg.r != 1 {
+                    continue;
+                }
+                total += 1;
+                let mut gens = sg.gen_set.clone();
+                gens.push(sg.f);
+                let s2 = compute(&gens);
+                let g2 = s2.count_gap;
+                let fm2 = s2.f + s2.m;
+                let ok = s2.max_gen == fm2 && fm2 == 2 * g2;
+                if !ok {
+                    anomalies += 1;
+                    let bucket = if s2.max_gen == fm2 && fm2 == 2 * g2 + 1 {
+                        "2g+1"
+                    } else if s2.max_gen != fm2 {
+                        "ae<f+m"
+                    } else {
+                        "other"
+                    };
+                    println!(
+                        "  asym ⟨{}⟩ g={} f={} \u{2192} S\u{2032}=⟨{}⟩ \
+                         g\u{2032}={g2} f\u{2032}={} m\u{2032}={} ae\u{2032}={} f\u{2032}+m\u{2032}={fm2} [{bucket}]",
+                        fmt(&sg.gen_set),
+                        sg.count_gap,
+                        sg.f,
+                        fmt(&s2.gen_set),
+                        s2.f,
+                        s2.m,
+                        s2.max_gen,
+                    );
+                }
+            }
+        }
+    }
+    println!(
+        "→ {anomalies}/{total} almost-symmetric semigroups have S\u{2032} \
+         that does NOT match ae=f+m=2g\u{2032}."
+    );
 }
 
 // ── Entry point ───────────────────────────────────────────────────────────────
@@ -871,6 +937,8 @@ fn main() {
     for g in 2..=gmax {
         write_normaliz_files(g).expect("failed to run Normaliz");
     }
-    write_combined_html(gmax).expect("failed to write HTML summary");
-    println!("done: results in normaliz/semigroup_g_from2to{gmax}.html");
+    let all_data = load_all_data(gmax).expect("failed to load Normaliz output");
+    print_asym_anomalies(&all_data);
+    write_html_files(gmax, &all_data).expect("failed to write HTML summary");
+    println!("done: summary + list in normaliz/semigroup_g_from2to{gmax}_*.html");
 }

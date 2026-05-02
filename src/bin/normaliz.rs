@@ -927,9 +927,40 @@ fn print_asym_anomalies(all_data: &[(usize, GenusData)]) {
     );
 }
 
+/// Preflight: confirm that `normaliz --version` can be spawned. Aborts with
+/// a friendly hint if the binary is missing from PATH (a common Windows
+/// stumble — Normaliz must be installed and `normaliz.exe` reachable).
+fn ensure_normaliz_on_path() {
+    match Command::new("normaliz").arg("--version").output() {
+        Ok(out) if out.status.success() => {
+            let banner = String::from_utf8_lossy(&out.stdout);
+            let version = banner.lines().next().unwrap_or("normaliz");
+            println!("found {version}");
+        }
+        Ok(out) => {
+            eprintln!(
+                "error: `normaliz --version` exited with {}. Install Normaliz \
+                 from https://www.normaliz.uni-osnabrueck.de/ and ensure it is \
+                 on PATH.",
+                out.status,
+            );
+            std::process::exit(1);
+        }
+        Err(e) => {
+            eprintln!(
+                "error: cannot launch `normaliz` ({e}). Install Normaliz from \
+                 https://www.normaliz.uni-osnabrueck.de/ and ensure the \
+                 executable (normaliz / normaliz.exe) is on PATH.",
+            );
+            std::process::exit(1);
+        }
+    }
+}
+
 // ── Entry point ───────────────────────────────────────────────────────────────
 
 fn main() {
+    ensure_normaliz_on_path();
     let gmax: usize = std::env::args()
         .nth(1)
         .and_then(|s| s.parse().ok())

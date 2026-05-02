@@ -309,10 +309,22 @@ whose linear part has determinant m, so the q-lattice maps to a sublattice of in
 
 ### What the binary does
 
-For each genus g and multiplicity m ∈ 2..=g+1 and Apéry-class parameter t ∈ 1..=g, it writes a Normaliz input file describing the Waldi Polytope cut by fixing m, w₁ = mt+1, and the Selmer sum ∑wᵢ = mg + m(m−1)/2; lattice points correspond bijectively to numerical semigroups with those parameters. The binary invokes the external [`normaliz`](https://www.normaliz.uni-osnabrueck.de) tool (must be on `PATH`) to compute the lattice points and writes a single combined HTML report to `normaliz/semigroup_g_from2to{gmax}.html` with per-genus and per-multiplicity tables, generators, and shortprops-style invariants.
+For each genus g and multiplicity m ∈ 2..=g+1 and Apéry-class parameter t ∈ 1..=g, it writes a Normaliz input file describing the Waldi Polytope cut by fixing m, w₁ = mt+1, and the Selmer sum ∑wᵢ = mg + m(m−1)/2; lattice points correspond bijectively to numerical semigroups with those parameters. The binary invokes the **bundled** [`normaliz`](https://www.normaliz.uni-osnabrueck.de) executable (resolved relative to the project root: `normaliz/normaliz-3.11.1-Linux/normaliz` on Linux, `normaliz/normaliz-3.11.1-Windows/normaliz.exe` on Windows — no `PATH` setup required) to compute the lattice points and writes two HTML reports to `normaliz/semigroup_g_from2to{gmax}_summary.html` (grand summary and per-genus m × t count tables) and `normaliz/semigroup_g_from2to{gmax}_list.html` (one row per semigroup ordered by g, m, t with shortprops columns and zero-padded c_{1,1}..c_{1,gmax}).
 
 ```bash
 cargo run --release --bin normaliz [gmax]   # default gmax = 10
 ```
 
 Cached `.out` files are reused; only missing pairs are recomputed. The trivial cells m = 2 and m = g+1 (each having a unique closed-form solution) and the empty cells t > g+2−m are skipped entirely.
+
+### Bundled Normaliz distribution
+
+For convenience, the `normaliz/` folder of this repository ships the official **Normaliz 3.11.1** binary distribution for Linux and Windows (`normaliz/normaliz-3.11.1-Linux/` and `normaliz/normaliz-3.11.1-Windows/`). The CLI binary picks the right executable automatically based on the host OS and runs it via a project-relative path — there is no need to install Normaliz or to add anything to `PATH`. (On Linux you may need `chmod +x normaliz/normaliz-3.11.1-Linux/normaliz` once after cloning.)
+
+Normaliz is developed at the University of Osnabrück by **Winfried Bruns**, **Bogdan Ichim**, **Christof Söger**, **Max Horn**, and many other contributors (see `normaliz/normaliz-3.11.1-Linux/AUTHORS`). It is the workhorse that makes the lattice-point enumeration in this project tractable; an enormous thank-you to the Normaliz team for releasing such a powerful tool as free software.
+
+- Project homepage: <https://www.normaliz.uni-osnabrueck.de>
+- Source code: <https://github.com/Normaliz/Normaliz>
+- License: GNU GPL v3 (see `normaliz/normaliz-3.11.1-Linux/COPYING`)
+
+If you use the Normaliz CLI of this project for research, please cite Normaliz as suggested on the project homepage.

@@ -1,7 +1,9 @@
 //! CLI: write Normaliz input files for the Kunz-cone pair-relations matrices
 //! sliced by genus `g`, multiplicity `m`, and Apéry-class parameter `t`,
-//! then invoke the `normaliz` binary to produce the corresponding `.out` files,
-//! and finally write a single combined HTML summary for g = 2..=gmax.
+//! then invoke the bundled Normaliz 3.11.1 binary
+//! (`normaliz/normaliz-3.11.1-{Linux,Windows}/normaliz[.exe]`) to produce the
+//! corresponding `.out` files, and finally write a single combined HTML
+//! summary for g = 2..=gmax.
 //!
 //! For each `g` and each `m ∈ 2..=(g+1)`, `t ∈ 1..=g`, writes
 //! `./normaliz/normaliz_g{g}_m{m}_t{t}.in` with:
@@ -36,8 +38,8 @@ use f3m::math::{Semigroup, compute};
 use rayon::prelude::*;
 use std::fmt::Write as _;
 use std::fs;
-use std::path::Path;
-use std::process::Command;
+use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Instant;
 
@@ -47,13 +49,50 @@ fn join_row(iter: impl Iterator<Item = impl ToString>) -> String {
     iter.map(|v| v.to_string()).collect::<Vec<_>>().join(" ")
 }
 
+/// Returns the project-relative path to the bundled Normaliz 3.11.1 binary
+/// for the current OS, resolved relative to the current working directory.
+/// Linux: `normaliz/normaliz-3.11.1-Linux/normaliz`
+/// Windows: `normaliz/normaliz-3.11.1-Windows/normaliz.exe`
+fn bundled_normaliz_path() -> PathBuf {
+    let (subdir, exe) = if cfg!(target_os = "windows") {
+        ("normaliz-3.11.1-Windows", "normaliz.exe")
+    } else {
+        ("normaliz-3.11.1-Linux", "normaliz")
+    };
+    Path::new("normaliz").join(subdir).join(exe)
+}
+
+/// Spawns `normaliz_bin` with the given input file and waits for completion,
+/// capturing stdout/stderr and stdin-isolating the child. Inheriting stdio
+/// (the previous behaviour) caused two Windows-only failure modes to be
+/// silent: child errors lost in the parallel storm, and a phantom console
+/// window flashing for every spawn.
+fn run_normaliz(normaliz_bin: &Path, in_path: &Path) -> std::io::Result<()> {
+    let output = Command::new(normaliz_bin)
+        .arg(in_path)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .output()?;
+    if output.status.success() {
+        return Ok(());
+    }
+    Err(std::io::Error::other(format!(
+        "normaliz exited with code {} for {}\n--- stdout ---\n{}\n--- stderr ---\n{}",
+        output.status.code().unwrap_or(-1),
+        in_path.display(),
+        String::from_utf8_lossy(&output.stdout).trim_end(),
+        String::from_utf8_lossy(&output.stderr).trim_end(),
+    )))
+}
+
 // ── Normaliz file generation ──────────────────────────────────────────────────
 
 // ALLOW: pure file-generation pipeline; each block handles one distinct input
 // section (ambient space, inequalities, equations) — splitting further would
 // obscure the direct correspondence with the Normaliz file format.
 #[allow(clippy::too_many_lines)]
-fn write_normaliz_files(g: usize) -> std::io::Result<()> {
+fn write_normaliz_files(g: usize, normaliz_bin: &Path) -> std::io::Result<()> {
     let dir = Path::new("normaliz");
     fs::create_dir_all(dir)?;
 
@@ -184,19 +223,13 @@ fn write_normaliz_files(g: usize) -> std::io::Result<()> {
             fs::write(&in_path, &buf)?;
             println!("[{idx}/{total}] starting g={g} m={m} t={t} (n={n}) ...");
             let started = Instant::now();
-            let status = Command::new("normaliz").arg(&in_path).status()?;
+            run_normaliz(normaliz_bin, &in_path)?;
             let elapsed = started.elapsed();
             println!(
                 "[{idx}/{total}] done g={g} m={m} t={t} in {:.2}s (total {:.2}s)",
                 elapsed.as_secs_f64(),
                 overall.elapsed().as_secs_f64(),
             );
-            if !status.success() {
-                return Err(std::io::Error::other(format!(
-                    "normaliz exited with code {} for g={g} m={m} t={t}",
-                    status.code().unwrap_or(-1),
-                )));
-            }
             Ok(())
         })?;
     Ok(())
@@ -928,30 +961,69 @@ fn print_asym_anomalies(all_data: &[(usize, GenusData)]) {
     );
 }
 
-/// Preflight: confirm that `normaliz --version` can be spawned. Aborts with
-/// a friendly hint if the binary is missing from PATH (a common Windows
-/// stumble — Normaliz must be installed and `normaliz.exe` reachable).
-fn ensure_normaliz_on_path() {
-    match Command::new("normaliz").arg("--version").output() {
+/// Preflight: confirm the bundled Normaliz binary exists, runs, and is
+/// distinct from the calling executable. Returns the **absolute** path so
+/// every subsequent spawn is unambiguous — on Windows in particular a bare
+/// or relative program name fed to `CreateProcess` searches the directory of
+/// the calling executable first, which is `target\release\` and contains the
+/// cargo-built `normaliz.exe` (this binary itself). That self-spawn caused
+/// the historical fork-bomb where the loop kept restarting the same g/m/t.
+fn ensure_normaliz_available() -> PathBuf {
+    let rel = bundled_normaliz_path();
+    let abs = match rel.canonicalize() {
+        Ok(p) => p,
+        Err(e) => {
+            eprintln!(
+                "error: cannot resolve bundled Normaliz at `{}` ({e}). Run \
+                 from the project root and make sure the `normaliz/` folder \
+                 with the bundled distribution is present.",
+                rel.display(),
+            );
+            std::process::exit(1);
+        }
+    };
+
+    // Defence against the original Windows fork-bomb: bail loudly if the
+    // bundled binary path resolves to this very executable.
+    if let Ok(self_path) = std::env::current_exe()
+        && let Ok(self_canon) = self_path.canonicalize()
+        && self_canon == abs
+    {
+        eprintln!(
+            "error: bundled Normaliz path {} resolves to this binary itself \
+             — refusing to self-spawn. Check the `normaliz/` folder layout.",
+            abs.display(),
+        );
+        std::process::exit(1);
+    }
+
+    match Command::new(&abs)
+        .arg("--version")
+        .stdin(Stdio::null())
+        .output()
+    {
         Ok(out) if out.status.success() => {
             let banner = String::from_utf8_lossy(&out.stdout);
-            let version = banner.lines().next().unwrap_or("normaliz");
-            println!("found {version}");
+            let version = banner.lines().next().unwrap_or("Normaliz");
+            println!("using bundled {version} at {}", abs.display());
+            abs
         }
         Ok(out) => {
             eprintln!(
-                "error: `normaliz --version` exited with {}. Install Normaliz \
-                 from https://www.normaliz.uni-osnabrueck.de/ and ensure it is \
-                 on PATH.",
+                "error: `{} --version` exited with {}\n--- stderr ---\n{}",
+                abs.display(),
                 out.status,
+                String::from_utf8_lossy(&out.stderr).trim_end(),
             );
             std::process::exit(1);
         }
         Err(e) => {
             eprintln!(
-                "error: cannot launch `normaliz` ({e}). Install Normaliz from \
-                 https://www.normaliz.uni-osnabrueck.de/ and ensure the \
-                 executable (normaliz / normaliz.exe) is on PATH.",
+                "error: cannot launch bundled Normaliz at {} ({e}). On Linux \
+                 ensure the file is executable (`chmod +x {}`); only Linux \
+                 and Windows binaries are bundled.",
+                abs.display(),
+                abs.display(),
             );
             std::process::exit(1);
         }
@@ -961,13 +1033,13 @@ fn ensure_normaliz_on_path() {
 // ── Entry point ───────────────────────────────────────────────────────────────
 
 fn main() {
-    ensure_normaliz_on_path();
+    let normaliz_bin = ensure_normaliz_available();
     let gmax: usize = std::env::args()
         .nth(1)
         .and_then(|s| s.parse().ok())
         .unwrap_or(10);
     for g in 2..=gmax {
-        write_normaliz_files(g).expect("failed to run Normaliz");
+        write_normaliz_files(g, &normaliz_bin).expect("failed to run Normaliz");
     }
     let all_data = load_all_data(gmax).expect("failed to load Normaliz output");
     print_asym_anomalies(&all_data);

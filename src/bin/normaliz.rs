@@ -765,6 +765,7 @@ fn build_list_html(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
     h.push_str(
         "<div class=\"scroll\"><table><thead><tr>\
          <th>g</th>\
+         <th title=\"Multiplicity (smallest positive element)\">m</th>\
          <th title=\"Frobenius number\">f</th>\
          <th title=\"Embedding dimension\">e</th>\
          <th title=\"Sporadic elements (count of S below f+1)\">\u{03c3}</th>\
@@ -795,7 +796,7 @@ fn build_list_html(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
     rows.sort_unstable_by(|a, b| (a.0, a.1, a.2, a.3).cmp(&(b.0, b.1, b.2, b.3)));
 
     let mut last_g: Option<usize> = None;
-    for (g, _m, _t, c1, sg) in rows {
+    for (g, m, _t, c1, sg) in rows {
         // Anchor the first row of each new genus so summary-page links land
         // at the right place.
         let id_attr = if last_g == Some(g) {
@@ -804,7 +805,7 @@ fn build_list_html(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
             last_g = Some(g);
             format!(" id=\"g{g}\"")
         };
-        let _ = write!(h, "<tr{id_attr}><td>{g}</td>");
+        let _ = write!(h, "<tr{id_attr}><td>{g}</td><td>{m}</td>");
         h.push_str(&props_cells(sg));
         for j in 0..gmax {
             let v = c1.get(j).copied().unwrap_or(0);

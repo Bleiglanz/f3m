@@ -198,7 +198,7 @@ that
 for i< m-1 we have (U(m)x)_i = U(m-1)x' - x_1 - x_2 ... -x_{i-1} + i x_{m-1}
 and (U(m)_{m-1} = (m-1)x_{m-1} - x_1 - ... - x_{m-2}
 
-47) in the waldicone, can you export the details (currently in semigroup_g_from2to{gmax}_list.html) also in a json-file?
+47) [DONE] in the waldicone, can you export the details (currently in semigroup_g_from2to{gmax}_list.html) also in a json-file?
 
 48) add a optional commandline argument to waldicone, such that
 "waldicone 13" computes everthing like it is now

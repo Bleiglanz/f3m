@@ -23,12 +23,16 @@
 //! (using `wᵢ ≥ i` for every Apéry element).
 //!
 //! Usage: `cargo run --bin waldicone [gmax]`  (gmax defaults to 10)
-//! Computes all genera g = 2..=gmax and writes two HTML files (light mode):
+//! Computes all genera g = 2..=gmax and writes three output files (HTML in
+//! light mode plus a JSON sibling for downstream tooling):
 //!  - `./normaliz/semigroup_g_from2to{gmax}_summary.html` — five aggregate
 //!    tables (totals, by m, by e, by t, by r).
 //!  - `./normaliz/semigroup_g_from2to{gmax}_list.html` — one row per
 //!    semigroup, ordered by (g, m, t), with the same shortprops columns
 //!    used in the in-app view plus `c_{1,1} … c_{1,gmax}` (zero-padded).
+//!  - `./normaliz/semigroup_g_from2to{gmax}_list.json` — the same per-row
+//!    data as the list page, one JSON object per line, with full Apéry set
+//!    and unpadded `c1` vector for downstream programmatic consumption.
 
 #![forbid(unsafe_code)]
 #![deny(clippy::all, clippy::pedantic, clippy::nursery)]
@@ -778,7 +782,10 @@ fn build_summary_html(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
         "<p>Aggregate counts for all numerical semigroups with\n\
          genus g\u{a0}\u{2208}\u{a0}2..{gmax}. For the full per-semigroup list,\n\
          see <a href=\"semigroup_g_from2to{gmax}_list.html\">\
-         semigroup_g_from2to{gmax}_list.html</a>.</p>\n"
+         semigroup_g_from2to{gmax}_list.html</a>\n\
+         (or the JSON export\n\
+         <a href=\"semigroup_g_from2to{gmax}_list.json\">\
+         semigroup_g_from2to{gmax}_list.json</a>).</p>\n"
     );
     let mut h = html_head(&title, &intro);
     h.push_str(&build_grand_summary(gmax, all_data));
@@ -799,7 +806,10 @@ fn build_list_html(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
          matrix C<sub>red</sub>; rows with m\u{2212}1\u{a0}&lt;\u{a0}{gmax} are\n\
          zero-padded to {gmax} columns. For aggregate counts, see\n\
          <a href=\"semigroup_g_from2to{gmax}_summary.html\">\
-         semigroup_g_from2to{gmax}_summary.html</a>.</p>\n"
+         semigroup_g_from2to{gmax}_summary.html</a>;\n\
+         the same data is also available as JSON in\n\
+         <a href=\"semigroup_g_from2to{gmax}_list.json\">\
+         semigroup_g_from2to{gmax}_list.json</a>.</p>\n"
     );
     let mut h = html_head(&title, &intro);
 
@@ -896,6 +906,74 @@ fn load_all_data(gmax: usize) -> std::io::Result<Vec<(usize, GenusData)>> {
     Ok(all_data)
 }
 
+/// Joins a slice of `Display` values with commas and wraps in `[…]`. Used to
+/// emit JSON arrays of integers (no escaping required).
+fn json_array<T: std::fmt::Display>(xs: &[T]) -> String {
+    let mut out = String::from("[");
+    for (i, x) in xs.iter().enumerate() {
+        if i > 0 {
+            out.push(',');
+        }
+        let _ = write!(out, "{x}");
+    }
+    out.push(']');
+    out
+}
+
+/// Builds a JSON file mirroring the per-semigroup detail page: same rows,
+/// same (g, m, t) ordering, same scalar fields plus the gen/PF/Apéry sets and
+/// the `c₁` lattice point. Hand-rolled rather than pulling in serde — every
+/// value is a number, bool, or array of integers, so escaping isn't a concern.
+fn build_list_json(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
+    let mut rows: Vec<(usize, usize, usize, &Vec<i64>, &Semigroup)> = Vec::new();
+    for (g, data) in all_data {
+        for (m, t, _, lats) in data {
+            for (pt, sg) in lats {
+                rows.push((*g, *m, *t, pt, sg));
+            }
+        }
+    }
+    rows.sort_unstable_by(|a, b| (a.0, a.1, a.2, a.3).cmp(&(b.0, b.1, b.2, b.3)));
+
+    let mut out = String::new();
+    let _ = writeln!(out, "{{\"gmax\":{gmax},\"semigroups\":[");
+    let total = rows.len();
+    for (idx, (g, m, apery_t, c1, sg)) in rows.iter().enumerate() {
+        #[allow(clippy::cast_precision_loss)]
+        let inv_e = 1.0 / sg.e as f64;
+        let _ = write!(
+            out,
+            "{{\"g\":{g},\"m\":{m},\"apery_t\":{apery_t},\
+             \"f\":{f},\"e\":{e},\"sigma\":{sigma},\
+             \"r\":{r},\"ra\":{ra},\"fg\":{fg},\"type\":{type_t},\
+             \"sym\":{sym},\"wilf\":{wilf:.6},\"inv_e\":{inv_e:.6},\
+             \"max_gen\":{max_gen},\
+             \"gen\":{gen},\"pf\":{pf},\"apery\":{apery},\
+             \"c1\":{c1_arr}}}",
+            f = sg.f,
+            e = sg.e,
+            sigma = sg.count_set,
+            r = sg.r,
+            ra = sg.ra,
+            fg = sg.fg,
+            type_t = sg.t,
+            sym = sg.is_symmetric(),
+            wilf = sg.wilf(),
+            max_gen = sg.max_gen,
+            gen = json_array(&sg.gen_set),
+            pf = json_array(&sg.pf_set),
+            apery = json_array(&sg.apery_set),
+            c1_arr = json_array(c1),
+        );
+        if idx + 1 < total {
+            out.push(',');
+        }
+        out.push('\n');
+    }
+    out.push_str("]}\n");
+    out
+}
+
 fn write_html_files(gmax: usize, all_data: &[(usize, GenusData)]) -> std::io::Result<()> {
     let dir = Path::new("normaliz");
 
@@ -906,6 +984,10 @@ fn write_html_files(gmax: usize, all_data: &[(usize, GenusData)]) -> std::io::Re
     let list_path = dir.join(format!("semigroup_g_from2to{gmax}_list.html"));
     fs::write(&list_path, build_list_html(gmax, all_data).as_bytes())?;
     println!("wrote {}", list_path.display());
+
+    let json_path = dir.join(format!("semigroup_g_from2to{gmax}_list.json"));
+    fs::write(&json_path, build_list_json(gmax, all_data).as_bytes())?;
+    println!("wrote {}", json_path.display());
 
     Ok(())
 }

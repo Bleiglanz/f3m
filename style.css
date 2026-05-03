@@ -601,6 +601,14 @@ body.hide-classification .classify-row { display: none; }
 .diagonals-pane { display: flex; gap: 1.5rem; flex-wrap: wrap; }
 .diagonals-table { background: var(--surface); }
 
+/* ─── Comp Tab ──────────────────────────────────────────────────── */
+.comp-header { font-size: 1.1rem; margin: 0.4rem 0 0.6rem; color: var(--label); }
+.comp-row { display: flex; gap: 1.5rem; align-items: flex-start; flex-wrap: wrap; }
+.comp-pane { flex: 1 1 0; min-width: 320px; }
+.comp-pane h3 { margin: 0 0 0.4rem; font-size: 1rem; color: var(--label); font-weight: normal; }
+.comp-shortprop { margin-bottom: 0.5rem; }
+@media (max-width: 800px) { .comp-pane { flex: 1 1 100%; } }
+
 /* ─── Checkbox Strip ────────────────────────────────────────────── */
 .checkbox-strip {
   display: flex;

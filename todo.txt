@@ -221,7 +221,7 @@ in it exactly the same data is presented, but only for numerical semigroups wher
 f+m \in gen_set
 (should be possible to reuse most of the code)
 
-51) in the index.html i want another tab (before Diag)
+51) [DONE] in the index.html i want another tab (before Diag)
 called "Comp", if the history contains more than one semigroup
 then it should show the current semigroup (propery+kunztable)
 and the semigroup immediately before that

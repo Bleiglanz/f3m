@@ -191,3 +191,50 @@ pub fn state_cmp(a: usize, b: usize) -> String {
         super::containment_glyph(sa.partial_cmp(sb)).to_string()
     })
 }
+
+/// HTML for the Comp tab: previous + current entries side-by-side.
+///
+/// Each pane shows `shortprop` followed by `combined_table`. When fewer than
+/// two semigroups are available (history empty, or `current_idx == 0`) returns
+/// a placeholder paragraph.
+#[wasm_bindgen]
+#[must_use]
+pub fn state_comp_html() -> String {
+    with_state(|state| {
+        let Some(idx) = state.current_idx else {
+            return COMP_PLACEHOLDER.to_string();
+        };
+        if idx == 0 {
+            return COMP_PLACEHOLDER.to_string();
+        }
+        let (Some(prev), Some(curr)) = (state.history.get(idx - 1), state.history.get(idx)) else {
+            return COMP_PLACEHOLDER.to_string();
+        };
+        let cmp = super::containment_glyph(prev.partial_cmp(curr));
+        // 1-based labels matching the History tab (S₁, S₂, …).
+        let prev_lbl = idx;
+        let curr_lbl = idx + 1;
+        let pane = |label: String, role: &str, sg: &Semigroup| -> String {
+            format!(
+                "<div class=\"comp-pane\" data-pane=\"{role}\">\
+                 <h3>{label}</h3>\
+                 <div class=\"comp-shortprop\">{}</div>\
+                 <div class=\"comp-grid table-wrap\">{}</div>\
+                 </div>",
+                html_helpers::shortprop(sg),
+                html_helpers::combined_table(sg, 0, 0, state.show_kunz),
+            )
+        };
+        format!(
+            "<div class=\"comp-header\">\
+             S<sub>{prev_lbl}</sub> {cmp} S<sub>{curr_lbl}</sub>\
+             </div>\
+             <div class=\"comp-row\">{}{}</div>",
+            pane(format!("S<sub>{prev_lbl}</sub> (previous)"), "prev", prev),
+            pane(format!("S<sub>{curr_lbl}</sub> (current)"), "curr", curr),
+        )
+    })
+}
+
+const COMP_PLACEHOLDER: &str = "<p><em>Compute at least two semigroups to use the Comp tab. \
+     The current and previous entries of the history are shown side-by-side.</em></p>";

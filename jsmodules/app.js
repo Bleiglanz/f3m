@@ -5,6 +5,7 @@ import init, {
   state_get_eva_expr, state_set_eva_expr, state_gap_output, state_cmp,
   state_get_show_kunz, state_set_show_kunz,
   state_set_show_classification,
+  state_comp_html,
 } from '../pkg/semigroup_explorer.js';
 import { render3d } from './view3d.js';
 import { rebuildGraph, setupGraphUpto, setupShowGaps, setupGraphToggle } from './graph.js';
@@ -294,6 +295,7 @@ function render(s, toggle = null, label = '⏎') {
 
   if (document.getElementById('tab-csv').classList.contains('active')) { buildCsv(); }
   if (document.getElementById('tab-latex').classList.contains('active')) { buildLatex(s); }
+  if (document.getElementById('tab-comp').classList.contains('active')) { renderComp(); }
 }
 
 // Toggle a generator or gap: clicking a labelled number in the result panel.
@@ -369,6 +371,10 @@ function renderDiagonals(s) {
   document.getElementById('diagonals-container').innerHTML = js_diagonals_table(s);
 }
 
+function renderComp() {
+  document.getElementById('comp-container').innerHTML = state_comp_html();
+}
+
 // Activate the named tab and deactivate all others; trigger 3D render if needed.
 function switchTab(name) {
   let activeBtn = null;
@@ -386,6 +392,7 @@ function switchTab(name) {
   if (name === 'csv') { buildCsv(); }
   if (name === 'latex' && currentS) { buildLatex(currentS); }
   if (name === 'diagonals' && currentS) { renderDiagonals(currentS); }
+  if (name === 'comp') { renderComp(); }
 }
 document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
 
@@ -555,6 +562,67 @@ document.getElementById('tilt-grid-container').addEventListener('click', e => {
   const sgSpan = e.target.closest('.sg-grid span[data-n]');
   if (sgSpan) { doToggle(parseInt(sgSpan.dataset.n, 10)); }
 });
+
+// Comp tab: click-to-toggle is restricted to the *current* pane. Toggling
+// from there pushes a new semigroup; the now-previous one shifts left.
+// Clicks in the previous pane are ignored so the user is never confused
+// about which side they are mutating.
+document.getElementById('comp-container').addEventListener('click', e => {
+  if (guardBusy()) { return; }
+  if (!e.target.closest('.comp-pane[data-pane="curr"]')) { return; }
+  const span = e.target.closest('span.sg-frob, span.sg-pf, span.sg-pf-blob, span.sg-gen, span[data-remove-gen]');
+  if (span) { doToggle(parseInt(span.textContent, 10)); return; }
+  const sgSpan = e.target.closest('.sg-grid span[data-n]');
+  if (sgSpan) { doToggle(parseInt(sgSpan.dataset.n, 10)); }
+});
+
+// Comp tab: Apéry-cell / residue-sep hover highlights Kunz cells in the
+// closest enclosing .sg-grid, so each pane is independent.
+{
+  const compEl = document.getElementById('comp-container');
+  let activeGrid = null;
+
+  const clearHighlight = () => {
+    if (!activeGrid) { return; }
+    activeGrid.querySelectorAll('.kunz-highlight, .kunz-highlight-2')
+      .forEach(el => el.classList.remove('kunz-highlight', 'kunz-highlight-2'));
+    activeGrid = null;
+  };
+
+  compEl.addEventListener('mouseover', e => {
+    const aperyTd = e.target.closest('.apery-row td[data-k]');
+    const sepTh = !aperyTd ? e.target.closest('.residue-sep[data-k]') : null;
+    const grid = (aperyTd || sepTh)?.closest('.sg-grid') ?? null;
+    if (!grid) { clearHighlight(); return; }
+    clearHighlight();
+    activeGrid = grid;
+    const k = aperyTd ? aperyTd.dataset.k : sepTh.dataset.k;
+    if (aperyTd && state_get_show_kunz()) {
+      grid.querySelectorAll(`td[data-kunz-i="${k}"], td[data-kunz-j="${k}"], td[data-kunz-sum="${k}"]`)
+        .forEach(el => el.classList.add('kunz-highlight'));
+    } else if (sepTh) {
+      // Determine m,f from whichever pane this grid belongs to.
+      const paneEl = grid.closest('.comp-pane');
+      const role = paneEl?.dataset.pane;
+      const idx = state_current_idx();
+      const sg = role === 'prev' && idx > 0 ? state_get(idx - 1)
+               : role === 'curr' && idx >= 0 ? state_get(idx)
+               : null;
+      if (!sg) { return; }
+      const m = sg.m;
+      const f = sg.f;
+      const mirror = ((f - Number(k)) % m + m) % m;
+      grid.querySelectorAll(`td[data-kunz-j="${k}"], td[data-res="${k}"]`)
+        .forEach(el => el.classList.add('kunz-highlight'));
+      if (mirror !== Number(k)) {
+        grid.querySelectorAll(`td[data-kunz-j="${mirror}"], td[data-res="${mirror}"]`)
+          .forEach(el => el.classList.add('kunz-highlight-2'));
+      }
+    }
+  });
+
+  compEl.addEventListener('mouseleave', clearHighlight);
+}
 
 // Delegate click-to-toggle from property spans and grid cells.
 document.getElementById('result').addEventListener('click', e => {

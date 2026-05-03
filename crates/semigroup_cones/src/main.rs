@@ -172,6 +172,14 @@ fn write_normaliz_files(g: usize, normaliz_bin: &Path) -> std::io::Result<()> {
             //  net-neutral on g=10 (within timing noise) — apparently Normaliz already
             //  derives it from the multiplicity rows + eq1, unlike (b) which
             //  combines eq2 with all multiplicity rows.
+            //
+            //  Note: the inequality (m−1)·c_{m-1,1} ≥ Σ_{i=1..m-2} c_{i,1} is
+            //  algebraically equivalent (via eq1) to c_{m-1,1} ≥ ⌈w₁/m⌉ = t+1,
+            //  which is strictly weaker than what (a) already gives. The last
+            //  multiplicity row (a = m−2) forces w_{m-1} ≥ 2m−1, so
+            //  c_{m-1,1} = (w_{m-1}+w₁)/m ≥ t+2. Adding the new inequality
+            //  is therefore redundant — same situation as the c_{1,1} ≤ 2t−1
+            //  bound above.
             #[allow(clippy::cast_possible_wrap)]
             let s_min = if m >= 3 {
                 (m - 3) * m + (m - 2) * (m - 1) / 2 - 1

@@ -1,0 +1,11 @@
+amb_space 2
+inequalities 3
+1 0
+0 1
+-1 1
+inhom_equations 2
+1 1 -19
+0 3 -48
+inhom_inequalities 2
+-1 2 -5
+0 -1 16

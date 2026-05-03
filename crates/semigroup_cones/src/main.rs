@@ -22,7 +22,11 @@
 //! The upper bound `t ≤ g` follows from `w₁ ≤ ∑wᵢ − ∑_{i=2}^{m−1} i = mg+1`
 //! (using `wᵢ ≥ i` for every Apéry element).
 //!
-//! Usage: `cargo run --bin waldicone [gmax]`  (gmax defaults to 10)
+//! Usage: `cargo run --bin waldicone [gmax] [seq]`  (gmax defaults to 10)
+//! Pass the literal token `seq` as the second argument to force sequential
+//! execution (no rayon over the (m, t) workload or the per-lattice-point
+//! post-processing). Useful when Normaliz's own internal threading is
+//! already saturating the cores.
 //! Computes all genera g = 2..=gmax and writes three output files (HTML in
 //! light mode plus a JSON sibling for downstream tooling):
 //!  - `./normaliz/semigroup_g_from2to{gmax}_summary.html` — five aggregate
@@ -96,7 +100,7 @@ fn run_normaliz(normaliz_bin: &Path, in_path: &Path) -> std::io::Result<()> {
 // section (ambient space, inequalities, equations) — splitting further would
 // obscure the direct correspondence with the Normaliz file format.
 #[allow(clippy::too_many_lines)]
-fn write_normaliz_files(g: usize, normaliz_bin: &Path) -> std::io::Result<()> {
+fn write_normaliz_files(g: usize, normaliz_bin: &Path, mode: ExecMode) -> std::io::Result<()> {
     let dir = Path::new("normaliz");
     fs::create_dir_all(dir)?;
 
@@ -116,134 +120,136 @@ fn write_normaliz_files(g: usize, normaliz_bin: &Path) -> std::io::Result<()> {
     let overall = Instant::now();
     let counter = AtomicUsize::new(0);
 
-    pairs
-        .into_par_iter()
-        .try_for_each(|(m, t)| -> std::io::Result<()> {
-            let n = m - 1;
-            let nrows = n * (n + 1) / 2;
-            let data = matrices[m - 2].as_slice();
+    let process = |(m, t): (usize, usize)| -> std::io::Result<()> {
+        let n = m - 1;
+        let nrows = n * (n + 1) / 2;
+        let data = matrices[m - 2].as_slice();
 
-            let mut buf = String::new();
-            let _ = writeln!(buf, "amb_space {n}");
-            let _ = writeln!(buf, "inequalities {nrows}");
-            for r in 0..nrows {
-                let _ = writeln!(buf, "{}", join_row((0..n).map(|c| data[r * n + c])));
-            }
+        let mut buf = String::new();
+        let _ = writeln!(buf, "amb_space {n}");
+        let _ = writeln!(buf, "inequalities {nrows}");
+        for r in 0..nrows {
+            let _ = writeln!(buf, "{}", join_row((0..n).map(|c| data[r * n + c])));
+        }
 
-            // Two affine equalities cut the Kunz cone to a bounded polytope.
-            // Normaliz inhom_equations row format: [a₁ … aₙ b] means a·x + b = 0.
-            // The ambient variable is x = C_red[:,0], so x_a = c(a+1, 1).
-            let selmer = m * g + m * (m - 1) / 2;
-            let w1 = m * t + 1;
+        // Two affine equalities cut the Kunz cone to a bounded polytope.
+        // Normaliz inhom_equations row format: [a₁ … aₙ b] means a·x + b = 0.
+        // The ambient variable is x = C_red[:,0], so x_a = c(a+1, 1).
+        let selmer = m * g + m * (m - 1) / 2;
+        let w1 = m * t + 1;
 
-            let _ = writeln!(buf, "inhom_equations 2");
+        let _ = writeln!(buf, "inhom_equations 2");
 
-            // Equation 1: ∑xᵢ = w₁  →  [1, 1, …, 1, −w1]
-            let mut eq1 = vec![1_i64; n + 1];
+        // Equation 1: ∑xᵢ = w₁  →  [1, 1, …, 1, −w1]
+        let mut eq1 = vec![1_i64; n + 1];
+        #[allow(clippy::cast_possible_wrap)]
+        {
+            eq1[n] = -(w1 as i64);
+        }
+        let _ = writeln!(buf, "{}", join_row(eq1.iter()));
+
+        // Equation 2: (1ᵀ U(m))·x = selmer  →  [col_sums_of_U, −selmer]
+        #[allow(clippy::cast_possible_wrap)]
+        let (ni, mi) = (n as i64, m as i64);
+        let mut eq2 = vec![0_i64; n + 1];
+        for (b, coeff) in eq2.iter_mut().enumerate().take(n) {
             #[allow(clippy::cast_possible_wrap)]
             {
-                eq1[n] = -(w1 as i64);
+                *coeff = ni * (ni + 1) / 2 - mi * (ni - 1 - b as i64);
             }
-            let _ = writeln!(buf, "{}", join_row(eq1.iter()));
+        }
+        #[allow(clippy::cast_possible_wrap)]
+        {
+            eq2[n] = -(selmer as i64);
+        }
+        let _ = writeln!(buf, "{}", join_row(eq2.iter()));
 
-            // Equation 2: (1ᵀ U(m))·x = selmer  →  [col_sums_of_U, −selmer]
-            #[allow(clippy::cast_possible_wrap)]
-            let (ni, mi) = (n as i64, m as i64);
-            let mut eq2 = vec![0_i64; n + 1];
-            for (b, coeff) in eq2.iter_mut().enumerate().take(n) {
-                #[allow(clippy::cast_possible_wrap)]
-                {
-                    *coeff = ni * (ni + 1) / 2 - mi * (ni - 1 - b as i64);
-                }
-            }
-            #[allow(clippy::cast_possible_wrap)]
-            {
-                eq2[n] = -(selmer as i64);
-            }
-            let _ = writeln!(buf, "{}", join_row(eq2.iter()));
-
-            // Inhomogeneous inequalities:
-            //  (a) Multiplicity-m: κ_a = (w_a − (a+1))/m ≥ 1 for a = 1..n-1.
-            //      Without these, κ_a = 0 (w_a = a+1 < m) gives semigroups
-            //      with true multiplicity < m — counted in a smaller-m cell.
-            //  (b) Upper bound on c_{m-1,1}: from w_{m-1} ≤ selmer − w₁ − Σ_{i=2..m-2}(m+i)
-            //      (using the multiplicity lower bounds), get
-            //      c_{m-1,1} ≤ (selmer − S_min) / m  where S_min = (m-3)m + (m-2)(m-1)/2 − 1.
-            //      LP-derivable from existing constraints, but stating it explicitly
-            //      gives Normaliz a tighter bounding box for lattice enumeration.
-            //
-            //  Note: the symmetric bound c_{1,1} ≤ 2t − 1 was tested and turned out
-            //  net-neutral on g=10 (within timing noise) — apparently Normaliz already
-            //  derives it from the multiplicity rows + eq1, unlike (b) which
-            //  combines eq2 with all multiplicity rows.
-            //
-            //  Note: the inequality (m−1)·c_{m-1,1} ≥ Σ_{i=1..m-2} c_{i,1} is
-            //  algebraically equivalent (via eq1) to c_{m-1,1} ≥ ⌈w₁/m⌉ = t+1,
-            //  which is strictly weaker than what (a) already gives. The last
-            //  multiplicity row (a = m−2) forces w_{m-1} ≥ 2m−1, so
-            //  c_{m-1,1} = (w_{m-1}+w₁)/m ≥ t+2. Adding the new inequality
-            //  is therefore redundant — same situation as the c_{1,1} ≤ 2t−1
-            //  bound above.
-            #[allow(clippy::cast_possible_wrap)]
-            let s_min = if m >= 3 {
-                (m - 3) * m + (m - 2) * (m - 1) / 2 - 1
-            } else {
-                0
-            };
-            let upper_extra = usize::from(n >= 1);
-            let total_ineq = n.saturating_sub(1) + upper_extra;
-            if total_ineq > 0 {
-                let _ = writeln!(buf, "inhom_inequalities {total_ineq}");
-                if n > 1 {
-                    for a in 1..n {
-                        #[allow(clippy::cast_possible_wrap)]
-                        let (ki, min_w) = ((a + 1) as i64, (m + a + 1) as i64);
-                        let _ = writeln!(
-                            buf,
-                            "{}",
-                            join_row(
-                                (0..n)
-                                    .map(|b| if b < a { ki - mi } else { ki })
-                                    .chain(std::iter::once(-min_w))
-                            )
-                        );
-                    }
-                }
-                if upper_extra == 1 {
-                    // Row: −c_{m-1,1} + bound ≥ 0  →  [0 0 … 0 −1 bound]
-                    #[allow(clippy::cast_possible_wrap, clippy::cast_sign_loss)]
-                    let bound = ((selmer - s_min) / m) as i64;
+        // Inhomogeneous inequalities:
+        //  (a) Multiplicity-m: κ_a = (w_a − (a+1))/m ≥ 1 for a = 1..n-1.
+        //      Without these, κ_a = 0 (w_a = a+1 < m) gives semigroups
+        //      with true multiplicity < m — counted in a smaller-m cell.
+        //  (b) Upper bound on c_{m-1,1}: from w_{m-1} ≤ selmer − w₁ − Σ_{i=2..m-2}(m+i)
+        //      (using the multiplicity lower bounds), get
+        //      c_{m-1,1} ≤ (selmer − S_min) / m  where S_min = (m-3)m + (m-2)(m-1)/2 − 1.
+        //      LP-derivable from existing constraints, but stating it explicitly
+        //      gives Normaliz a tighter bounding box for lattice enumeration.
+        //
+        //  Note: the symmetric bound c_{1,1} ≤ 2t − 1 was tested and turned out
+        //  net-neutral on g=10 (within timing noise) — apparently Normaliz already
+        //  derives it from the multiplicity rows + eq1, unlike (b) which
+        //  combines eq2 with all multiplicity rows.
+        //
+        //  Note: the inequality (m−1)·c_{m-1,1} ≥ Σ_{i=1..m-2} c_{i,1} is
+        //  algebraically equivalent (via eq1) to c_{m-1,1} ≥ ⌈w₁/m⌉ = t+1,
+        //  which is strictly weaker than what (a) already gives. The last
+        //  multiplicity row (a = m−2) forces w_{m-1} ≥ 2m−1, so
+        //  c_{m-1,1} = (w_{m-1}+w₁)/m ≥ t+2. Adding the new inequality
+        //  is therefore redundant — same situation as the c_{1,1} ≤ 2t−1
+        //  bound above.
+        #[allow(clippy::cast_possible_wrap)]
+        let s_min = if m >= 3 {
+            (m - 3) * m + (m - 2) * (m - 1) / 2 - 1
+        } else {
+            0
+        };
+        let upper_extra = usize::from(n >= 1);
+        let total_ineq = n.saturating_sub(1) + upper_extra;
+        if total_ineq > 0 {
+            let _ = writeln!(buf, "inhom_inequalities {total_ineq}");
+            if n > 1 {
+                for a in 1..n {
+                    #[allow(clippy::cast_possible_wrap)]
+                    let (ki, min_w) = ((a + 1) as i64, (m + a + 1) as i64);
                     let _ = writeln!(
                         buf,
                         "{}",
                         join_row(
                             (0..n)
-                                .map(|b| if b == n - 1 { -1 } else { 0 })
-                                .chain(std::iter::once(bound))
+                                .map(|b| if b < a { ki - mi } else { ki })
+                                .chain(std::iter::once(-min_w))
                         )
                     );
                 }
             }
-
-            let in_path = dir.join(format!("normaliz_g{g}_m{m}_t{t}.in"));
-            let out_path = dir.join(format!("normaliz_g{g}_m{m}_t{t}.out"));
-            let idx = counter.fetch_add(1, Ordering::Relaxed) + 1;
-            if out_path.exists() {
-                println!("[{idx}/{total}] cached g={g} m={m} t={t} (n={n})");
-                return Ok(());
+            if upper_extra == 1 {
+                // Row: −c_{m-1,1} + bound ≥ 0  →  [0 0 … 0 −1 bound]
+                #[allow(clippy::cast_possible_wrap, clippy::cast_sign_loss)]
+                let bound = ((selmer - s_min) / m) as i64;
+                let _ = writeln!(
+                    buf,
+                    "{}",
+                    join_row(
+                        (0..n)
+                            .map(|b| if b == n - 1 { -1 } else { 0 })
+                            .chain(std::iter::once(bound))
+                    )
+                );
             }
-            fs::write(&in_path, &buf)?;
-            println!("[{idx}/{total}] starting g={g} m={m} t={t} (n={n}) ...");
-            let started = Instant::now();
-            run_normaliz(normaliz_bin, &in_path)?;
-            let elapsed = started.elapsed();
-            println!(
-                "[{idx}/{total}] done g={g} m={m} t={t} in {:.2}s (total {:.2}s)",
-                elapsed.as_secs_f64(),
-                overall.elapsed().as_secs_f64(),
-            );
-            Ok(())
-        })?;
+        }
+
+        let in_path = dir.join(format!("normaliz_g{g}_m{m}_t{t}.in"));
+        let out_path = dir.join(format!("normaliz_g{g}_m{m}_t{t}.out"));
+        let idx = counter.fetch_add(1, Ordering::Relaxed) + 1;
+        if out_path.exists() {
+            println!("[{idx}/{total}] cached g={g} m={m} t={t} (n={n})");
+            return Ok(());
+        }
+        fs::write(&in_path, &buf)?;
+        println!("[{idx}/{total}] starting g={g} m={m} t={t} (n={n}) ...");
+        let started = Instant::now();
+        run_normaliz(normaliz_bin, &in_path)?;
+        let elapsed = started.elapsed();
+        println!(
+            "[{idx}/{total}] done g={g} m={m} t={t} in {:.2}s (total {:.2}s)",
+            elapsed.as_secs_f64(),
+            overall.elapsed().as_secs_f64(),
+        );
+        Ok(())
+    };
+    match mode {
+        ExecMode::Parallel => pairs.into_par_iter().try_for_each(process)?,
+        ExecMode::Sequential => pairs.into_iter().try_for_each(process)?,
+    }
     Ok(())
 }
 
@@ -870,8 +876,13 @@ fn build_list_html(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
 }
 
 /// Loads all parsed Normaliz output for genera 2..=gmax.
-fn load_all_data(gmax: usize) -> std::io::Result<Vec<(usize, GenusData)>> {
+fn load_all_data(gmax: usize, mode: ExecMode) -> std::io::Result<Vec<(usize, GenusData)>> {
     let dir = Path::new("normaliz");
+    let lift = |pt: Vec<i64>, m: usize, t: usize| -> Lattice {
+        let apery = apery_from_c1(m, t, &pt);
+        let sg = semigroup_from_apery(m, &apery);
+        (pt, sg)
+    };
     let mut all_data: Vec<(usize, GenusData)> = Vec::new();
     for g in 2..=gmax {
         let mut data: GenusData = Vec::new();
@@ -886,14 +897,14 @@ fn load_all_data(gmax: usize) -> std::io::Result<Vec<(usize, GenusData)>> {
                 let path = dir.join(format!("normaliz_g{g}_m{m}_t{t}.out"));
                 match parse_out_file(&path) {
                     Ok((count, points)) => {
-                        let lattices: Vec<Lattice> = points
-                            .into_par_iter()
-                            .map(|pt| {
-                                let apery = apery_from_c1(m, t, &pt);
-                                let sg = semigroup_from_apery(m, &apery);
-                                (pt, sg)
-                            })
-                            .collect();
+                        let lattices: Vec<Lattice> = match mode {
+                            ExecMode::Parallel => {
+                                points.into_par_iter().map(|pt| lift(pt, m, t)).collect()
+                            }
+                            ExecMode::Sequential => {
+                                points.into_iter().map(|pt| lift(pt, m, t)).collect()
+                            }
+                        };
                         data.push((m, t, count, lattices));
                     }
                     Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
@@ -1122,16 +1133,34 @@ fn ensure_normaliz_available() -> PathBuf {
 
 // ── Entry point ───────────────────────────────────────────────────────────────
 
+/// Whether the `(m, t)` workload and the per-lattice-point post-processing run
+/// across rayon worker threads or single-threaded. Sequential mode exists
+/// because Normaliz itself parallelises heavily inside each spawn; layering
+/// rayon on top causes thread contention with no measurable speedup on the
+/// machines tested so far.
+#[derive(Debug, Clone, Copy)]
+enum ExecMode {
+    Parallel,
+    Sequential,
+}
+
 fn main() {
     let normaliz_bin = ensure_normaliz_available();
-    let gmax: usize = std::env::args()
-        .nth(1)
-        .and_then(|s| s.parse().ok())
-        .unwrap_or(10);
+    let mut args = std::env::args().skip(1);
+    let gmax: usize = args.next().and_then(|s| s.parse().ok()).unwrap_or(10);
+    let mode = match args.next().as_deref() {
+        Some("seq") => ExecMode::Sequential,
+        None => ExecMode::Parallel,
+        Some(other) => {
+            eprintln!("error: unknown second argument {other:?} (expected 'seq' or omit)",);
+            std::process::exit(1);
+        }
+    };
+    println!("execution mode: {mode:?}");
     for g in 2..=gmax {
-        write_normaliz_files(g, &normaliz_bin).expect("failed to run Normaliz");
+        write_normaliz_files(g, &normaliz_bin, mode).expect("failed to run Normaliz");
     }
-    let all_data = load_all_data(gmax).expect("failed to load Normaliz output");
+    let all_data = load_all_data(gmax, mode).expect("failed to load Normaliz output");
     print_asym_anomalies(&all_data);
     write_html_files(gmax, &all_data).expect("failed to write HTML summary");
     println!("done: summary + list in normaliz/semigroup_g_from2to{gmax}_*.html");

@@ -1535,7 +1535,8 @@ mod tests {
                     #[allow(clippy::cast_possible_wrap)]
                     let expected = ux_prime[i] - prefix + (i + 1) as i64 * x_last;
                     assert_eq!(
-                        ux[i], expected,
+                        ux[i],
+                        expected,
                         "(U({m})·x)_{i_math} mismatch (block decomposition)",
                         i_math = i + 1,
                     );

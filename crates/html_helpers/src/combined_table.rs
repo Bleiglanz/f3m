@@ -108,11 +108,7 @@ pub fn combined_table(sg: &Semigroup, offset: usize, tilt: i32, show_kunz: bool)
     html.push_str("<tr class=\"apery-row\">");
     for &i in &perm {
         let v = sg.apery_set[i];
-        let _ = write!(
-            html,
-            "<td data-k=\"{i}\">{}</td>",
-            span(cls_of(v), v, true)
-        );
+        let _ = write!(html, "<td data-k=\"{i}\">{}</td>", span(cls_of(v), v, true));
     }
     html.push_str("</tr>");
 

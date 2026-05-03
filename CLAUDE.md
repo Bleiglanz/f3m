@@ -22,7 +22,7 @@ cargo clippy --workspace -- -D warnings
 wasm-pack build crates/semigroup_explorer --target web --out-dir ../../pkg
 
 # Run the native CLI (binary name: waldicone)
-cargo run --release --bin waldicone [gmax]
+cargo run --release --bin waldicone [gmax] [seq]
 
 # Serve the app locally (required — ES modules don't work over file://)
 python3 -m http.server 8080

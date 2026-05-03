@@ -242,7 +242,7 @@ src/
     tilt.rs                   — tilt grid HTML
     js_eval.rs                — eval_expr WASM export
     jsgraph.rs                — graph edge data
-  bin/normaliz.rs             — CLI: enumerate semigroups via the Waldi Polytope using Normaliz (see below)
+  bin/waldicone.rs            — CLI: enumerate semigroups via the Waldi Polytope using Normaliz (see below)
   main.rs                     — unused binary stub
 pkg/                          — wasm-pack output (gitignored; built by `wasm-pack build` and in CI)
 jsmodules/
@@ -292,7 +292,7 @@ number = [0-9]+
 
 ---
 
-## Normaliz CLI (`cargo run --bin normaliz`)
+## Waldicone CLI (`cargo run --bin waldicone`)
 
 A separate native binary that enumerates **all** numerical semigroups of bounded genus via the **Waldi Polytope**.
 
@@ -312,7 +312,7 @@ whose linear part has determinant m, so the q-lattice maps to a sublattice of in
 For each genus g and multiplicity m ∈ 2..=g+1 and Apéry-class parameter t ∈ 1..=g, it writes a Normaliz input file describing the Waldi Polytope cut by fixing m, w₁ = mt+1, and the Selmer sum ∑wᵢ = mg + m(m−1)/2; lattice points correspond bijectively to numerical semigroups with those parameters. The binary invokes the **bundled** [`normaliz`](https://www.normaliz.uni-osnabrueck.de) executable (resolved relative to the project root: `normaliz/normaliz-3.11.1-Linux/normaliz` on Linux, `normaliz/normaliz-3.11.1-Windows/normaliz.exe` on Windows — no `PATH` setup required) to compute the lattice points and writes two HTML reports to `normaliz/semigroup_g_from2to{gmax}_summary.html` (grand summary and per-genus m × t count tables) and `normaliz/semigroup_g_from2to{gmax}_list.html` (one row per semigroup ordered by g, m, t with shortprops columns and zero-padded c_{1,1}..c_{1,gmax}).
 
 ```bash
-cargo run --release --bin normaliz [gmax]   # default gmax = 10
+cargo run --release --bin waldicone [gmax]   # default gmax = 10
 ```
 
 Cached `.out` files are reused; only missing pairs are recomputed. The trivial cells m = 2 and m = g+1 (each having a unique closed-form solution) and the empty cells t > g+2−m are skipped entirely.

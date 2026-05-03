@@ -22,7 +22,7 @@
 //! The upper bound `t ≤ g` follows from `w₁ ≤ ∑wᵢ − ∑_{i=2}^{m−1} i = mg+1`
 //! (using `wᵢ ≥ i` for every Apéry element).
 //!
-//! Usage: `cargo run --bin normaliz [gmax]`  (gmax defaults to 10)
+//! Usage: `cargo run --bin waldicone [gmax]`  (gmax defaults to 10)
 //! Computes all genera g = 2..=gmax and writes two HTML files (light mode):
 //!  - `./normaliz/semigroup_g_from2to{gmax}_summary.html` — five aggregate
 //!    tables (totals, by m, by e, by t, by r).

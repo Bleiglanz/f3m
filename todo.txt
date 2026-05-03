@@ -114,7 +114,7 @@ there are no semigroups if m+t > g+2
 i.e. t>g+2-m, because then we always have the gaps 0m+1,1m+1,...,(t-1)m+1 and the obvious 2,...,m-1
 so g>= t + m -2
 
-41) on the beginning of our html page
+41) [DONE] on the beginning of our html page
 we have Total semigroups per genus (currently showing g, N(g) and N(g) where c11=0
 since we compute everything anyway, we can sum everything up as well:
 add columns
@@ -133,7 +133,7 @@ and in these columns show the number of numerical semigroups with the given m an
 
 --------------------------------------------------------------
 
-41) pico css still doesn't work well in the browser
+41) [DONE] pico css still doesn't work well in the browser
 remove pico dependency and go back to a simple hand-made css
 also i think it would be better to have a left column in the html
 first row (full) the <header>
@@ -158,7 +158,7 @@ containes the tab
 </div>
 please check everything carefully, as long as the functionality remains ok i'm good
 
-42) it is wierd that our binary has the same name as the normaliz, can you rename
+42) [DONE] it is wierd that our binary has the same name as the normaliz, can you rename
 our binary (the executable) to "waldicone".
 
 43) it seems that this project is getting too complicated

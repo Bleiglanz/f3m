@@ -131,6 +131,109 @@ e=gmax+1
 
 and in these columns show the number of numerical semigroups with the given m and e
 
+--------------------------------------------------------------
+
+41) pico css still doesn't work well in the browser
+remove pico dependency and go back to a simple hand-made css
+also i think it would be better to have a left column in the html
+first row (full) the <header>
+--contains the input box and the return and reset button
+left col (fixed witdh <aside>)
+--all the creation and modification buttons
+--and the checkboxes for show_xx
+--one below the other
+right col (uses all the space <main>
+containes the tab
+.layout { display: flex; flex-direction: column; min-height: 100vh; }
+.layout > header { /* top row */ }
+.body { display: flex; flex: 1; }
+.body > aside { width: 240px; flex: none; }
+.body > main  { flex: 1; }
+<div class="layout">
+  <header>…</header>
+  <div class="body">
+    <aside>…</aside>
+    <main>…</main>
+  </div>
+</div>
+please check everything carefully, as long as the functionality remains ok i'm good
+
+42) it is wierd that our binary has the same name as the normaliz, can you rename
+our binary (the executable) to "waldicone".
+
+43) it seems that this project is getting too complicated
+can we make this a multi-crate=workspaces project, with a shared  target/
+define them once in the root Cargo.toml and use <subproject>/Cargo.toml with workspace true
+My idea:
+a) semigroup_math = contains all the math code for semigroups, tests, the GAP source creation, matrix, gcd and so on - pure rust
+b) semigroup_cones = contains the normaliz folder, the normaliz included destribution (depends only on semigroup_math)
+c) semigroup_explorer = the index.html, wasm, html
+d) html_helpers = a library for all the functions that return html fragments in one form or the otherwise
+this would be a major refactoring, analyze the situation and recommend a plan
+
+44) Back to the math
+Define a matrix V(m) analogous to U(m), a (m-1)x(m-1) matrix with negative entries
+it is given by
+V_{1,1}=2 V_{1,2}=-1 for i=1 the first row
+V_{i,1}=1 V_{i,i}=1 V_{i,i+1)=-1 for the i-th row if i<m-1
+V_{m-1,1}=1 V_{m-1,m-1} = 1 for the m-1 th row
+
+V(2) is (2)
+v(3) is
+2 1
+1 -1
+and so on
+(this comes from w_1+w_i=w_{1+i}+c_{1,i}m)
+Add tests to verify that V(m) U(m) = m Id_{m-1} (i.e. it is m times the identity matrix)
+In the Diag tab of index.html add V(m) and show the product V(m)U(m)
+
+45) in our waldicone
+do we have a constraint
+(m-1) x_{m-1} >= x_1+x_2+...+x_{m-2}
+should we add it, would it help?
+
+46)
+can you verify for a few testvectors x that if we write x = (x',x_{m-1}) with x' a m-2 column vector
+that
+for i< m-1 we have (U(m)x)_i = U(m-1)x' - x_1 - x_2 ... -x_{i-1} + i x_{m-1}
+and (U(m)_{m-1} = (m-1)x_{m-1} - x_1 - ... - x_{m-2}
+
+47) in the waldicone, can you export the details (currently in semigroup_g_from2to{gmax}_list.html) also in a json-file?
+
+48) add a optional commandline argument to waldicone, such that
+"waldicone 13" computes everthing like it is now
+"waldicone 13 seq" computes everthing without the parallel execution
+it think that normaliz itself uses parallelism heavily
+(I tried the binary on a 64GB RAM server 20cores without any significant speedup, need to test)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

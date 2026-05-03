@@ -787,8 +787,34 @@ fn build_genus_count_table(g: usize, data: &GenusData) -> String {
     h
 }
 
-/// Builds the summary page: five aggregate tables across all genera, then one
-/// m × q1 count table per genus.
+/// Renders the body shared by every summary page: the five aggregate tables
+/// across all genera, then one m × q1 count table per genus. Title and intro
+/// are caller-supplied so the same body can serve unfiltered and filtered
+/// (predicate-restricted) views.
+fn build_summary_body(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
+    let mut h = String::new();
+    h.push_str(&build_grand_summary(gmax, all_data));
+    for (g, data) in all_data {
+        h.push_str(&build_genus_count_table(*g, data));
+    }
+    h
+}
+
+/// Wraps `build_summary_body` with `<head>`, the given title/intro, and `</body></html>`.
+fn build_summary_page(
+    gmax: usize,
+    all_data: &[(usize, GenusData)],
+    title: &str,
+    intro: &str,
+) -> String {
+    let mut h = html_head(title, intro);
+    h.push_str(&build_summary_body(gmax, all_data));
+    h.push_str("</body></html>\n");
+    h
+}
+
+/// Builds the unfiltered summary page (every numerical semigroup with
+/// genus 2..=gmax).
 fn build_summary_html(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
     let title = format!("Numerical Semigroups \u{2014} genus 2 to {gmax} (summary)");
     let intro = format!(
@@ -800,13 +826,7 @@ fn build_summary_html(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
          <a href=\"semigroup_g_from2to{gmax}_list.json\">\
          semigroup_g_from2to{gmax}_list.json</a>).</p>\n"
     );
-    let mut h = html_head(&title, &intro);
-    h.push_str(&build_grand_summary(gmax, all_data));
-    for (g, data) in all_data {
-        h.push_str(&build_genus_count_table(*g, data));
-    }
-    h.push_str("</body></html>\n");
-    h
+    build_summary_page(gmax, all_data, &title, &intro)
 }
 
 /// Builds the list page: one row per semigroup, ordered by (g, m, q1), with
@@ -993,6 +1013,59 @@ fn build_list_json(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
     out
 }
 
+/// One predicate-restricted view of the full data set. Each entry produces a
+/// summary HTML at `semigroup_g_from2to{gmax}_summary_{label}.html` containing
+/// exactly the same five aggregate tables as the unfiltered summary, but
+/// tallied only over semigroups for which `predicate` returns true.
+///
+/// To add a new analysis lens, append a `FilteredView` here — no other code
+/// changes required.
+struct FilteredView {
+    /// File-stem suffix (after `_summary_`). Must be filename-safe.
+    label: &'static str,
+    /// Human-readable description, rendered into the page intro.
+    description: &'static str,
+    /// Returns true for semigroups that should be retained in the summary.
+    predicate: fn(&Semigroup) -> bool,
+}
+
+const FILTERED_VIEWS: &[FilteredView] = &[FilteredView {
+    label: "maxapery_is_minimal_generator",
+    description: "Numerical semigroups in which f+m is itself a minimal generator \
+         (equivalently, the largest Apéry value w<sub>m\u{2212}1</sub> = f+m \
+         and a<sub>e</sub> = f+m). Empirically these are the only candidates \
+         for which closing the last gap S \u{21a6} S \u{222a} \u{007b}f\u{007d} \
+         lands inside the well-behaved Kunz-cone neighbour.",
+    predicate: |sg| sg.max_gen == sg.f + sg.m,
+}];
+
+/// Returns a copy of `all_data` with each genus's lattices filtered by
+/// `pred`. Tuples with no surviving lattices are dropped to keep the
+/// per-genus m × q1 tables sparse-friendly.
+fn filter_data(
+    all_data: &[(usize, GenusData)],
+    pred: fn(&Semigroup) -> bool,
+) -> Vec<(usize, GenusData)> {
+    all_data
+        .iter()
+        .map(|(g, data)| {
+            let filtered: GenusData = data
+                .iter()
+                .filter_map(|(m, q1, _, lats)| {
+                    let kept: Vec<Lattice> =
+                        lats.iter().filter(|(_, sg)| pred(sg)).cloned().collect();
+                    if kept.is_empty() {
+                        None
+                    } else {
+                        Some((*m, *q1, kept.len(), kept))
+                    }
+                })
+                .collect();
+            (*g, filtered)
+        })
+        .collect()
+}
+
 fn write_html_files(gmax: usize, all_data: &[(usize, GenusData)]) -> std::io::Result<()> {
     let dir = Path::new("normaliz");
 
@@ -1007,6 +1080,30 @@ fn write_html_files(gmax: usize, all_data: &[(usize, GenusData)]) -> std::io::Re
     let json_path = dir.join(format!("semigroup_g_from2to{gmax}_list.json"));
     fs::write(&json_path, build_list_json(gmax, all_data).as_bytes())?;
     println!("wrote {}", json_path.display());
+
+    for view in FILTERED_VIEWS {
+        let filtered = filter_data(all_data, view.predicate);
+        let title = format!(
+            "Numerical Semigroups \u{2014} genus 2 to {gmax} (summary, filter: {})",
+            view.label,
+        );
+        let intro = format!(
+            "<p>Aggregate counts restricted to: {}</p>\n\
+             <p>For the full unfiltered summary see\n\
+             <a href=\"semigroup_g_from2to{gmax}_summary.html\">\
+             semigroup_g_from2to{gmax}_summary.html</a>.</p>\n",
+            view.description,
+        );
+        let path = dir.join(format!(
+            "semigroup_g_from2to{gmax}_summary_{}.html",
+            view.label,
+        ));
+        fs::write(
+            &path,
+            build_summary_page(gmax, &filtered, &title, &intro).as_bytes(),
+        )?;
+        println!("wrote {}", path.display());
+    }
 
     Ok(())
 }

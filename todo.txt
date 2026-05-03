@@ -213,7 +213,7 @@ for the q_1, if w_1=q_1m+1
 this is conflicting with t=type=number of pseudofrob
 so carefully rename t to q1 whereever it appears in the role of q1
 
-50) I'm mainly interested in closing the last gap S -> S \cup {f}
+50) [DONE] I'm mainly interested in closing the last gap S -> S \cup {f}
 My best shot for analysis currently is the case that f+m is a minimal generator
 So waldicore should create another summary file
 semigroup_g_from2to{gmax}_summary_maxapery_is_minimal_generator

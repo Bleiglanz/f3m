@@ -8,6 +8,11 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.44/dist/katex.min.css" integrity="sha384-irXK0JiCGinqGL+slwVklbhJetrjczNwaP2lANewD8lKAs9n61SbQ3As28iSqXUE" crossorigin="anonymous">
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.44/dist/katex.min.js" integrity="sha384-m/s9umSlhJbqEdA/j7pQVdGCMx2fHf7GXtgCVhNGOwLuu+1qJQES5AzIE8pn3nKQ" crossorigin="anonymous"></script>
+  <!-- PivotTable.js (and its jQuery+jQueryUI deps) — used only by the Pivot tab. -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pivottable@2.23.0/dist/pivot.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jquery-ui@1.13.2/dist/jquery-ui.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pivottable@2.23.0/dist/pivot.min.js"></script>
   <script src="https://unpkg.com/vis-network@9.1.10/standalone/umd/vis-network.min.js"></script>
   <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
   <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -88,6 +93,7 @@
     <button class="tab-btn" data-tab="csv">.csv</button>
     <button class="tab-btn" data-tab="latex">LaTeX</button>
     <button class="tab-btn" data-tab="help">Help</button>
+    <button class="tab-btn" data-tab="pivot" title="Pivot-table view of all enumerated semigroups (loaded from a JSON sample)">Pivot</button>
     <button class="tab-btn" data-tab="comp" title="Compare current semigroup with the previous one in history">Comp</button>
     <button class="tab-btn" data-tab="diagonals">Diagonals</button>
   </div>
@@ -324,6 +330,23 @@
       <h3>Current Semigroup</h3>
       <div id="help-dynamic"><em>Compute a semigroup to see details here.</em></div>
     </div>
+  </div>
+
+  <div id="tab-pivot" class="tab-content">
+    <div class="pivot-controls">
+      <label>Sample:
+        <select id="pivot-gmax">
+          <option value="2">gmax = 2</option>
+          <option value="10">gmax = 10</option>
+          <option value="11">gmax = 11</option>
+          <option value="13">gmax = 13</option>
+          <option value="14" selected>gmax = 14</option>
+        </select>
+      </label>
+      <span id="pivot-status" class="pivot-status"></span>
+    </div>
+    <div id="pivot-out"></div>
+    <div id="pivot-detail"></div>
   </div>
 
   <div id="tab-comp" class="tab-content">

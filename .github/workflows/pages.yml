@@ -28,9 +28,13 @@ jobs:
         run: wasm-pack build crates/semigroup_explorer --target web --out-dir ../../pkg
       - name: Stage site
         run: |
-          mkdir -p _site
+          mkdir -p _site/normaliz
           cp index.html style.css _site/
           cp -r jsmodules pkg _site/
+          # Per-semigroup JSON exports consumed by the in-browser Pivot tab.
+          # Other normaliz/ artefacts (Normaliz binaries, .in/.out files, etc.)
+          # are intentionally excluded from the deployed site.
+          cp normaliz/semigroup_g_from2to*_list.json _site/normaliz/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

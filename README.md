@@ -336,3 +336,20 @@ Normaliz is developed at the University of Osnabrück by **Winfried Bruns**, **B
 - License: GNU GPL v3 (see `normaliz/normaliz-3.11.1-Linux/COPYING`)
 
 If you use the Normaliz CLI of this project for research, please cite Normaliz as suggested on the project homepage.
+
+---
+
+## JavaScript front-end libraries
+
+The browser app pulls in a small set of permissively-licensed JS libraries from public CDNs. Sincere thanks to the authors and maintainers — none of these tabs would be tractable to write from scratch.
+
+| Library | Used by | License | Project |
+|---|---|---|---|
+| [KaTeX](https://katex.org/) | LaTeX tab (formula rendering) | MIT | <https://github.com/KaTeX/KaTeX> |
+| [vis-network](https://visjs.github.io/vis-network/) | Graph tab (Cayley-graph visualisation) | MIT / Apache 2.0 | <https://github.com/visjs/vis-network> |
+| [three.js](https://threejs.org/) | 3dview tab (Kunz-coordinate cube view) | MIT | <https://github.com/mrdoob/three.js> |
+| [PivotTable.js](https://pivottable.js.org/) | Pivot tab (drag-and-drop pivot tables) | MIT | <https://github.com/nicolaskruchten/pivottable> |
+| [jQuery](https://jquery.com/) | dependency of PivotTable.js | MIT | <https://github.com/jquery/jquery> |
+| [jQuery UI](https://jqueryui.com/) | dependency of PivotTable.js (drag-and-drop) | MIT | <https://github.com/jquery/jquery-ui> |
+
+If any of these libraries help your work too, please consider starring or supporting their upstream repositories.

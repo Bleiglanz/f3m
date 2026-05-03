@@ -375,6 +375,106 @@ function renderComp() {
   document.getElementById('comp-container').innerHTML = state_comp_html();
 }
 
+// ── Pivot tab ────────────────────────────────────────────────────────────────
+// Lazy-loaded once per gmax; cached so re-clicking the tab is instant.
+const pivotCache = new Map();
+
+async function fetchPivotData(gmax) {
+  if (pivotCache.has(gmax)) { return pivotCache.get(gmax); }
+  const status = document.getElementById('pivot-status');
+  status.textContent = `Loading semigroup_g_from2to${gmax}_list.json …`;
+  const url = `normaliz/semigroup_g_from2to${gmax}_list.json`;
+  const resp = await fetch(url);
+  if (!resp.ok) { throw new Error(`HTTP ${resp.status} fetching ${url}`); }
+  const json = await resp.json();
+  // Project the rows into flat objects PivotTable.js can pivot on.
+  // Array fields (gen, pf, apery, c1) are joined for display; gen is also kept
+  // raw in __genArr for the drill-down "Open" handler.
+  const rows = json.semigroups.map(s => ({
+    g: s.g, m: s.m, e: s.e, type: s.type, q1: s.q1,
+    f: s.f, sigma: s.sigma, r: s.r, ra: s.ra, fg: s.fg,
+    sym: s.sym, max_gen: s.max_gen,
+    wilf: Number(s.wilf.toFixed(4)),
+    'f<m': s.f < s.m,
+    'f mod m': s.f % s.m,
+    'ae=f+m': s.max_gen === s.f + s.m,
+    gen: s.gen.join(', '),
+    pf: s.pf.join(', '),
+    apery: s.apery.join(', '),
+    c1: s.c1.join(', '),
+    __genArr: s.gen,
+  }));
+  pivotCache.set(gmax, rows);
+  status.textContent = `Loaded ${rows.length} semigroups (gmax=${gmax}).`;
+  return rows;
+}
+
+function renderPivotDetail(filters, pivotData) {
+  const detail = document.getElementById('pivot-detail');
+  const matches = [];
+  pivotData.forEachMatchingRecord(filters, rec => matches.push(rec));
+  if (matches.length === 0) { detail.innerHTML = ''; return; }
+  const filterStr = Object.entries(filters)
+    .map(([k, v]) => `${k}=${v}`).join(', ') || '(no filters)';
+  const cols = ['g', 'm', 'e', 'type', 'f', 'r', 'sigma', 'gen', 'pf'];
+  const head = `<tr>${cols.map(c => `<th>${c}</th>`).join('')}<th></th></tr>`;
+  const body = matches.map((rec, idx) => {
+    const tds = cols.map(c => `<td>${rec[c]}</td>`).join('');
+    return `<tr>${tds}<td><button class="open-btn" data-idx="${idx}">Open →</button></td></tr>`;
+  }).join('');
+  detail.innerHTML = `<h4>${matches.length} matching (${filterStr})</h4>` +
+    `<table><thead>${head}</thead><tbody>${body}</tbody></table>`;
+  // One handler with delegation: stash the matches array on the panel via closure.
+  detail.querySelectorAll('.open-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const i = parseInt(btn.dataset.idx, 10);
+      const gens = matches[i].__genArr.join(', ');
+      gensInput.value = gens;
+      _computeLabel = 'Pivot';
+      switchTab('s');
+      guardedCompute();
+    });
+  });
+}
+
+let _pivotInit = false;
+async function renderPivot() {
+  const gmax = parseInt(document.getElementById('pivot-gmax').value, 10);
+  let rows;
+  try {
+    rows = await fetchPivotData(gmax);
+  } catch (err) {
+    document.getElementById('pivot-status').textContent = `Error: ${err.message}`;
+    return;
+  }
+  // jQuery is loaded as a global by the CDN <script> in index.html.
+  // eslint-disable-next-line no-undef
+  const $out = window.jQuery('#pivot-out');
+  $out.empty();
+  $out.pivotUI(rows, {
+    rows: ['g'],
+    cols: ['m'],
+    aggregatorName: 'Count',
+    rendererName: 'Heatmap',
+    rendererOptions: {
+      table: {
+        clickCallback: (e, value, filters, pivotData) => {
+          renderPivotDetail(filters, pivotData);
+        },
+      },
+    },
+    // Hide internal/array-flattened fields from the field shelf to keep it tidy.
+    hiddenAttributes: ['__genArr', 'apery', 'c1'],
+  });
+  // Clear stale drill-down when the data set changes.
+  document.getElementById('pivot-detail').innerHTML = '';
+  _pivotInit = true;
+}
+
+document.getElementById('pivot-gmax').addEventListener('change', () => {
+  if (_pivotInit) { renderPivot(); }
+});
+
 // Activate the named tab and deactivate all others; trigger 3D render if needed.
 function switchTab(name) {
   let activeBtn = null;
@@ -393,6 +493,7 @@ function switchTab(name) {
   if (name === 'latex' && currentS) { buildLatex(currentS); }
   if (name === 'diagonals' && currentS) { renderDiagonals(currentS); }
   if (name === 'comp') { renderComp(); }
+  if (name === 'pivot' && !_pivotInit) { renderPivot(); }
 }
 document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
 

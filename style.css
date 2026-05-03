@@ -601,6 +601,37 @@ body.hide-classification .classify-row { display: none; }
 .diagonals-pane { display: flex; gap: 1.5rem; flex-wrap: wrap; }
 .diagonals-table { background: var(--surface); }
 
+/* ─── Pivot Tab ─────────────────────────────────────────────────── */
+/* Force a bright/black scheme: PivotTable.js + jQueryUI defaults inherit from
+   the page's `color-scheme: light dark`, which made the text near-invisible
+   against a dark surface. Overrides are scoped to #tab-pivot so the rest of
+   the app keeps its theme. !important is needed because PivotTable.js sets
+   inline styles on heatmap cells (we let those win for the colour cells but
+   force black on labels and chrome). */
+#tab-pivot { background: #fff; color: #000; padding: 0.6rem; }
+#tab-pivot, #tab-pivot * { color: #000; }
+#tab-pivot a { color: #1565c0; }
+.pivot-controls { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.6rem; }
+.pivot-status { color: #555; font-size: 0.85rem; }
+#pivot-out { overflow-x: auto; }
+#pivot-out, #pivot-out table, #pivot-out .pvtUi { background: #fff !important; color: #000 !important; }
+#pivot-out th, #pivot-out td { color: #000 !important; }
+#pivot-out .pvtAxisContainer, #pivot-out .pvtVals { background: #f4f6f8 !important; }
+#pivot-out .pvtAttr { background: #fff !important; border: 1px solid #999 !important; }
+#pivot-out .pvtTotal, #pivot-out .pvtGrandTotal { background: #e8eef4 !important; font-weight: bold; }
+#pivot-out .pvtRowLabel, #pivot-out .pvtColLabel { background: #f0f4f8 !important; }
+#pivot-out select, #pivot-out input { background: #fff !important; color: #000 !important; }
+/* Heatmap renderer paints cell backgrounds inline; keep those, but force
+   readable text on top. */
+#pivot-out td.pvtVal { color: #000 !important; }
+#pivot-detail { margin-top: 0.8rem; }
+#pivot-detail h4 { margin: 0.4rem 0; font-size: 0.95rem; color: #000; }
+#pivot-detail table { border-collapse: collapse; font-size: 0.85rem; background: #fff; }
+#pivot-detail th, #pivot-detail td { padding: 3px 8px; border: 1px solid #999; text-align: left; color: #000; }
+#pivot-detail th { background: #f0f4f8; }
+#pivot-detail .open-btn { cursor: pointer; padding: 2px 8px; font-size: 0.85rem; background: #fff; border: 1px solid #999; color: #000; }
+#pivot-detail .open-btn:hover { background: #e8eef4; }
+
 /* ─── Comp Tab ──────────────────────────────────────────────────── */
 .comp-header { font-size: 1.1rem; margin: 0.4rem 0 0.6rem; color: var(--label); }
 .comp-row { display: flex; gap: 1.5rem; align-items: flex-start; flex-wrap: wrap; }

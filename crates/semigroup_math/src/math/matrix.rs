@@ -1497,6 +1497,64 @@ mod tests {
     }
 
     #[test]
+    fn u_matrix_block_decomposition() {
+        // Splitting x = (x', x_{m-1}) with x' ∈ ℤ^{m-2} (math 1-indexed):
+        //
+        //   (U(m)x)_i      = (U(m-1) x')_i  −  Σ_{j<i} x_j  +  i·x_{m-1}     (1 ≤ i ≤ m-2)
+        //   (U(m)x)_{m-1}  = (m-1)·x_{m-1}  −  Σ_{j<m-1} x_j
+        //
+        // Verify on a few small (m, x) pairs.
+        fn matvec(mat: &DenseMatrix<i64>, x: &[i64]) -> Vec<i64> {
+            (0..mat.nrows())
+                .map(|a| (0..mat.ncols()).map(|b| mat[(a, b)] * x[b]).sum())
+                .collect()
+        }
+        let cases: &[(usize, &[i64])] = &[
+            (2, &[7]),
+            (3, &[2, 5]),
+            (3, &[0, 7]),
+            (4, &[1, 2, 3]),
+            (4, &[0, 0, 5]),
+            (5, &[1, 2, 3, 4]),
+            (6, &[3, 1, 4, 1, 5]),
+            (7, &[-2, 3, -5, 7, -11, 13]),
+        ];
+        for &(m, x) in cases {
+            let n = m - 1;
+            assert_eq!(x.len(), n);
+            let ux = matvec(&u_matrix(m), x);
+            #[allow(clippy::cast_possible_wrap)]
+            let x_last = x[n - 1];
+            let x_prime = &x[..n - 1];
+
+            // First identity: only meaningful for m ≥ 3 (otherwise n-1 = 0 and the loop is empty).
+            if m >= 3 {
+                let ux_prime = matvec(&u_matrix(m - 1), x_prime);
+                for i in 0..n - 1 {
+                    let prefix: i64 = x_prime[..i].iter().sum();
+                    #[allow(clippy::cast_possible_wrap)]
+                    let expected = ux_prime[i] - prefix + (i + 1) as i64 * x_last;
+                    assert_eq!(
+                        ux[i], expected,
+                        "(U({m})·x)_{i_math} mismatch (block decomposition)",
+                        i_math = i + 1,
+                    );
+                }
+            }
+
+            // Last row identity, valid for all m ≥ 2.
+            let full_prefix: i64 = x_prime.iter().sum();
+            #[allow(clippy::cast_possible_wrap)]
+            let expected_last = (n as i64) * x_last - full_prefix;
+            assert_eq!(
+                ux[n - 1],
+                expected_last,
+                "(U({m})·x)_{{m-1}} mismatch (block decomposition)",
+            );
+        }
+    }
+
+    #[test]
     fn v_times_u_is_m_identity() {
         // The whole point of V(m): V(m)·U(m) = m·I_{m−1}.
         for m in 2..=10 {

@@ -192,7 +192,7 @@ do we have a constraint
 (m-1) x_{m-1} >= x_1+x_2+...+x_{m-2}
 should we add it, would it help?
 
-46)
+46) [DONE]
 can you verify for a few testvectors x that if we write x = (x',x_{m-1}) with x' a m-2 column vector
 that
 for i< m-1 we have (U(m)x)_i = U(m-1)x' - x_1 - x_2 ... -x_{i-1} + i x_{m-1}

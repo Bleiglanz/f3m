@@ -91,27 +91,6 @@
   }
 }
 
-/* ─── Pico overrides ────────────────────────────────────────────── */
-/* Pico classless adds opinionated padding & typography to <button>,
-   <input>, <table>, <h1>… that fight with our compact, information-rich
-   layout. Strip those defaults; we'll re-apply our own below. */
-button {
-  width: auto;            /* Pico makes buttons full-width otherwise */
-  margin: 0;
-  font-weight: inherit;
-}
-input, textarea, select {
-  margin: 0;
-  width: auto;
-}
-table {
-  --pico-table-border-color: var(--border);
-  --pico-table-row-stripped-background-color: var(--row-stripe);
-}
-section, article { margin: 0; padding: 0; }
-hr { margin: 0; }
-:root { --pico-font-family: var(--sans); }
-
 /* ─── Reset ─────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -120,8 +99,41 @@ body {
   font-family: var(--sans);
   background: var(--bg);
   color: var(--text);
-  padding: 3rem 1.5rem 5rem 5%;
   min-height: 100vh;
+}
+
+/* ─── Layout: header on top, aside left, main right ─────────────── */
+.layout { display: flex; flex-direction: column; min-height: 100vh; }
+.layout > header {
+  padding: 1.5rem 1.5rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+.body { display: flex; flex: 1; min-height: 0; }
+.body > aside {
+  width: 240px;
+  flex: none;
+  padding: 1rem;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+}
+.body > main {
+  flex: 1;
+  min-width: 0;
+  padding: 1rem 1.5rem 2rem;
+  overflow-x: auto;
+}
+
+/* Aside: stack buttons one per line; checkboxes likewise. */
+.body > aside .aside-section { display: flex; flex-direction: column; gap: 0.35rem; }
+.body > aside .aside-section button { width: 100%; padding: 0.4rem 0.6rem; font-size: 0.82rem; }
+.body > aside hr.aside-sep { border: none; border-top: 1px solid var(--border); margin: 0.7rem 0; }
+.body > aside .checkbox-strip {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.45rem;
+  margin: 0;
 }
 
 /* ─── Header ────────────────────────────────────────────────────── */
@@ -142,16 +154,9 @@ p.subtitle {
 .input-row {
   display: flex;
   gap: 0.5rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.6rem;
   width: 100%;
   max-width: 760px;
-}
-.input-row + .gen-row {
-  margin-top: -1rem;
-}
-.gen-row button {
-  padding: 0.35rem 0.6rem;
-  font-size: 0.8rem;
 }
 
 input[type="text"] {
@@ -191,11 +196,6 @@ button {
 button:hover { filter: brightness(1.4); }
 button:active { transform: scale(0.97); }
 
-.btn-sep {
-  width: 1px;
-  align-self: stretch;
-  background: var(--border);
-}
 .btn-mod {
   background: var(--muted);
 }
@@ -235,7 +235,6 @@ button:active { transform: scale(0.97); }
   border-bottom: 2px solid var(--border);
   margin-bottom: 1.5rem;
   width: 100%;
-  max-width: 860px;
 }
 
 .tab-btn {
@@ -815,27 +814,23 @@ footer a:hover { color: var(--text); }
 
 /* ─── Responsive ────────────────────────────────────────────────── */
 @media (max-width: 720px) {
-  body { padding: 1rem 0.75rem 5rem; }
+  .layout > header { padding: 0.75rem 0.75rem 0.5rem; }
+  .body { flex-direction: column; }
+  .body > aside {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding: 0.75rem;
+  }
+  .body > main { padding: 0.75rem; }
 
   h1 { font-size: 1.3rem; }
-  p.subtitle { margin-bottom: 1rem; }
+  p.subtitle { margin-bottom: 0.75rem; }
 
   /* Input row: text input takes full width, then buttons fill the next row. */
   .input-row { flex-wrap: wrap; }
   .input-row input[type="text"] { flex-basis: 100%; min-width: 0; }
   .input-row button { flex: 1; padding: 0.6rem 0.5rem; font-size: 0.85rem; }
-
-  /* Generator-toolbar: horizontal scroll instead of wrapping into 5 rows. */
-  .gen-row {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    flex-wrap: nowrap;
-    padding-bottom: 0.4rem;
-    /* Snap each button into view as a thumb-friendly target. */
-    scroll-snap-type: x proximity;
-  }
-  .gen-row button { flex: 0 0 auto; min-height: 40px; scroll-snap-align: start; }
-  .gen-row .btn-sep { display: none; }
 
   /* Tab bar: horizontal scroll, sticky for thumb access while scrolling tables.
      The active tab stays visible because we scroll-into-view on click (JS). */
@@ -873,11 +868,6 @@ footer a:hover { color: var(--text); }
   /* Tooltips: don't overflow the viewport. */
   .has-tip .tip { max-width: min(88vw, 320px); }
   .eva-row input[type="range"] { max-width: 120px; }
-
-  /* Larger tap targets across the board. */
-  .checkbox-strip { flex-wrap: wrap; gap: 0.6rem 1rem; }
-  .checkbox-strip input[type="checkbox"] { width: 18px; height: 18px; }
-  button { min-height: 40px; }
 }
 
 /* Hover-only interactions don't translate to touch — show tooltips/popups

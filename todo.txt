@@ -208,8 +208,23 @@ it think that normaliz itself uses parallelism heavily
 
 
 
+49) [DONE] waldicone should have a renamig done: currently we use the "literal" "t"
+for the q_1, if w_1=q_1m+1
+this is conflicting with t=type=number of pseudofrob
+so carefully rename t to q1 whereever it appears in the role of q1
 
+50) I'm mainly interested in closing the last gap S -> S \cup {f}
+My best shot for analysis currently is the case that f+m is a minimal generator
+So waldicore should create another summary file
+semigroup_g_from2to{gmax}_summary_maxapery_is_minimal_generator
+in it exactly the same data is presented, but only for numerical semigroups where
+f+m \in gen_set
+(should be possible to reuse most of the code)
 
+51) in the index.html i want another tab (before Diag)
+called "Comp", if the history contains more than one semigroup
+then it should show the current semigroup (propery+kunztable)
+and the semigroup immediately before that
 
 
 

@@ -1,38 +1,39 @@
 //! CLI: write Normaliz input files for the Kunz-cone pair-relations matrices
-//! sliced by genus `g`, multiplicity `m`, and Apéry-class parameter `t`,
-//! then invoke the bundled Normaliz 3.11.1 binary
+//! sliced by genus `g`, multiplicity `m`, and Apéry-class parameter `q1`
+//! (where `w₁ = q₁·m + 1`), then invoke the bundled Normaliz 3.11.1 binary
 //! (`normaliz/normaliz-3.11.1-{Linux,Windows}/normaliz[.exe]`) to produce the
 //! corresponding `.out` files, and finally write a single combined HTML
 //! summary for g = 2..=gmax.
 //!
-//! For each `g` and each `m ∈ 2..=(g+1)`, `t ∈ 1..=g`, writes
-//! `./normaliz/normaliz_g{g}_m{m}_t{t}.in` with:
+//! For each `g` and each `m ∈ 2..=(g+1)`, `q1 ∈ 1..=g`, writes
+//! `./normaliz/normaliz_g{g}_m{m}_t{q1}.in` (the `_t` infix is a wire-format
+//! detail kept stable so cached Normaliz output isn't invalidated) with:
 //!
 //! - The pair-relations inequalities `(U(m)[i] + U(m)[j] − U(m)[(i+j) mod m]) / m ≥ 0`
 //!   (Kunz cone; the ambient variable is `x = C_red[:,0]`, i.e. `x_a = c(a+1, 1)`)
 //! - Two affine equalities (Normaliz `inhom_equations` format, row `[a b]` means `a·x + b = 0`):
-//!   - `∑xᵢ = mt+1`: row 0 of U(m) is all-ones, and `(U·C_red)[0][0] = w₁`, so this pins `w₁`.
+//!   - `∑xᵢ = m·q1+1`: row 0 of U(m) is all-ones, and `(U·C_red)[0][0] = w₁`, so this pins `w₁`.
 //!   - `(1ᵀ U(m))·x = mg+m(m−1)/2`: column sums of U(m) weight x so that `∑wᵢ = selmer`.
 //!
 //! The lattice points of the resulting polytope correspond bijectively to
-//! numerical semigroups with genus `g`, multiplicity `m`, and `w₁ = mt+1`.
+//! numerical semigroups with genus `g`, multiplicity `m`, and `w₁ = m·q1+1`.
 //!
-//! `t` starts at 1 because `w₁ ≡ 1 (mod m)` and `w₁ ≥ m+1` for any
+//! `q1` starts at 1 because `w₁ ≡ 1 (mod m)` and `w₁ ≥ m+1` for any
 //! numerical semigroup with `m ≥ 2` (since `1 ∉ S` when the multiplicity is m ≥ 2).
-//! The upper bound `t ≤ g` follows from `w₁ ≤ ∑wᵢ − ∑_{i=2}^{m−1} i = mg+1`
+//! The upper bound `q1 ≤ g` follows from `w₁ ≤ ∑wᵢ − ∑_{i=2}^{m−1} i = mg+1`
 //! (using `wᵢ ≥ i` for every Apéry element).
 //!
 //! Usage: `cargo run --bin waldicone [gmax] [seq]`  (gmax defaults to 10)
 //! Pass the literal token `seq` as the second argument to force sequential
-//! execution (no rayon over the (m, t) workload or the per-lattice-point
+//! execution (no rayon over the (m, q1) workload or the per-lattice-point
 //! post-processing). Useful when Normaliz's own internal threading is
 //! already saturating the cores.
 //! Computes all genera g = 2..=gmax and writes three output files (HTML in
 //! light mode plus a JSON sibling for downstream tooling):
 //!  - `./normaliz/semigroup_g_from2to{gmax}_summary.html` — five aggregate
-//!    tables (totals, by m, by e, by t, by r).
+//!    tables (totals, by m, by e, by t, by r) — here `t` is the type (|PF|).
 //!  - `./normaliz/semigroup_g_from2to{gmax}_list.html` — one row per
-//!    semigroup, ordered by (g, m, t), with the same shortprops columns
+//!    semigroup, ordered by (g, m, q1), with the same shortprops columns
 //!    used in the in-app view plus `c_{1,1} … c_{1,gmax}` (zero-padded).
 //!  - `./normaliz/semigroup_g_from2to{gmax}_list.json` — the same per-row
 //!    data as the list page, one JSON object per line, with full Apéry set
@@ -104,23 +105,23 @@ fn write_normaliz_files(g: usize, normaliz_bin: &Path, mode: ExecMode) -> std::i
     let dir = Path::new("normaliz");
     fs::create_dir_all(dir)?;
 
-    // Precompute pair-relations matrices once per m — they don't depend on t.
+    // Precompute pair-relations matrices once per m — they don't depend on q1.
     let matrices: Vec<_> = (2..=g + 1).map(u_pair_relations).collect();
 
     // Skip pairs handled by closed-form shortcuts and pairs ruled out by genus:
     //  • m = 2 has the unique solution ⟨2, 2g+1⟩ (synthesised in HTML).
     //  • m = g+1 has the unique solution ⟨m, m+1, …, 2m−1⟩ (synthesised).
-    //  • t > g+2−m is empty: such a w₁ forces ≥ t+(m−2) gaps (proof in todo #40).
-    // t starts at 1 because w₁ ≡ 1 (mod m) and w₁ ≥ m+1 for m ≥ 2.
+    //  • q1 > g+2−m is empty: such a w₁ forces ≥ q1+(m−2) gaps (proof in todo #40).
+    // q1 starts at 1 because w₁ ≡ 1 (mod m) and w₁ ≥ m+1 for m ≥ 2.
     let pairs: Vec<(usize, usize)> = (3..=g)
-        .flat_map(|m| (1..=g + 2 - m).map(move |t| (m, t)))
+        .flat_map(|m| (1..=g + 2 - m).map(move |q1| (m, q1)))
         .collect();
 
     let total = pairs.len();
     let overall = Instant::now();
     let counter = AtomicUsize::new(0);
 
-    let process = |(m, t): (usize, usize)| -> std::io::Result<()> {
+    let process = |(m, q1): (usize, usize)| -> std::io::Result<()> {
         let n = m - 1;
         let nrows = n * (n + 1) / 2;
         let data = matrices[m - 2].as_slice();
@@ -136,7 +137,7 @@ fn write_normaliz_files(g: usize, normaliz_bin: &Path, mode: ExecMode) -> std::i
         // Normaliz inhom_equations row format: [a₁ … aₙ b] means a·x + b = 0.
         // The ambient variable is x = C_red[:,0], so x_a = c(a+1, 1).
         let selmer = m * g + m * (m - 1) / 2;
-        let w1 = m * t + 1;
+        let w1 = m * q1 + 1;
 
         let _ = writeln!(buf, "inhom_equations 2");
 
@@ -174,17 +175,17 @@ fn write_normaliz_files(g: usize, normaliz_bin: &Path, mode: ExecMode) -> std::i
         //      LP-derivable from existing constraints, but stating it explicitly
         //      gives Normaliz a tighter bounding box for lattice enumeration.
         //
-        //  Note: the symmetric bound c_{1,1} ≤ 2t − 1 was tested and turned out
+        //  Note: the symmetric bound c_{1,1} ≤ 2·q1 − 1 was tested and turned out
         //  net-neutral on g=10 (within timing noise) — apparently Normaliz already
         //  derives it from the multiplicity rows + eq1, unlike (b) which
         //  combines eq2 with all multiplicity rows.
         //
         //  Note: the inequality (m−1)·c_{m-1,1} ≥ Σ_{i=1..m-2} c_{i,1} is
-        //  algebraically equivalent (via eq1) to c_{m-1,1} ≥ ⌈w₁/m⌉ = t+1,
+        //  algebraically equivalent (via eq1) to c_{m-1,1} ≥ ⌈w₁/m⌉ = q1+1,
         //  which is strictly weaker than what (a) already gives. The last
         //  multiplicity row (a = m−2) forces w_{m-1} ≥ 2m−1, so
-        //  c_{m-1,1} = (w_{m-1}+w₁)/m ≥ t+2. Adding the new inequality
-        //  is therefore redundant — same situation as the c_{1,1} ≤ 2t−1
+        //  c_{m-1,1} = (w_{m-1}+w₁)/m ≥ q1+2. Adding the new inequality
+        //  is therefore redundant — same situation as the c_{1,1} ≤ 2·q1−1
         //  bound above.
         #[allow(clippy::cast_possible_wrap)]
         let s_min = if m >= 3 {
@@ -227,20 +228,22 @@ fn write_normaliz_files(g: usize, normaliz_bin: &Path, mode: ExecMode) -> std::i
             }
         }
 
-        let in_path = dir.join(format!("normaliz_g{g}_m{m}_t{t}.in"));
-        let out_path = dir.join(format!("normaliz_g{g}_m{m}_t{t}.out"));
+        // Filename infix `_t{q1}` is wire-format only; the `_t` letter predates
+        // the rename and is kept stable so cached `.out` files stay valid.
+        let in_path = dir.join(format!("normaliz_g{g}_m{m}_t{q1}.in"));
+        let out_path = dir.join(format!("normaliz_g{g}_m{m}_t{q1}.out"));
         let idx = counter.fetch_add(1, Ordering::Relaxed) + 1;
         if out_path.exists() {
-            println!("[{idx}/{total}] cached g={g} m={m} t={t} (n={n})");
+            println!("[{idx}/{total}] cached g={g} m={m} q1={q1} (n={n})");
             return Ok(());
         }
         fs::write(&in_path, &buf)?;
-        println!("[{idx}/{total}] starting g={g} m={m} t={t} (n={n}) ...");
+        println!("[{idx}/{total}] starting g={g} m={m} q1={q1} (n={n}) ...");
         let started = Instant::now();
         run_normaliz(normaliz_bin, &in_path)?;
         let elapsed = started.elapsed();
         println!(
-            "[{idx}/{total}] done g={g} m={m} t={t} in {:.2}s (total {:.2}s)",
+            "[{idx}/{total}] done g={g} m={m} q1={q1} in {:.2}s (total {:.2}s)",
             elapsed.as_secs_f64(),
             overall.elapsed().as_secs_f64(),
         );
@@ -291,13 +294,13 @@ fn parse_out_file(path: &Path) -> std::io::Result<(usize, Vec<Vec<i64>>)> {
 
 // ── Generator recovery ────────────────────────────────────────────────────────
 
-/// Recovers the Apéry set `[w₀=0, w₁, …, w_{m−1}]` from `m`, `t`, and the
+/// Recovers the Apéry set `[w₀=0, w₁, …, w_{m−1}]` from `m`, `q1`, and the
 /// first column `c1` of `C_red` (the lattice point from Normaliz).
 ///
 /// Uses the recurrence `w_{k+1} = w_k + w₁ − m·c1[k−1]` for k = 1..m−2,
-/// with w₁ = m·t + 1.
-fn apery_from_c1(m: usize, t: usize, c1: &[i64]) -> Vec<usize> {
-    let w1 = m * t + 1;
+/// with w₁ = m·q1 + 1.
+fn apery_from_c1(m: usize, q1: usize, c1: &[i64]) -> Vec<usize> {
+    let w1 = m * q1 + 1;
     let mut apery = vec![0usize; m];
     apery[1] = w1;
     for k in 1..m - 1 {
@@ -323,12 +326,12 @@ fn semigroup_from_apery(m: usize, apery: &[usize]) -> Semigroup {
 }
 
 /// Closed-form lattice point for the trivially-determined cells `m = 2` and
-/// `m = g+1`, returning `(t, lattice)`.
+/// `m = g+1`, returning `(q1, lattice)`.
 ///
 /// • `m = 2`: only ⟨2, 2g+1⟩ has genus g; Apéry = (0, 2g+1), so c₁,₁ = 2g+1
-///   and t = g.
+///   and q1 = g.
 /// • `m = g+1`: only ⟨m, m+1, …, 2m−1⟩ has genus g; Apéry = (0, m+1, …, 2m−1),
-///   so c₁ = (1, 1, …, 1, 3) and t = 1.
+///   so c₁ = (1, 1, …, 1, 3) and q1 = 1.
 fn synthetic_lattice(g: usize, m: usize) -> Option<(usize, Lattice)> {
     #[allow(clippy::cast_possible_wrap)]
     if m == 2 {
@@ -390,6 +393,10 @@ fn props_cells(sg: &Semigroup) -> String {
 /// One Normaliz lattice point paired with its computed [`Semigroup`].
 type Lattice = (Vec<i64>, Semigroup);
 
+/// Per-genus container. Each tuple is `(m, q1, count, lattices)` where `q1`
+/// is the Apéry-class parameter (`w₁ = m·q1+1`) and `count` is the lattice-
+/// point count reported by Normaliz (matches `lattices.len()` except in
+/// closed-form synthetic cases).
 type GenusData = Vec<(usize, usize, usize, Vec<Lattice>)>;
 
 /// Writes a row of count cells (one cell per array entry) into `h`. The first
@@ -738,19 +745,19 @@ fn html_head(title: &str, intro: &str) -> String {
     )
 }
 
-/// Renders the m × t count table for one genus: rows m = 2..g+1, columns
-/// t = 1..g, with row/column totals.
+/// Renders the m × q1 count table for one genus: rows m = 2..g+1, columns
+/// q1 = 1..g, with row/column totals.
 fn build_genus_count_table(g: usize, data: &GenusData) -> String {
     let counts: std::collections::HashMap<(usize, usize), usize> = data
         .iter()
-        .map(|(m, t, _, lats)| ((*m, *t), lats.len()))
+        .map(|(m, q1, _, lats)| ((*m, *q1), lats.len()))
         .collect();
 
     let mut h = String::new();
     let _ = writeln!(h, "<h2 id=\"g{g}\">Genus g\u{a0}=\u{a0}{g}</h2>");
-    h.push_str("<table><thead><tr><th class=\"lbl\">m \\ t</th>");
-    for t in 1..=g {
-        let _ = write!(h, "<th>{t}</th>");
+    h.push_str("<table><thead><tr><th class=\"lbl\">m \\ q\u{2081}</th>");
+    for q1 in 1..=g {
+        let _ = write!(h, "<th>{q1}</th>");
     }
     h.push_str("<th class=\"sum\">\u{3a3}</th></tr></thead><tbody>");
 
@@ -759,8 +766,8 @@ fn build_genus_count_table(g: usize, data: &GenusData) -> String {
     for m in 2..=g + 1 {
         let _ = write!(h, "<tr><th class=\"lbl\">m\u{a0}=\u{a0}{m}</th>");
         let mut row_sum = 0usize;
-        for (t, ct) in col_totals.iter_mut().enumerate().skip(1).take(g) {
-            let c = counts.get(&(m, t)).copied().unwrap_or(0);
+        for (q1, ct) in col_totals.iter_mut().enumerate().skip(1).take(g) {
+            let c = counts.get(&(m, q1)).copied().unwrap_or(0);
             *ct += c;
             row_sum += c;
             if c == 0 {
@@ -781,7 +788,7 @@ fn build_genus_count_table(g: usize, data: &GenusData) -> String {
 }
 
 /// Builds the summary page: five aggregate tables across all genera, then one
-/// m × t count table per genus.
+/// m × q1 count table per genus.
 fn build_summary_html(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
     let title = format!("Numerical Semigroups \u{2014} genus 2 to {gmax} (summary)");
     let intro = format!(
@@ -802,12 +809,12 @@ fn build_summary_html(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
     h
 }
 
-/// Builds the list page: one row per semigroup, ordered by (g, m, t), with
+/// Builds the list page: one row per semigroup, ordered by (g, m, q1), with
 /// shortprops columns followed by `c_{1,1} … c_{1,gmax}` (zero-padded).
 fn build_list_html(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
     let title = format!("Numerical Semigroups \u{2014} genus 2 to {gmax} (list)");
     let intro = format!(
-        "<p>One row per numerical semigroup, ordered by (g, m, t). Columns\n\
+        "<p>One row per numerical semigroup, ordered by (g, m, q\u{2081}). Columns\n\
          c<sub>1,j</sub> are entries of the first column of the reduced Kunz\n\
          matrix C<sub>red</sub>; rows with m\u{2212}1\u{a0}&lt;\u{a0}{gmax} are\n\
          zero-padded to {gmax} columns. For aggregate counts, see\n\
@@ -844,16 +851,16 @@ fn build_list_html(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
 
     let mut rows: Vec<(usize, usize, usize, &Vec<i64>, &Semigroup)> = Vec::new();
     for (g, data) in all_data {
-        for (m, t, _, lats) in data {
+        for (m, q1, _, lats) in data {
             for (pt, sg) in lats {
-                rows.push((*g, *m, *t, pt, sg));
+                rows.push((*g, *m, *q1, pt, sg));
             }
         }
     }
     rows.sort_unstable_by(|a, b| (a.0, a.1, a.2, a.3).cmp(&(b.0, b.1, b.2, b.3)));
 
     let mut last_g: Option<usize> = None;
-    for (g, m, _t, c1, sg) in rows {
+    for (g, m, _q1, c1, sg) in rows {
         // Anchor the first row of each new genus so summary-page links land
         // at the right place.
         let id_attr = if last_g == Some(g) {
@@ -878,8 +885,8 @@ fn build_list_html(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
 /// Loads all parsed Normaliz output for genera 2..=gmax.
 fn load_all_data(gmax: usize, mode: ExecMode) -> std::io::Result<Vec<(usize, GenusData)>> {
     let dir = Path::new("normaliz");
-    let lift = |pt: Vec<i64>, m: usize, t: usize| -> Lattice {
-        let apery = apery_from_c1(m, t, &pt);
+    let lift = |pt: Vec<i64>, m: usize, q1: usize| -> Lattice {
+        let apery = apery_from_c1(m, q1, &pt);
         let sg = semigroup_from_apery(m, &apery);
         (pt, sg)
     };
@@ -888,24 +895,25 @@ fn load_all_data(gmax: usize, mode: ExecMode) -> std::io::Result<Vec<(usize, Gen
         let mut data: GenusData = Vec::new();
         for m in 2..=g + 1 {
             // m=2 and m=g+1 have a unique closed-form solution; skip Normaliz I/O.
-            if let Some((t, lattice)) = synthetic_lattice(g, m) {
-                data.push((m, t, 1, vec![lattice]));
+            if let Some((q1, lattice)) = synthetic_lattice(g, m) {
+                data.push((m, q1, 1, vec![lattice]));
                 continue;
             }
-            // For m ∈ 3..=g, only t ≤ g+2−m can be non-empty (todo #40 pruning).
-            for t in 1..=g + 2 - m {
-                let path = dir.join(format!("normaliz_g{g}_m{m}_t{t}.out"));
+            // For m ∈ 3..=g, only q1 ≤ g+2−m can be non-empty (todo #40 pruning).
+            for q1 in 1..=g + 2 - m {
+                // Filename infix `_t{q1}` is wire-format only — see write_normaliz_files.
+                let path = dir.join(format!("normaliz_g{g}_m{m}_t{q1}.out"));
                 match parse_out_file(&path) {
                     Ok((count, points)) => {
                         let lattices: Vec<Lattice> = match mode {
                             ExecMode::Parallel => {
-                                points.into_par_iter().map(|pt| lift(pt, m, t)).collect()
+                                points.into_par_iter().map(|pt| lift(pt, m, q1)).collect()
                             }
                             ExecMode::Sequential => {
-                                points.into_iter().map(|pt| lift(pt, m, t)).collect()
+                                points.into_iter().map(|pt| lift(pt, m, q1)).collect()
                             }
                         };
-                        data.push((m, t, count, lattices));
+                        data.push((m, q1, count, lattices));
                     }
                     Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
                     Err(e) => return Err(e),
@@ -932,15 +940,15 @@ fn json_array<T: std::fmt::Display>(xs: &[T]) -> String {
 }
 
 /// Builds a JSON file mirroring the per-semigroup detail page: same rows,
-/// same (g, m, t) ordering, same scalar fields plus the gen/PF/Apéry sets and
+/// same (g, m, q1) ordering, same scalar fields plus the gen/PF/Apéry sets and
 /// the `c₁` lattice point. Hand-rolled rather than pulling in serde — every
 /// value is a number, bool, or array of integers, so escaping isn't a concern.
 fn build_list_json(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
     let mut rows: Vec<(usize, usize, usize, &Vec<i64>, &Semigroup)> = Vec::new();
     for (g, data) in all_data {
-        for (m, t, _, lats) in data {
+        for (m, q1, _, lats) in data {
             for (pt, sg) in lats {
-                rows.push((*g, *m, *t, pt, sg));
+                rows.push((*g, *m, *q1, pt, sg));
             }
         }
     }
@@ -949,12 +957,12 @@ fn build_list_json(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
     let mut out = String::new();
     let _ = writeln!(out, "{{\"gmax\":{gmax},\"semigroups\":[");
     let total = rows.len();
-    for (idx, (g, m, apery_t, c1, sg)) in rows.iter().enumerate() {
+    for (idx, (g, m, q1, c1, sg)) in rows.iter().enumerate() {
         #[allow(clippy::cast_precision_loss)]
         let inv_e = 1.0 / sg.e as f64;
         let _ = write!(
             out,
-            "{{\"g\":{g},\"m\":{m},\"apery_t\":{apery_t},\
+            "{{\"g\":{g},\"m\":{m},\"q1\":{q1},\
              \"f\":{f},\"e\":{e},\"sigma\":{sigma},\
              \"r\":{r},\"ra\":{ra},\"fg\":{fg},\"type\":{type_t},\
              \"sym\":{sym},\"wilf\":{wilf:.6},\"inv_e\":{inv_e:.6},\
@@ -1068,7 +1076,7 @@ fn print_asym_anomalies(all_data: &[(usize, GenusData)]) {
 /// or relative program name fed to `CreateProcess` searches the directory of
 /// the calling executable first, which is `target\release\` and contains the
 /// cargo-built `normaliz.exe` (this binary itself). That self-spawn caused
-/// the historical fork-bomb where the loop kept restarting the same g/m/t.
+/// the historical fork-bomb where the loop kept restarting the same g/m/q1.
 fn ensure_normaliz_available() -> PathBuf {
     let rel = bundled_normaliz_path();
     let abs = match rel.canonicalize() {
@@ -1133,7 +1141,7 @@ fn ensure_normaliz_available() -> PathBuf {
 
 // ── Entry point ───────────────────────────────────────────────────────────────
 
-/// Whether the `(m, t)` workload and the per-lattice-point post-processing run
+/// Whether the `(m, q1)` workload and the per-lattice-point post-processing run
 /// across rayon worker threads or single-threaded. Sequential mode exists
 /// because Normaliz itself parallelises heavily inside each spawn; layering
 /// rayon on top causes thread contention with no measurable speedup on the

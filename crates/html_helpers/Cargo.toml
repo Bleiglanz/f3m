@@ -1,0 +1,14 @@
+[package]
+name = "html_helpers"
+description = "HTML-fragment generators for numerical-semigroup views (structure grid, Kunz matrix, tilt, classify, diagonals, shortprops). Pure strings; no DOM, no wasm-bindgen."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme.workspace = true
+
+[dependencies]
+semigroup_math.workspace = true

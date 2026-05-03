@@ -33,9 +33,9 @@
 #![forbid(unsafe_code)]
 #![deny(clippy::all, clippy::pedantic, clippy::nursery)]
 
-use f3m::math::matrix::u_pair_relations;
-use f3m::math::{Semigroup, compute};
 use rayon::prelude::*;
+use semigroup_math::math::matrix::u_pair_relations;
+use semigroup_math::math::{Semigroup, compute};
 use std::fmt::Write as _;
 use std::fs;
 use std::path::{Path, PathBuf};

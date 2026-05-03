@@ -1,8 +1,7 @@
 //! HTML rendering for the compact summary row and the per-history-entry row.
 
-use super::JsSemigroup;
-use crate::math::Semigroup;
-use wasm_bindgen::prelude::*;
+use crate::spans::span;
+use semigroup_math::math::Semigroup;
 
 /// Render a `<td>` with a count that reveals a hover popup listing the items.
 fn popup_cell(count: usize, content: &str) -> String {
@@ -12,15 +11,17 @@ fn popup_cell(count: usize, content: &str) -> String {
     )
 }
 
-/// Render the data `<td>` cells shared by the compact summary row and history table rows:
-/// m, f, e, g, σ, r, ra, fg, t, Sym, gen, PF, Wilf, 1/e — in that order.
-/// gen and PF show counts with a hover popup listing the actual values.
+/// Render the data `<td>` cells shared by the compact summary row and history table rows.
+///
+/// Columns: m, f, e, g, σ, r, ra, fg, t, Sym, gen, PF, Wilf, 1/e — in that order.
+/// `gen` and `PF` show counts with a hover popup listing the actual values.
 #[allow(clippy::cast_precision_loss)]
-pub(super) fn shortprop_cells(sg: &Semigroup) -> String {
+#[must_use]
+pub fn shortprop_cells(sg: &Semigroup) -> String {
     let fmt_spans = |items: &[usize], cls: &str| -> String {
         items
             .iter()
-            .map(|&x| super::span(cls, x, false))
+            .map(|&x| span(cls, x, false))
             .collect::<Vec<_>>()
             .join(", ")
     };
@@ -51,9 +52,8 @@ pub(super) fn shortprop_cells(sg: &Semigroup) -> String {
 }
 
 /// Compact summary row for the properties table: nested table with header + one data row.
-#[wasm_bindgen]
 #[must_use]
-pub fn shortprop(s: &JsSemigroup) -> String {
+pub fn shortprop(sg: &Semigroup) -> String {
     format!(
         "<table class=\"shortprop-table\"><thead><tr>\
          <th title=\"Multiplicity: smallest positive element\">m</th>\
@@ -71,13 +71,6 @@ pub fn shortprop(s: &JsSemigroup) -> String {
          <th title=\"Wilf quotient: \u{03C3}/(f+1) \u{2265} 1/e (conjecture)\">Wilf</th>\
          <th title=\"Wilf conjecture lower bound: 1/e\">1/e</th>\
          </tr></thead><tbody><tr>{}</tr></tbody></table>",
-        shortprop_cells(&s.0)
+        shortprop_cells(sg)
     )
-}
-
-/// Flat `<td>` cells for use in the history table row (no nested table, no header).
-#[wasm_bindgen]
-#[must_use]
-pub fn shortprop_tds(s: &JsSemigroup) -> String {
-    shortprop_cells(&s.0)
 }

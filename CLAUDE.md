@@ -9,39 +9,66 @@ A **Numerical Semigroup Calculator** — a browser-based tool that computes prop
 ## Build commands
 
 ```bash
-# Run Rust unit tests (native)
-cargo test
+# Run all unit and integration tests across the workspace
+cargo test --workspace
 
 # Run a single test by name
 cargo test test_gcd
 
-# Lint (fix automatically)
-cargo clippy --fix --lib -p f3m
+# Lint the whole workspace (-D warnings keeps clippy strict)
+cargo clippy --workspace -- -D warnings
 
-# Build the WASM package (regenerates pkg/)
-wasm-pack build --target web
+# Build the WASM package (regenerates pkg/ at the repo root)
+wasm-pack build crates/semigroup_explorer --target web --out-dir ../../pkg
+
+# Run the native CLI (binary name: waldicone)
+cargo run --release --bin waldicone [gmax]
 
 # Serve the app locally (required — ES modules don't work over file://)
 python3 -m http.server 8080
 # then open http://localhost:8080
 ```
 
-The `pkg/` directory holds the wasm-pack output and is gitignored — rebuild it locally with `wasm-pack build --target web` after changing any `src/` file. The deployed site (GitHub Pages) builds `pkg/` in CI via `.github/workflows/pages.yml`.
+The `pkg/` directory holds the wasm-pack output and is gitignored — rebuild it locally with the command above after changing any source file in `crates/semigroup_math`, `crates/html_helpers`, or `crates/semigroup_explorer`. The deployed site (GitHub Pages) builds `pkg/` in CI via `.github/workflows/pages.yml`.
 
 ## Architecture
 
+This is a Cargo workspace with four crates plus the static frontend:
+
 ```
-src/
-  lib.rs            — crate root: module declarations + tests
-  math/mod.rs       — Semigroup struct, compute(), gcd, GAP code generation
-  eva/mod.rs        — arithmetic expression evaluator (usize, recursive indexing)
-  jshelpers/mod.rs  — WASM exports: JsSemigroup, HTML rendering, eval_expr
-  main.rs           — unused binary stub
-pkg/                — wasm-pack output: f3m.js, f3m_bg.wasm, f3m.d.ts, package.json
-gap/                — example GAP scripts for manual verification
-index.html          — Single-page frontend; imports pkg/f3m.js as an ES module
-style.css           — Styles for the web UI
+Cargo.toml                               — [workspace] root, shared dependency versions
+crates/
+  semigroup_math/                        — pure Rust, no wasm, no HTML
+    src/lib.rs                           — declares math + eva
+    src/math/{mod,glue,matrix,semigroup,symmetric_partner}.rs
+                                         — Semigroup, compute(), gcd, GAP code generation,
+                                           Kunz matrix utilities, gluing, canonical ideal
+    src/eva/mod.rs                       — arithmetic expression evaluator
+    tests/integration.rs                 — GAP-cross-checked property tests
+  html_helpers/                          — pure-string HTML generators, no wasm-bindgen
+    src/{combined_table,shortprops,tilt,classify,diagonals,spans}.rs
+                                         — every public fn returns String; both other
+                                           crates call these to render views
+  semigroup_explorer/                    — wasm-bindgen wrapper crate (cdylib + rlib)
+    src/lib.rs                           — JsSemigroup + thin #[wasm_bindgen] shims
+                                           around html_helpers + semigroup_math
+    src/{pagestate,js_eval,jsgraph}.rs   — WASM-only state, evaluator wrapper, graph data
+  semigroup_cones/                       — native CLI binary "waldicone"
+    src/main.rs                          — spawns bundled Normaliz, builds aggregate
+                                           HTML reports via html_helpers
+pkg/                                     — wasm-pack output: semigroup_explorer.js,
+                                           semigroup_explorer_bg.wasm, …
+gap/                                     — example GAP scripts for manual verification
+normaliz/                                — bundled Normaliz binary + cached I/O artifacts
+index.html, style.css, jsmodules/        — static frontend (imports pkg/semigroup_explorer.js)
 ```
+
+### Crate boundaries
+
+- `semigroup_math` has no `wasm_bindgen`, no HTML, no `rayon`. Anything in it must build for both native and `wasm32-unknown-unknown`.
+- `html_helpers` depends only on `semigroup_math`; functions take `&Semigroup` and return `String`. No `wasm_bindgen`.
+- `semigroup_explorer` is the only crate that uses `wasm_bindgen`. The exported HTML helpers (`combined_table`, `shortprop`, `tilt_table`, `js_classify_table`, `js_diagonals_table`) are one-line wrappers around their `html_helpers` counterparts.
+- `semigroup_cones` depends on `semigroup_math` + `html_helpers` + `rayon`. It does NOT depend on `wasm-bindgen`, so `cargo build --bin waldicone` skips that toolchain entirely.
 
 ### Data flow
 
@@ -51,10 +78,10 @@ style.css           — Styles for the web UI
 
 ### Key Rust types
 
-- `math::Semigroup` — holds all computed properties; `element(x)` / `is_gap(x)` use the Apéry set for O(1) membership
-- `math::compute(input)` — sliding-window algorithm; normalizes by GCD, tracks residue classes mod m
-- `eva::eval(expr)` — recursive-descent parser/evaluator for arithmetic over `usize`
-- `jshelpers::EvalCtx` — substitutes semigroup variables and `a[i]`/`q[i]` before calling `eva::eval`
+- `semigroup_math::math::Semigroup` — holds all computed properties; `element(x)` / `is_gap(x)` use the Apéry set for O(1) membership
+- `semigroup_math::math::compute(input)` — sliding-window algorithm; normalizes by GCD, tracks residue classes mod m
+- `semigroup_math::eva::eval(expr)` — recursive-descent parser/evaluator for arithmetic over `usize`
+- `semigroup_explorer::js_eval::EvalCtx` — substitutes semigroup variables and `a[i]`/`q[i]` before calling `eva::eval`
 
 ### Grid color legend (index.html + style.css)
 

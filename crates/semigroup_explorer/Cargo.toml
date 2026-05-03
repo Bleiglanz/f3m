@@ -1,0 +1,20 @@
+[package]
+name = "semigroup_explorer"
+description = "WebAssembly bindings for the numerical-semigroup calculator: thin wasm-bindgen wrappers around the algorithms in semigroup_math and the views in html_helpers."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+semigroup_math.workspace = true
+html_helpers.workspace = true
+wasm-bindgen.workspace = true
+primal.workspace = true

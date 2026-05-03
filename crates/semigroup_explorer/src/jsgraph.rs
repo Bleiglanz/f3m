@@ -1,8 +1,9 @@
 //! Hasse-diagram graph data for the Cayley-graph view, exported as flat arrays for vis-network.
 
-use super::combined_table::get_cls;
-use super::{JsSemigroup, class_sets};
-use crate::math::Semigroup;
+use super::JsSemigroup;
+use html_helpers::class_sets;
+use html_helpers::combined_table::cell_cls;
+use semigroup_math::math::Semigroup;
 use std::collections::HashSet;
 use wasm_bindgen::prelude::*;
 
@@ -81,15 +82,5 @@ pub fn js_graph_edge_pairs(s: &JsSemigroup, upto: usize) -> Vec<u32> {
 pub fn js_node_class(s: &JsSemigroup, n: usize) -> String {
     let sg = &s.0;
     let sets = class_sets(sg);
-    get_cls(
-        n,
-        false,
-        sg.f,
-        sg.m,
-        &sg.apery_set,
-        &sets.gens,
-        &sets.pf_set,
-        &sets.blobs,
-    )
-    .to_string()
+    cell_cls(n, sg, &sets).to_string()
 }

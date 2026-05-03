@@ -208,51 +208,57 @@ Prerequisites: [Rust](https://rustup.rs), [wasm-pack](https://rustwasm.github.io
 # Run Rust unit tests
 cargo test
 
-# Lint (auto-fix, pedantic)
-cargo clippy --fix --lib -p f3m
+# Lint the whole workspace (-D warnings keeps clippy strict)
+cargo clippy --workspace -- -D warnings
 
-# Build the WASM package (regenerates pkg/)
-wasm-pack build --target web
+# Build the WASM package (regenerates pkg/ at the repo root)
+wasm-pack build crates/semigroup_explorer --target web --out-dir ../../pkg
 
 # Serve locally (ES modules require a server)
 python3 -m http.server 8080
 # open http://localhost:8080
 ```
 
-The `pkg/` directory is gitignored. Run `wasm-pack build --target web` locally before serving; the deployed GitHub Pages site builds it in CI via `.github/workflows/pages.yml`.
+The `pkg/` directory is gitignored. Rebuild it locally with the `wasm-pack` command above before serving; the deployed GitHub Pages site builds it in CI via `.github/workflows/pages.yml`.
 
 ---
 
 ## Architecture
 
+This is a Cargo workspace with four crates plus the static frontend:
+
 ```
-src/
-  lib.rs                      — crate root: module declarations + tests
-  math/mod.rs                 — compute(), gcd, GAP code generation
-  math/semigroup.rs           — Semigroup struct, derived invariants
-  math/matrix.rs              — DenseMatrix, U(m), C_red, c_red(), u_times_c_red(), pair_relations
-  math/glue.rs                — self-gluing: self_glue(), can_self_glue()
-  math/symmetric_partner.rs   — symmetric_partner(): constructs S̄ with S = S̄/2 (Rosales–García-Sánchez 2008)
-  eva/mod.rs                  — arithmetic expression evaluator (usize, recursive indexing)
-  jshelpers/
-    mod.rs                    — JsSemigroup, shared helpers, js_compute, js_classify_table
-    pagestate.rs              — thread_local PageState (history, current_idx, eva_expr, gap_blocks)
-    combined_table.rs         — structure grid + Kunz matrix HTML
-    shortprops_table.rs       — compact summary row HTML
-    tilt.rs                   — tilt grid HTML
-    js_eval.rs                — eval_expr WASM export
-    jsgraph.rs                — graph edge data
-  bin/waldicone.rs            — CLI: enumerate semigroups via the Waldi Polytope using Normaliz (see below)
-  main.rs                     — unused binary stub
-pkg/                          — wasm-pack output (gitignored; built by `wasm-pack build` and in CI)
+Cargo.toml                               — [workspace] root, shared dependency versions
+crates/
+  semigroup_math/                        — pure Rust: no wasm, no HTML, no rayon
+    src/lib.rs                           — declares math + eva
+    src/math/{mod,glue,matrix,semigroup,symmetric_partner}.rs
+                                         — Semigroup, compute(), gcd, GAP code generation,
+                                           Kunz matrix utilities, gluing, canonical ideal
+    src/eva/mod.rs                       — arithmetic expression evaluator
+    tests/integration.rs                 — GAP-cross-checked property tests
+  html_helpers/                          — pure-string HTML generators, no wasm-bindgen
+    src/{combined_table,shortprops,tilt,classify,diagonals,spans}.rs
+                                         — every public fn returns String; both other
+                                           crates call these to render views
+  semigroup_explorer/                    — wasm-bindgen wrapper crate (cdylib + rlib)
+    src/lib.rs                           — JsSemigroup + thin #[wasm_bindgen] shims
+                                           around html_helpers + semigroup_math
+    src/{pagestate,js_eval,jsgraph}.rs   — WASM-only state, evaluator wrapper, graph data
+  semigroup_cones/                       — native CLI binary "waldicone"
+    src/main.rs                          — spawns bundled Normaliz, builds aggregate
+                                           HTML reports via html_helpers
+pkg/                                     — wasm-pack output (gitignored; built by
+                                           `wasm-pack build crates/semigroup_explorer …`
+                                           and in CI)
 jsmodules/
-  app.js                      — main SPA logic
-  graph.js                    — vis-network graph rendering
-  view3d.js                   — Three.js 3D view
-gap/                          — example GAP scripts for manual verification
-normaliz/                     — input/output files and combined HTML produced by the normaliz binary
-index.html                    — single-page frontend
-style.css                     — styles
+  app.js                                 — main SPA logic
+  graph.js                               — vis-network graph rendering
+  view3d.js                              — Three.js 3D view
+gap/                                     — example GAP scripts for manual verification
+normaliz/                                — bundled Normaliz binary + cached I/O artifacts
+index.html                               — single-page frontend (imports pkg/semigroup_explorer.js)
+style.css                                — styles
 ```
 
 ### Data flow
@@ -264,7 +270,7 @@ style.css                     — styles
 
 ### Page state (Rust)
 
-`src/jshelpers/pagestate.rs` owns the four stateful values using `thread_local! + RefCell<PageState>` — the idiomatic pattern for single-threaded WASM:
+`crates/semigroup_explorer/src/pagestate.rs` owns the four stateful values using `thread_local! + RefCell<PageState>` — the idiomatic pattern for single-threaded WASM:
 
 | Field | Type | Description |
 |---|---|---|
@@ -275,9 +281,9 @@ style.css                     — styles
 
 ### Core algorithm
 
-`compute()` in `src/math/mod.rs` uses a sliding window of width 2 × max(generators). It tracks residue classes modulo the multiplicity m to find the Apéry set and the minimal generating set in a single pass. Membership testing is O(1) via the Apéry set.
+`compute()` in `crates/semigroup_math/src/math/mod.rs` uses a sliding window of width 2 × max(generators). It tracks residue classes modulo the multiplicity m to find the Apéry set and the minimal generating set in a single pass. Membership testing is O(1) via the Apéry set.
 
-### Expression evaluator (`src/eva/mod.rs`)
+### Expression evaluator (`crates/semigroup_math/src/eva/mod.rs`)
 
 A hand-written recursive-descent parser over `usize`. No dependencies. Grammar:
 
@@ -288,7 +294,7 @@ factor = '(' expr ')' | number
 number = [0-9]+
 ```
 
-`eval_expr` in `jshelpers` pre-processes the input string — substituting `a[i]`/`q[i]` (with recursively evaluated indices) and scalar variables — before passing it to the evaluator.
+`eval_expr` in `crates/semigroup_explorer/src/js_eval.rs` pre-processes the input string — substituting `a[i]`/`q[i]` (with recursively evaluated indices) and scalar variables — before passing it to the evaluator.
 
 ---
 

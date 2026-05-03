@@ -1,9 +1,9 @@
 //! Sheared "Tilt" grid view for the Tilt tab.
 
-use super::combined_table::get_cls;
-use super::{JsSemigroup, class_sets};
+use crate::combined_table::cell_cls;
+use crate::spans::{class_sets, span};
+use semigroup_math::math::Semigroup;
 use std::fmt::Write as _;
-use wasm_bindgen::prelude::*;
 
 /// Pure x-y grid for the Tilt tab: no Apéry row, no Kunz matrix.
 ///
@@ -12,10 +12,8 @@ use wasm_bindgen::prelude::*;
 /// `y·m + x − tilt·y`.
 // ALLOW: m, f, x, n are standard mathematical notation for this domain.
 #[allow(clippy::many_single_char_names)]
-#[wasm_bindgen]
 #[must_use]
-pub fn tilt_table(s: &JsSemigroup, tilt: i32) -> String {
-    let sg = &s.0;
+pub fn tilt_table(sg: &Semigroup, tilt: i32) -> String {
     let m = sg.m;
     let f = sg.f;
 
@@ -29,18 +27,7 @@ pub fn tilt_table(s: &JsSemigroup, tilt: i32) -> String {
     let num_cols = (col_end - col_start).cast_unsigned();
 
     let sets = class_sets(sg);
-    let cls_of = |n| {
-        get_cls(
-            n,
-            false,
-            f,
-            m,
-            &sg.apery_set,
-            &sets.gens,
-            &sets.pf_set,
-            &sets.blobs,
-        )
-    };
+    let cls_of = |n| cell_cls(n, sg, &sets);
 
     // Header: "y\x" corner + x-coordinate labels; x=0 column highlighted
     #[allow(clippy::format_collect)]
@@ -80,7 +67,7 @@ pub fn tilt_table(s: &JsSemigroup, tilt: i32) -> String {
             }
             #[allow(clippy::cast_sign_loss)]
             let n = n_signed as usize;
-            let inner = super::span(cls_of(n), n, true);
+            let inner = span(cls_of(n), n, true);
             if axis {
                 let _ = write!(html, "<td class=\"tilt-axis\">{inner}</td>");
             } else {

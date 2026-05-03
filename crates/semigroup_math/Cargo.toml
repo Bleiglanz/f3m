@@ -1,0 +1,17 @@
+[package]
+name = "semigroup_math"
+description = "Pure-Rust numerical-semigroup algorithms: Frobenius, Apéry, Kunz, gluing, matrix algebra, GAP source generation."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme.workspace = true
+
+[dependencies]
+num-traits.workspace = true
+
+[dev-dependencies]
+proptest.workspace = true

@@ -1,5 +1,5 @@
 import { js_node_class, js_graph_node_ids, js_graph_edge_pairs, js_graph_edges_text,
-         state_get_show_gaps, state_set_show_gaps, state_get_show_s, state_set_show_s } from '../pkg/f3m.js';
+         state_get_show_gaps, state_set_show_gaps, state_get_show_s, state_set_show_s } from '../pkg/semigroup_explorer.js';
 import { update3dVisibility } from './view3d.js';
 
 // CSS class → vis-network background/border colors.

@@ -5,7 +5,7 @@ import init, {
   state_get_eva_expr, state_set_eva_expr, state_gap_output, state_cmp,
   state_get_show_kunz, state_set_show_kunz,
   state_set_show_classification,
-} from '../pkg/f3m.js';
+} from '../pkg/semigroup_explorer.js';
 import { render3d } from './view3d.js';
 import { rebuildGraph, setupGraphUpto, setupShowGaps, setupGraphToggle } from './graph.js';
 

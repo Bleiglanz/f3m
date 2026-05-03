@@ -1,24 +1,22 @@
-[package]
-name = "f3m"
+[workspace]
+members = ["crates/*"]
+resolver = "3"
+
+[workspace.package]
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.88"
-description = "Numerical-semigroup calculator: properties (Frobenius, Apéry, gaps, Kunz, …) compiled to WebAssembly."
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/Bleiglanz/f3m"
 keywords = ["numerical-semigroup", "frobenius", "apery", "kunz", "wasm"]
 categories = ["mathematics", "wasm"]
+readme = "README.md"
 
-[lib]
-crate-type = ["cdylib", "rlib"]
-
-[dependencies]
-wasm-bindgen = "0.2"
+[workspace.dependencies]
+num-traits = "0.2"
 primal = "0.3"
-num-traits = "0.2" # Zero, One traits used by the matrix module
-
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-rayon = "1"        # parallel iterator for the normaliz binary
-
-[dev-dependencies]
-proptest = "1"     # property-based tests for matrix algebra laws
+rayon = "1"
+wasm-bindgen = "0.2"
+proptest = "1"
+semigroup_math = { path = "crates/semigroup_math" }
+html_helpers = { path = "crates/html_helpers" }

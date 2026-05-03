@@ -35,7 +35,7 @@ pub fn can_self_glue(s: &Semigroup) -> bool {
 /// # Example
 ///
 /// ```rust
-/// use f3m::math::{compute, glue::self_glue};
+/// use semigroup_math::math::{compute, glue::self_glue};
 /// let s = compute(&[3, 5]);
 /// let glued = self_glue(&s).unwrap();
 /// // generators are 3·{3,5} ∪ 5·{3,5} = {9,15} ∪ {15,25} = {9,15,25}

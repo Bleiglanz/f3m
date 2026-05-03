@@ -3,7 +3,7 @@
 
 #![allow(clippy::too_many_lines, clippy::cognitive_complexity)]
 
-use f3m::math::{
+use semigroup_math::math::{
     compute, gcd,
     matrix::{c_red, d_matrix, u_matrix, zd_vector},
 };

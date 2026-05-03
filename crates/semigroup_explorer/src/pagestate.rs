@@ -1,5 +1,5 @@
 use super::JsSemigroup;
-use crate::math::{GAP_FOOTER, GAP_HEADER, Semigroup, compute, gap_block};
+use semigroup_math::math::{GAP_FOOTER, GAP_HEADER, Semigroup, compute, gap_block};
 use std::cell::RefCell;
 use wasm_bindgen::prelude::*;
 
@@ -188,11 +188,6 @@ pub fn state_cmp(a: usize, b: usize) -> String {
         let (Some(sa), Some(sb)) = (state.history.get(a), state.history.get(b)) else {
             return "?".to_string();
         };
-        match sa.partial_cmp(sb) {
-            Some(std::cmp::Ordering::Less) => "⊂".to_string(),
-            Some(std::cmp::Ordering::Equal) => "=".to_string(),
-            Some(std::cmp::Ordering::Greater) => "⊃".to_string(),
-            None => "?".to_string(),
-        }
+        super::containment_glyph(sa.partial_cmp(sb)).to_string()
     })
 }

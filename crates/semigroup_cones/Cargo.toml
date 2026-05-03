@@ -1,0 +1,19 @@
+[package]
+name = "semigroup_cones"
+description = "CLI: enumerate numerical semigroups via the Waldi Polytope using the bundled Normaliz binary. Produces aggregate HTML reports."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme.workspace = true
+
+[[bin]]
+name = "waldicone"
+path = "src/main.rs"
+
+[dependencies]
+semigroup_math.workspace = true
+rayon.workspace = true

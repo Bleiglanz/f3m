@@ -14,7 +14,7 @@
 //! ```
 //!
 //! ```rust
-//! use f3m::eva::eval;
+//! use semigroup_math::eva::eval;
 //! assert_eq!(eval("3 + 4 * 2").unwrap(), 11);
 //! assert_eq!(eval("(1 + 2) * 3").unwrap(), 9);
 //! ```

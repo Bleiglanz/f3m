@@ -9,7 +9,7 @@
 //! implementation).
 
 use super::JsSemigroup;
-use crate::eva;
+use semigroup_math::eva;
 use wasm_bindgen::prelude::*;
 
 /// Evaluation context: all semigroup scalars and slices needed to substitute
@@ -182,11 +182,11 @@ pub fn eval_expr(expr: &str, s: &JsSemigroup) -> Option<usize> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::math::compute;
+    use semigroup_math::math::{Semigroup, compute};
 
     use super::super::JsSemigroup;
 
-    fn ctx_for(gens: &[usize]) -> (JsSemigroup, crate::math::Semigroup) {
+    fn ctx_for(gens: &[usize]) -> (JsSemigroup, Semigroup) {
         let sg = compute(gens);
         let js = JsSemigroup(sg.clone());
         (js, sg)

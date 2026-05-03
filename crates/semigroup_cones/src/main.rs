@@ -1152,7 +1152,7 @@ fn main() {
         Some("seq") => ExecMode::Sequential,
         None => ExecMode::Parallel,
         Some(other) => {
-            eprintln!("error: unknown second argument {other:?} (expected 'seq' or omit)",);
+            eprintln!("error: unknown second argument {other:?} (expected 'seq' or omit)");
             std::process::exit(1);
         }
     };

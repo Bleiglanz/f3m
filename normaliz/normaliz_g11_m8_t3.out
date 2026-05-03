@@ -1,0 +1,91 @@
+17 lattice points in polytope (module generators)
+0 Hilbert basis elements of recession monoid
+22 vertices of polyhedron
+0 extreme rays of recession cone
+12 support hyperplanes of polyhedron (homogenized)
+
+embedding dimension = 8
+affine dimension of the polyhedron = 5
+rank of recession monoid = 0 (polyhedron is polytope)
+
+dehomogenization:
+0 0 0 0 0 0 0 1 
+
+
+module rank = 17
+
+***********************************************************************
+
+17 lattice points in polytope (module generators):
+ 3 5 3 3 3 3 5 1
+ 4 3 4 3 3 3 5 1
+ 4 4 2 4 3 3 5 1
+ 4 4 3 2 4 3 5 1
+ 4 4 3 3 2 4 5 1
+ 4 4 3 3 3 2 6 1
+ 5 1 5 3 3 3 5 1
+ 5 2 3 4 3 3 5 1
+ 5 2 4 2 4 3 5 1
+ 5 2 4 3 2 4 5 1
+ 5 2 4 3 3 2 6 1
+ 5 3 2 3 4 3 5 1
+ 5 3 2 4 2 4 5 1
+ 5 3 2 4 3 2 6 1
+ 5 3 3 2 3 4 5 1
+ 5 3 3 2 4 2 6 1
+ 5 3 3 3 2 3 6 1
+
+0 Hilbert basis elements of recession monoid:
+
+22 vertices of polyhedron:
+  3  5  3  3  3  3  5 1
+  4  4  3  3  2  4  5 1
+  4  4  3  3  3  2  6 1
+  5  1  5  3  3  3  5 1
+  5  2  3  4  3  3  5 1
+  5  2  4  3  2  4  5 1
+  5  2  4  3  3  2  6 1
+  5  3  2  3  4  3  5 1
+  5  3  2  4  2  4  5 1
+  5  3  2  4  3  2  6 1
+  5  3  3  2  3  4  5 1
+  5  3  3  2  4  2  6 1
+  5  3  3  3  2  3  6 1
+  9  7  6  3  9  6 10 2
+ 10  5  7  3  9  6 10 2
+ 14  9 10  9  9  5 19 3
+ 14 10  4 14  9  9 15 3
+ 14 10  8 10  9  5 19 3
+ 15  8 10  8 10  5 19 3
+ 15  9  8  9 10  5 19 3
+ 23 16 16 15  8 22 25 5
+ 25 14 14 17  8 22 25 5
+
+0 extreme rays of recession cone:
+
+12 support hyperplanes of polyhedron (homogenized):
+ -43  25  20  15  10   5 0 0
+ -25 -33  32  24  16   8 0 0
+  -7 -18 -29  33  22  11 0 0
+  -1  -1   0   1   1   1 0 0
+  -1  -1   1   1   1   0 0 0
+  -1   0   0   0   1   1 0 0
+  -1   0   0   1   1   0 0 0
+  -1   0   1   1   0   0 0 0
+  -1   1   1   0   0   0 0 0
+  11  -3 -17 -31  28  14 0 0
+  29  12  -5 -22 -39  17 0 0
+  47  27   7 -13 -33 -53 0 0
+
+2 equations:
+ 1 0 -1 -2 -3 -4 -5  52
+ 0 1  2  3  4  5  6 -77
+
+6 basis elements of generated  lattice:
+ 1 0 0 0 0 -6   5 0
+ 0 1 0 0 0 -5   4 0
+ 0 0 1 0 0 -4   3 0
+ 0 0 0 1 0 -3   2 0
+ 0 0 0 0 1 -2   1 0
+ 0 0 0 0 0 73 -48 1
+

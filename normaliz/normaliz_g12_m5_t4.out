@@ -1,0 +1,55 @@
+8 lattice points in polytope (module generators)
+0 Hilbert basis elements of recession monoid
+5 vertices of polyhedron
+0 extreme rays of recession cone
+5 support hyperplanes of polyhedron (homogenized)
+
+embedding dimension = 5
+affine dimension of the polyhedron = 2
+rank of recession monoid = 0 (polyhedron is polytope)
+
+dehomogenization:
+0 0 0 0 1 
+
+
+module rank = 8
+
+***********************************************************************
+
+8 lattice points in polytope (module generators):
+ 4 5 6 6 1
+ 4 6 4 7 1
+ 5 4 5 7 1
+ 5 5 3 8 1
+ 6 2 6 7 1
+ 6 3 4 8 1
+ 6 4 2 9 1
+ 7 0 7 7 1
+
+0 Hilbert basis elements of recession monoid:
+
+5 vertices of polyhedron:
+  4  5  6  6 1
+  7  0  7  7 1
+  7 12 11 12 2
+  7 14  7 14 2
+ 35 28  7 56 6
+
+0 extreme rays of recession cone:
+
+5 support hyperplanes of polyhedron (homogenized):
+ -1  1   1 0 0
+  1 -2   3 0 0
+  5 -2  -1 0 0
+  5  2  -5 0 0
+ 17  2 -13 0 0
+
+2 equations:
+ 1 0 -1 -2  14
+ 0 1  2  3 -35
+
+3 basis elements of generated  lattice:
+ 1 0 -3  2 0
+ 0 1 -2  1 0
+ 0 0 28 -7 1
+

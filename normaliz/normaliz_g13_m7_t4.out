@@ -1,0 +1,100 @@
+12 lattice points in polytope (module generators)
+0 Hilbert basis elements of recession monoid
+35 vertices of polyhedron
+0 extreme rays of recession cone
+14 support hyperplanes of polyhedron (homogenized)
+
+embedding dimension = 7
+affine dimension of the polyhedron = 4
+rank of recession monoid = 0 (polyhedron is polytope)
+
+dehomogenization:
+0 0 0 0 0 0 1 
+
+
+module rank = 12
+
+***********************************************************************
+
+12 lattice points in polytope (module generators):
+ 5 5 4 5 4 6 1
+ 5 6 3 4 5 6 1
+ 6 3 5 5 4 6 1
+ 6 4 3 6 4 6 1
+ 6 4 4 4 5 6 1
+ 6 4 4 5 3 7 1
+ 6 5 2 5 5 6 1
+ 6 5 3 3 6 6 1
+ 6 5 3 4 4 7 1
+ 7 2 5 5 3 7 1
+ 7 3 4 4 4 7 1
+ 7 3 4 5 2 8 1
+
+0 Hilbert basis elements of recession monoid:
+
+35 vertices of polyhedron:
+   5  6  3  4  5   6  1
+   6  3  5  5  4   6  1
+   6  4  3  6  4   6  1
+   6  5  2  5  5   6  1
+   6  5  3  3  6   6  1
+   7  2  5  5  3   7  1
+   7  3  4  5  2   8  1
+   9 11  9  9  8  12  2
+   9 12  8  8  9  12  2
+  10 12  7  6 11  12  2
+  11  7 11  9  8  12  2
+  11 11  7  5 12  12  2
+  11 11  7  7  8  14  2
+  12  9  8  5 12  12  2
+  13  7  6 12  7  13  2
+  13  7  9  9  4  16  2
+  13  8  8  8  5  16  2
+  13  9  4 10  9  13  2
+  14  4 11  9  5  15  2
+  14  7  7  7  9  14  2
+  14  7  7  9  5  16  2
+  14  7  8  6  8  15  2
+  19 25 14 14 19  25  4
+  20 13  7 13 14  20  3
+  20 13  7 14 12  21  3
+  21 11 11 10 11  23  3
+  25 19 14 11 19  28  4
+  27 17 10 17 17  28  4
+  28 13 17 11 19  28  4
+  28 15 13 15 15  30  4
+  36 16 35 26 25  36  6
+  42 10 35 26 19  42  6
+  58 52 35 23 61  61 10
+  61 46 38 23 61  61 10
+ 110 61 61 49 61 122 16
+
+0 extreme rays of recession cone:
+
+14 support hyperplanes of polyhedron (homogenized):
+ -36  28  21  14    7 0 0
+ -16 -27  33  22   11 0 0
+  -1  -1   1   1    1 0 0
+  -1   0   0   1    1 0 0
+  -1   0   1   1    0 0 0
+  -1   1   1   0    0 0 0
+   3 -26 -55  58   29 0 0
+   3 -26  16 -13   29 0 0
+   3  45  16 -13  -42 0 0
+  24   5 -14 -33   19 0 0
+  44  21  -2 -25  -48 0 0
+  74 -26  16 -13  -42 0 0
+  74  45 -55 -84   29 0 0
+  74  45  16 -13 -113 0 0
+
+2 equations:
+ 1 0 -1 -2 -3 -4  45
+ 0 1  2  3  4  5 -74
+
+5 basis elements of generated  lattice:
+ 1 0 0 0 -5   4 0
+ 0 1 0 0 -4   3 0
+ 0 0 1 0 -3   2 0
+ 0 0 0 1 -2   1 0
+ 0 0 0 0 71 -42 1
+

@@ -567,6 +567,65 @@ pub fn u_matrix(m: usize) -> DenseMatrix<i64> {
     }
 }
 
+// ── V(m) matrix ───────────────────────────────────────────────────────────────
+
+/// Constructs the (m−1) × (m−1) matrix V(m), the integer left inverse of U(m)
+/// scaled by m: V(m)·U(m) = m·I.
+///
+/// V(m) encodes the relation `w₁ + wᵢ = w_{1+i} + c_{1,i}·m` between Apéry
+/// elements, expressed in the `C_red` coordinates. Rows (1-indexed):
+///
+/// ```text
+/// row 1:           V[1][1] = 2,   V[1][2] = -1
+/// row i (1 < i < m−1): V[i][1] = 1, V[i][i] = 1, V[i][i+1] = -1
+/// row m−1:         V[m-1][1] = 1, V[m-1][m-1] = 1
+/// ```
+///
+/// All other entries are zero. For m = 2 the single row is both first and
+/// last; the first-row rule applies, giving V(2) = (2).
+///
+/// Examples:
+/// ```text
+/// V(2) = [[ 2]]
+/// V(3) = [[ 2, -1],
+///         [ 1,  1]]
+/// V(4) = [[ 2, -1,  0],
+///         [ 1,  1, -1],
+///         [ 1,  0,  1]]
+/// ```
+///
+/// # Panics
+///
+/// Panics if `m < 2`.
+#[must_use]
+pub fn v_matrix(m: usize) -> DenseMatrix<i64> {
+    assert!(m >= 2, "v_matrix requires m ≥ 2");
+    let n = m - 1;
+    let mut data = vec![0i64; n * n];
+    if n == 1 {
+        data[0] = 2;
+        return DenseMatrix {
+            rows: n,
+            cols: n,
+            data,
+        };
+    }
+    data[0] = 2;
+    data[1] = -1;
+    for a in 1..n - 1 {
+        data[a * n] = 1;
+        data[a * n + a] = 1;
+        data[a * n + a + 1] = -1;
+    }
+    data[(n - 1) * n] = 1;
+    data[(n - 1) * n + (n - 1)] = 1;
+    DenseMatrix {
+        rows: n,
+        cols: n,
+        data,
+    }
+}
+
 // ── Kunz matrix ───────────────────────────────────────────────────────────────
 
 /// Constructs the m × m Kunz coefficient matrix for semigroup `s`.
@@ -1403,6 +1462,60 @@ mod tests {
         // U(3) = [[1,1],[-1,2]], det = 1·2 − 1·(−1) = 3.
         let u = u_matrix(3);
         assert_eq!(u.det(), 3);
+    }
+
+    // ── V(m) ──────────────────────────────────────────────────────────────────
+
+    #[test]
+    fn v_matrix_m2_is_2() {
+        let v = v_matrix(2);
+        assert_eq!(v.rows, 1);
+        assert_eq!(v.cols, 1);
+        assert_eq!(v[(0, 0)], 2);
+    }
+
+    #[test]
+    fn v_matrix_m3_known() {
+        let v = v_matrix(3);
+        let expected: &[&[i64]] = &[&[2, -1], &[1, 1]];
+        for (a, row) in expected.iter().enumerate() {
+            for (b, &val) in row.iter().enumerate() {
+                assert_eq!(v[(a, b)], val, "V(3)[{a}][{b}]");
+            }
+        }
+    }
+
+    #[test]
+    fn v_matrix_m4_known() {
+        let v = v_matrix(4);
+        let expected: &[&[i64]] = &[&[2, -1, 0], &[1, 1, -1], &[1, 0, 1]];
+        for (a, row) in expected.iter().enumerate() {
+            for (b, &val) in row.iter().enumerate() {
+                assert_eq!(v[(a, b)], val, "V(4)[{a}][{b}]");
+            }
+        }
+    }
+
+    #[test]
+    fn v_times_u_is_m_identity() {
+        // The whole point of V(m): V(m)·U(m) = m·I_{m−1}.
+        for m in 2..=10 {
+            let v = v_matrix(m);
+            let u = u_matrix(m);
+            let prod = v * u;
+            let n = m - 1;
+            for a in 0..n {
+                for b in 0..n {
+                    #[allow(clippy::cast_possible_wrap)]
+                    let expected = if a == b { m as i64 } else { 0 };
+                    assert_eq!(
+                        prod[(a, b)],
+                        expected,
+                        "V({m})·U({m})[{a}][{b}] should equal {expected}",
+                    );
+                }
+            }
+        }
     }
 
     // ── c_red ─────────────────────────────────────────────────────────────────

@@ -4,7 +4,8 @@ use crate::combined_table::cell_cls;
 use crate::spans::{class_sets, span};
 use semigroup_math::math::Semigroup;
 use semigroup_math::math::matrix::{
-    DenseMatrix, Matrix, c_red, d_matrix, u_matrix, u_pair_relations, u_times_c_red, zd_vector,
+    DenseMatrix, Matrix, c_red, d_matrix, u_matrix, u_pair_relations, u_times_c_red, v_matrix,
+    zd_vector,
 };
 use std::fmt::Write as _;
 
@@ -125,6 +126,16 @@ pub fn diagonals_table(sg: &Semigroup) -> String {
     let pair_label = |r: usize| pair_labels[r].clone();
     let u_mat = u_matrix(mult);
     let html_u = render(&u_mat, "U(m)", &one_based, &one_based, &plain);
+    let v_mat = v_matrix(mult);
+    let html_v = render(&v_mat, "V(m)", &one_based, &one_based, &plain);
+    let vu_product = Matrix::mat_mul(&v_mat, &u_mat);
+    let html_v_times_u = render(
+        &vu_product,
+        "V(m)\u{b7}U(m)",
+        &one_based,
+        &one_based,
+        &plain,
+    );
     let one_u: Vec<i64> = (0..dim)
         .map(|j| (0..dim).map(|a| u_mat[(a, j)]).sum())
         .collect();
@@ -199,6 +210,14 @@ pub fn diagonals_table(sg: &Semigroup) -> String {
         "<p class=\"det-note\">det(U(m)) = m<sup>m\u{2212}2</sup> = \
          {mult}<sup>{}</sup></p>",
         mult - 2,
+    );
+    let _ = write!(out, "<div class=\"table-wrap\">{html_v}</div>");
+    let _ = write!(out, "<div class=\"table-wrap\">{html_v_times_u}</div>");
+    let _ = write!(
+        out,
+        "<p class=\"det-note\">V(m)\u{b7}U(m) = m\u{b7}I<sub>m\u{2212}1</sub> = \
+         {mult}\u{b7}I<sub>{}</sub></p>",
+        mult - 1,
     );
     let _ = write!(out, "<div class=\"table-wrap\">{html_one}</div>");
     let _ = write!(out, "<div class=\"table-wrap\">{html_uc}</div>");

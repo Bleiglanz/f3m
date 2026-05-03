@@ -161,7 +161,7 @@ please check everything carefully, as long as the functionality remains ok i'm g
 42) [DONE] it is wierd that our binary has the same name as the normaliz, can you rename
 our binary (the executable) to "waldicone".
 
-43) it seems that this project is getting too complicated
+43) [DONE] it seems that this project is getting too complicated
 can we make this a multi-crate=workspaces project, with a shared  target/
 define them once in the root Cargo.toml and use <subproject>/Cargo.toml with workspace true
 My idea:
@@ -171,7 +171,7 @@ c) semigroup_explorer = the index.html, wasm, html
 d) html_helpers = a library for all the functions that return html fragments in one form or the otherwise
 this would be a major refactoring, analyze the situation and recommend a plan
 
-44) Back to the math
+44) [DONE] Back to the math
 Define a matrix V(m) analogous to U(m), a (m-1)x(m-1) matrix with negative entries
 it is given by
 V_{1,1}=2 V_{1,2}=-1 for i=1 the first row

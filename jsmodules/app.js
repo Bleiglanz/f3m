@@ -395,6 +395,7 @@ async function fetchPivotData(gmax) {
     f: s.f, sigma: s.sigma, r: s.r, ra: s.ra, fg: s.fg,
     sym: s.sym, max_gen: s.max_gen,
     wilf: Number(s.wilf.toFixed(4)),
+    min_ri: s.min_ri, max_ri: s.max_ri, any_ri_eq_2: s.any_ri_eq_2,
     'f<m': s.f < s.m,
     'f mod m': s.f % s.m,
     'ae=f+m': s.max_gen === s.f + s.m,

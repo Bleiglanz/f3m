@@ -292,23 +292,38 @@ impl Semigroup {
         self.kunz(i, j)
     }
 
-    /// Smallest `r_i` over residue classes `1..m`. Returns 0 when `m < 2`.
+    /// Smallest `r_i` over residue classes `i ∈ 1..m, i ≠ μ`. The class
+    /// `i = μ` is excluded because `r_μ = 0` for every numerical semigroup
+    /// (a reflected gap with residue `μ` would have partner `f − x ≡ 0
+    /// (mod m)`, but `0, m, 2m, …` all lie in `S`), so including it would
+    /// pin the minimum to 0 unconditionally and carry no information.
+    /// Returns 0 when `m < 2` or when `1..m \ {μ}` is empty (m = 2).
     #[must_use]
     pub fn min_ri(&self) -> usize {
-        (1..self.m).map(|i| self.r_i(i)).min().unwrap_or(0)
+        (1..self.m)
+            .filter(|&i| i != self.mu)
+            .map(|i| self.r_i(i))
+            .min()
+            .unwrap_or(0)
     }
 
     /// Largest `r_i` over residue classes `1..m`. Returns 0 when `m < 2`.
+    /// `i = μ` contributes 0 and never affects the maximum, so it is left
+    /// in the iteration for simplicity.
     #[must_use]
     pub fn max_ri(&self) -> usize {
         (1..self.m).map(|i| self.r_i(i)).max().unwrap_or(0)
     }
 
-    /// True iff some residue class `i ∈ 1..m` has exactly two reflected gaps
-    /// (`r_i = 2`). Useful as a coarse predicate when looking at semigroups
-    /// where removing `f+m` from `S` makes `f+2m` a minimal generator.
+    /// True iff some residue class `i ∈ 1..m, i ≠ μ` has exactly two
+    /// reflected gaps (`r_i = 2`). Useful as a coarse predicate when looking
+    /// at semigroups where removing `f+m` from `S` makes `f+2m` a minimal
+    /// generator. (`i = μ` is excluded for symmetry with `min_ri`; since
+    /// `r_μ = 0 ≠ 2`, including it would not change the result.)
     #[must_use]
     pub fn any_ri_eq_2(&self) -> bool {
-        (1..self.m).any(|i| self.r_i(i) == 2)
+        (1..self.m)
+            .filter(|&i| i != self.mu)
+            .any(|i| self.r_i(i) == 2)
     }
 }

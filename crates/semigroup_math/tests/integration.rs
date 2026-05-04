@@ -2348,25 +2348,36 @@ fn test_r_i_matches_brute_force() {
 
 #[test]
 fn test_min_max_any_ri() {
-    // <4, 7, 9, 10>: reflected gaps = {1, 3, 5} → r_1=2, r_2=0, r_3=1.
+    // min_ri excludes i = μ (where r_μ = 0 by construction), so on a fresh
+    // semigroup it picks up the smallest *non-trivial* count.
+
+    // <4, 7, 9, 10>: f=6, μ=2. r_1=2, r_2=0, r_3=1 → min over {1,3} = 1.
     let sg = compute(&[4, 7, 9, 10]);
     assert_eq!(sg.r_i(1), 2);
     assert_eq!(sg.r_i(2), 0);
     assert_eq!(sg.r_i(3), 1);
-    assert_eq!(sg.min_ri(), 0);
+    assert_eq!(sg.min_ri(), 1);
     assert_eq!(sg.max_ri(), 2);
     assert!(sg.any_ri_eq_2());
 
-    // <3, 5, 7>: reflected gaps = {2} → r_1=0, r_2=1.
+    // <3, 5, 7>: f=4, μ=1. r_1=0, r_2=1 → min over {2} = 1.
     let sg = compute(&[3, 5, 7]);
-    assert_eq!(sg.min_ri(), 0);
+    assert_eq!(sg.min_ri(), 1);
     assert_eq!(sg.max_ri(), 1);
     assert!(!sg.any_ri_eq_2());
 
-    // <3, 10, 11>: reflected gaps = {1, 4, 7} → r_1=3, r_2=0.
+    // <3, 10, 11>: f=8, μ=2. r_1=3, r_2=0 → min over {1} = 3.
     let sg = compute(&[3, 10, 11]);
-    assert_eq!(sg.min_ri(), 0);
+    assert_eq!(sg.min_ri(), 3);
     assert_eq!(sg.max_ri(), 3);
+    assert!(!sg.any_ri_eq_2());
+
+    // m = 2: 1..m \ {μ} is empty (μ = 1 since f is odd) → min_ri = 0,
+    // any_ri_eq_2 = false. <2, 5>: f=3, μ=1.
+    let sg = compute(&[2, 5]);
+    assert_eq!(sg.mu, 1);
+    assert_eq!(sg.min_ri(), 0);
+    assert_eq!(sg.max_ri(), 0);
     assert!(!sg.any_ri_eq_2());
 }
 

@@ -276,4 +276,39 @@ impl Semigroup {
         gens.extend_from_slice(&self.apery_set[2..]);
         compute(&gens)
     }
+    /// Number of reflected gaps in residue class `i` (mod `m`): the count of
+    /// gaps `x` with `x ≡ i (mod m)` for which `f − x` is also a gap.
+    ///
+    /// Equals the Kunz coefficient `c(i, j)` where `j = (μ − i) mod m` and
+    /// `μ = f mod m = self.mu`. The modular reduction matters because `μ`
+    /// may be smaller than `i`; a plain `mu − i` would underflow on `usize`.
+    /// Returns 0 when `m < 2` or when `i` is outside `1..m`.
+    #[must_use]
+    pub fn r_i(&self, i: usize) -> usize {
+        if self.m < 2 || i == 0 || i >= self.m {
+            return 0;
+        }
+        let j = (self.mu + self.m - i) % self.m;
+        self.kunz(i, j)
+    }
+
+    /// Smallest `r_i` over residue classes `1..m`. Returns 0 when `m < 2`.
+    #[must_use]
+    pub fn min_ri(&self) -> usize {
+        (1..self.m).map(|i| self.r_i(i)).min().unwrap_or(0)
+    }
+
+    /// Largest `r_i` over residue classes `1..m`. Returns 0 when `m < 2`.
+    #[must_use]
+    pub fn max_ri(&self) -> usize {
+        (1..self.m).map(|i| self.r_i(i)).max().unwrap_or(0)
+    }
+
+    /// True iff some residue class `i ∈ 1..m` has exactly two reflected gaps
+    /// (`r_i = 2`). Useful as a coarse predicate when looking at semigroups
+    /// where removing `f+m` from `S` makes `f+2m` a minimal generator.
+    #[must_use]
+    pub fn any_ri_eq_2(&self) -> bool {
+        (1..self.m).any(|i| self.r_i(i) == 2)
+    }
 }

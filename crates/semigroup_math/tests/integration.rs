@@ -2300,6 +2300,76 @@ fn test_apery_shift_first_changes_s_iff_w1_is_minimal_generator() {
     }
 }
 
+/// Brute-force count of reflected gaps `x` (gap with `f − x` also a gap)
+/// grouped by residue class mod `m`. Used to cross-check `Semigroup::r_i`.
+fn brute_force_ri(sg: &semigroup_math::math::Semigroup) -> Vec<usize> {
+    let mut counts = vec![0usize; sg.m];
+    if sg.f == 0 {
+        return counts;
+    }
+    for x in 1..sg.f {
+        if sg.is_gap(x) && sg.is_gap(sg.f - x) {
+            counts[x % sg.m] += 1;
+        }
+    }
+    counts
+}
+
+#[test]
+fn test_r_i_matches_brute_force() {
+    // Spans several m values and mu values, and includes <4,7,9,10> where
+    // r_1 = 2 (the case the underflow fix is meant to handle: mu = 2, i = 3).
+    let cases: &[&[usize]] = &[
+        &[3, 5, 7],
+        &[3, 7, 11],
+        &[3, 10, 11],
+        &[4, 5, 6, 7],
+        &[4, 7, 9, 10],
+        &[5, 6, 7, 8, 9],
+        &[5, 7, 9],
+        &[6, 9, 20],
+    ];
+    for gens in cases {
+        let sg = compute(gens);
+        let expected = brute_force_ri(&sg);
+        for (i, &want) in expected.iter().enumerate().take(sg.m).skip(1) {
+            assert_eq!(
+                sg.r_i(i),
+                want,
+                "r_{i} mismatch for {gens:?} (m={}, mu={})",
+                sg.m,
+                sg.mu,
+            );
+        }
+        assert_eq!(sg.r_i(0), 0);
+        assert_eq!(sg.r_i(sg.m), 0);
+    }
+}
+
+#[test]
+fn test_min_max_any_ri() {
+    // <4, 7, 9, 10>: reflected gaps = {1, 3, 5} → r_1=2, r_2=0, r_3=1.
+    let sg = compute(&[4, 7, 9, 10]);
+    assert_eq!(sg.r_i(1), 2);
+    assert_eq!(sg.r_i(2), 0);
+    assert_eq!(sg.r_i(3), 1);
+    assert_eq!(sg.min_ri(), 0);
+    assert_eq!(sg.max_ri(), 2);
+    assert!(sg.any_ri_eq_2());
+
+    // <3, 5, 7>: reflected gaps = {2} → r_1=0, r_2=1.
+    let sg = compute(&[3, 5, 7]);
+    assert_eq!(sg.min_ri(), 0);
+    assert_eq!(sg.max_ri(), 1);
+    assert!(!sg.any_ri_eq_2());
+
+    // <3, 10, 11>: reflected gaps = {1, 4, 7} → r_1=3, r_2=0.
+    let sg = compute(&[3, 10, 11]);
+    assert_eq!(sg.min_ri(), 0);
+    assert_eq!(sg.max_ri(), 3);
+    assert!(!sg.any_ri_eq_2());
+}
+
 #[test]
 fn test_apery_shift_first_when_kunz_move_is_blocked() {
     // For <6,9,20>, w₂+w₅ = 20+29 = 49 = w₁, so c_25 = 0 and the move

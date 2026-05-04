@@ -226,8 +226,13 @@ called "Comp", if the history contains more than one semigroup
 then it should show the current semigroup (propery+kunztable)
 and the semigroup immediately before that
 
-
-
+52) [DONE]
+In semigrop.rs i addes three new attributes I want to use to
+min_ri (minimal number of reflected gaps mod i)
+max_ri (maximal number of reflected gaps mod i)
+any_ri_eq_2 (a bool - is there a residue i such that r_i==2?
+inspect the code, check for consistency, and add these three to our waldicone binary = summary, list, json
+idea is to use the pivot in our index.html to compare the number of semigroups ...
 
 
 

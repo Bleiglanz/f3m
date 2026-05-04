@@ -370,12 +370,18 @@ fn props_cells(sg: &Semigroup) -> String {
         "\u{1F6AB}"
     };
 
+    let any2 = if sg.any_ri_eq_2() {
+        "\u{2705}"
+    } else {
+        "\u{1F6AB}"
+    };
     format!(
         "<td>{f}</td><td>{e}</td><td>{cg}</td><td>{r}</td><td>{ra}</td>\
          <td>{fg}</td><td>{t}</td><td>{sym}</td>\
          <td><input class=\"gens\" type=\"text\" readonly value=\"{gens_str}\"></td>\
          <td><input class=\"pfs\" type=\"text\" readonly value=\"{pf_str}\"></td>\
-         <td>{wilf:.4}</td><td>{inv_e:.4}</td>",
+         <td>{wilf:.4}</td><td>{inv_e:.4}</td>\
+         <td>{min_ri}</td><td>{max_ri}</td><td>{any2}</td>",
         f = sg.f,
         e = sg.e,
         cg = sg.count_set,
@@ -385,6 +391,8 @@ fn props_cells(sg: &Semigroup) -> String {
         t = sg.t,
         wilf = sg.wilf(),
         inv_e = 1.0 / sg.e as f64,
+        min_ri = sg.min_ri(),
+        max_ri = sg.max_ri(),
     )
 }
 
@@ -430,18 +438,30 @@ struct GenusTally {
     /// `[f<m, m<f<2m, 2m<f<3m, 3m<f]`. f never equals km for k ≥ 1
     /// (km ∈ S since m is a generator), so the four buckets partition all rows.
     f_vs_m: [usize; 4],
+    /// Count of semigroups with `any_ri_eq_2() == true`, i.e. some residue class
+    /// has exactly two reflected gaps.
+    count_any_ri_eq_2: usize,
     by_m: Vec<usize>,
     by_e: Vec<usize>,
     by_t: Vec<usize>,
     by_r: Vec<usize>,
+    /// Distribution by `min_ri` (the smallest `r_i` over residue classes 1..m).
+    by_min_ri: Vec<usize>,
+    /// Distribution by `max_ri` (the largest `r_i` over residue classes 1..m).
+    by_max_ri: Vec<usize>,
 }
 
+// ALLOW: straight-line accumulation across many independent counters.
+#[allow(clippy::too_many_lines)]
 fn tally_genus(g: usize, data: &GenusData, cols: usize) -> GenusTally {
     let mut by_m = vec![0usize; cols];
     let mut by_e = vec![0usize; cols];
     let mut by_t = vec![0usize; cols];
     let mut by_r = vec![0usize; cols];
+    let mut by_min_ri = vec![0usize; cols];
+    let mut by_max_ri = vec![0usize; cols];
     let mut f_vs_m = [0usize; 4];
+    let mut count_any_ri_eq_2 = 0usize;
     let (mut total, mut zero, mut w1gen, mut sym, mut asym, mut ae_fm_2g_plus_1, mut ae_fm_2g) =
         (0usize, 0usize, 0usize, 0usize, 0usize, 0usize, 0usize);
     for (m, _, _, lats) in data {
@@ -510,6 +530,17 @@ fn tally_genus(g: usize, data: &GenusData, cols: usize) -> GenusTally {
             if sg.r < cols {
                 by_r[sg.r] += 1;
             }
+            let mn = sg.min_ri();
+            if mn < cols {
+                by_min_ri[mn] += 1;
+            }
+            let mx = sg.max_ri();
+            if mx < cols {
+                by_max_ri[mx] += 1;
+            }
+            if sg.any_ri_eq_2() {
+                count_any_ri_eq_2 += 1;
+            }
         }
     }
     GenusTally {
@@ -521,10 +552,13 @@ fn tally_genus(g: usize, data: &GenusData, cols: usize) -> GenusTally {
         ae_fm_2g_plus_1,
         ae_fm_2g,
         f_vs_m,
+        count_any_ri_eq_2,
         by_m,
         by_e,
         by_t,
         by_r,
+        by_min_ri,
+        by_max_ri,
     }
 }
 
@@ -562,6 +596,9 @@ fn build_distribution_table(
 }
 
 /// Renders the per-genus scalars table, its column legend, and the empirical note.
+// ALLOW: this function is mostly inline HTML for one wide table; splitting it
+// would scatter column definitions, totals, and the legend across helpers.
+#[allow(clippy::too_many_lines)]
 fn build_scalars_table(cols: usize, all_data: &[(usize, GenusData)]) -> String {
     let mut h = String::new();
     h.push_str(
@@ -583,10 +620,18 @@ fn build_scalars_table(cols: usize, all_data: &[(usize, GenusData)]) -> String {
          ae=f+m=2g+1</th>\
          <th title=\"Largest minimal generator equals f+m equals 2g\">\
          ae=f+m=2g</th>\
+         <th class=\"sep\" title=\"Count of semigroups where some residue class i has \
+         exactly two reflected gaps (r_i = 2)\">\u{2203}r<sub>i</sub>=2</th>\
          </tr></thead><tbody>",
     );
-    let sep_at = |i: usize| if i == 5 || i == 9 { "sum sep" } else { "sum" };
-    let mut totals = [0usize; 11];
+    let sep_at = |i: usize| {
+        if i == 5 || i == 9 || i == 11 {
+            "sum sep"
+        } else {
+            "sum"
+        }
+    };
+    let mut totals = [0usize; 12];
     for (g, data) in all_data {
         let row = tally_genus(*g, data, cols);
         let cells = [
@@ -601,6 +646,7 @@ fn build_scalars_table(cols: usize, all_data: &[(usize, GenusData)]) -> String {
             row.f_vs_m[3],
             row.ae_fm_2g_plus_1,
             row.ae_fm_2g,
+            row.count_any_ri_eq_2,
         ];
         for (acc, c) in totals.iter_mut().zip(cells.iter()) {
             *acc += *c;
@@ -639,6 +685,10 @@ fn build_scalars_table(cols: usize, all_data: &[(usize, GenusData)]) -> String {
          generator (a<sub>e</sub>=f+m) and additionally equals 2g+1 or 2g, \
          respectively. Empirically these come paired with r=m\u{2212}2 \
          and r=m\u{2212}1 (asserted at runtime).</dd>\
+         <dt>\u{2203}r<sub>i</sub>=2</dt>\
+         <dd>semigroups where the count of reflected gaps in some residue class \
+         i\u{a0}\u{2208}\u{a0}1..m equals 2 \u{2014} a coarse predicate for \
+         the closure step S\u{a0}\u{21a6}\u{a0}S\u{a0}\u{222a}\u{a0}{f}.</dd>\
          </dl>\n\
          <p class=\"note\">Empirical: <code>f&lt;m</code> is always 1 (the unique \
          ordinary semigroup \u{27e8}g+1,\u{2026},2g+1\u{27e9}); \
@@ -700,6 +750,20 @@ fn build_grand_summary(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
         cols,
         all_data,
         |t| t.by_r.clone(),
+    ));
+    h.push_str(&build_distribution_table(
+        "By min r\u{1d62} (smallest reflected-gap count over residue classes)",
+        "min r\u{1d62}",
+        cols,
+        all_data,
+        |t| t.by_min_ri.clone(),
+    ));
+    h.push_str(&build_distribution_table(
+        "By max r\u{1d62} (largest reflected-gap count over residue classes)",
+        "max r\u{1d62}",
+        cols,
+        all_data,
+        |t| t.by_max_ri.clone(),
     ));
     h
 }
@@ -861,7 +925,11 @@ fn build_list_html(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
          <th title=\"Minimal generators\">gen</th>\
          <th title=\"Pseudo-Frobenius numbers\">PF</th>\
          <th title=\"Wilf quotient \u{03c3}/(f+1)\">Wilf</th>\
-         <th title=\"1/e\">1/e</th>",
+         <th title=\"1/e\">1/e</th>\
+         <th title=\"min over i\u{2208}1..m of r_i (reflected gaps in residue class i mod m)\">\
+         min r<sub>i</sub></th>\
+         <th title=\"max over i\u{2208}1..m of r_i\">max r<sub>i</sub></th>\
+         <th title=\"True iff some residue class i has r_i = 2\">\u{2203}r<sub>i</sub>=2</th>",
     );
     for j in 1..=gmax {
         let cls = if j == 1 { " class=\"sep\"" } else { "" };
@@ -987,6 +1055,7 @@ fn build_list_json(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
              \"r\":{r},\"ra\":{ra},\"fg\":{fg},\"type\":{type_t},\
              \"sym\":{sym},\"wilf\":{wilf:.6},\"inv_e\":{inv_e:.6},\
              \"max_gen\":{max_gen},\
+             \"min_ri\":{min_ri},\"max_ri\":{max_ri},\"any_ri_eq_2\":{any2},\
              \"gen\":{gen},\"pf\":{pf},\"apery\":{apery},\
              \"c1\":{c1_arr}}}",
             f = sg.f,
@@ -999,6 +1068,9 @@ fn build_list_json(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
             sym = sg.is_symmetric(),
             wilf = sg.wilf(),
             max_gen = sg.max_gen,
+            min_ri = sg.min_ri(),
+            max_ri = sg.max_ri(),
+            any2 = sg.any_ri_eq_2(),
             gen = json_array(&sg.gen_set),
             pf = json_array(&sg.pf_set),
             apery = json_array(&sg.apery_set),

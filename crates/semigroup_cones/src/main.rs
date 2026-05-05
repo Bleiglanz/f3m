@@ -436,13 +436,6 @@ struct GenusTally {
     /// Count of semigroups with `any_ri_eq_2() == true`, i.e. some residue class
     /// has exactly two reflected gaps.
     count_any_ri_eq_2: usize,
-    /// Source side of the conjectured shift bijection: count of S of this
-    /// genus satisfying `is_almost_symmetric ∧ all_apery_gt_2m ∧ level ≥ 3`.
-    /// Empirically S' = S ∪ {f} lands in `shift_tgt` for genus g−1.
-    shift_src: usize,
-    /// Target side of the conjectured shift bijection: count of S of this
-    /// genus satisfying `f+m ∈ gen_set ∧ all_apery_gt_2m ∧ ∀i≠μ: r_i ∈ {1,2}`.
-    shift_tgt: usize,
     by_m: Vec<usize>,
     by_e: Vec<usize>,
     by_t: Vec<usize>,
@@ -464,8 +457,6 @@ fn tally_genus(g: usize, data: &GenusData, cols: usize) -> GenusTally {
     let mut by_max_ri = vec![0usize; cols];
     let mut f_vs_m = [0usize; 4];
     let mut count_any_ri_eq_2 = 0usize;
-    let mut shift_src = 0usize;
-    let mut shift_tgt = 0usize;
     let (mut total, mut zero, mut w1gen, mut sym, mut asym, mut ae_fm_2g_plus_1, mut ae_fm_2g) =
         (0usize, 0usize, 0usize, 0usize, 0usize, 0usize, 0usize);
     for (m, _, _, lats) in data {
@@ -545,17 +536,6 @@ fn tally_genus(g: usize, data: &GenusData, cols: usize) -> GenusTally {
             if sg.any_ri_eq_2() {
                 count_any_ri_eq_2 += 1;
             }
-            if sg.is_almost_symmetric && sg.all_apery_gt_2m && sg.level >= 3 {
-                shift_src += 1;
-            }
-            if sg.gen_set.contains(&(sg.f + sg.m))
-                && sg.all_apery_gt_2m
-                && (1..sg.m)
-                    .filter(|&i| i != sg.mu)
-                    .all(|i| matches!(sg.r_i(i), 1 | 2))
-            {
-                shift_tgt += 1;
-            }
         }
     }
     GenusTally {
@@ -568,8 +548,6 @@ fn tally_genus(g: usize, data: &GenusData, cols: usize) -> GenusTally {
         ae_fm_2g,
         f_vs_m,
         count_any_ri_eq_2,
-        shift_src,
-        shift_tgt,
         by_m,
         by_e,
         by_t,
@@ -639,22 +617,16 @@ fn build_scalars_table(cols: usize, all_data: &[(usize, GenusData)]) -> String {
          ae=f+m=2g</th>\
          <th class=\"sep\" title=\"Count of semigroups where some residue class i has \
          exactly two reflected gaps (r_i = 2)\">\u{2203}r<sub>i</sub>=2</th>\
-         <th class=\"sep\" title=\"Shift source: S almost-symmetric \u{2227} every \
-         w_i&gt;2m \u{2227} level\u{2265}3. Empirically S\u{2032}=S\u{222a}{f} \
-         lands in shift\u{2192} for genus g\u{2212}1.\">shift\u{2190}(g)</th>\
-         <th title=\"Shift target: f+m\u{2208}gen \u{2227} every w_i&gt;2m \u{2227} \
-         every r_i\u{2208}{1,2} for i\u{2260}\u{03bc}. Conjecturally equal to \
-         shift\u{2190}(g+1).\">shift\u{2192}(g)</th>\
          </tr></thead><tbody>",
     );
     let sep_at = |i: usize| {
-        if i == 5 || i == 9 || i == 11 || i == 12 {
+        if i == 5 || i == 9 || i == 11 {
             "sum sep"
         } else {
             "sum"
         }
     };
-    let mut totals = [0usize; 14];
+    let mut totals = [0usize; 12];
     for (g, data) in all_data {
         let row = tally_genus(*g, data, cols);
         let cells = [
@@ -670,8 +642,6 @@ fn build_scalars_table(cols: usize, all_data: &[(usize, GenusData)]) -> String {
             row.ae_fm_2g_plus_1,
             row.ae_fm_2g,
             row.count_any_ri_eq_2,
-            row.shift_src,
-            row.shift_tgt,
         ];
         for (acc, c) in totals.iter_mut().zip(cells.iter()) {
             *acc += *c;
@@ -715,17 +685,6 @@ fn build_scalars_table(cols: usize, all_data: &[(usize, GenusData)]) -> String {
          <dd>semigroups where the count of reflected gaps in some residue class \
          i\u{a0}\u{2208}\u{a0}1..m equals 2 \u{2014} a coarse predicate for \
          the closure step S\u{a0}\u{21a6}\u{a0}S\u{a0}\u{222a}\u{a0}{f}.</dd>\
-         <dt>shift\u{2190}(g)</dt><dd>conjectural source of the \
-         S\u{a0}\u{21a6}\u{a0}S\u{a0}\u{222a}\u{a0}{f} shift: S of genus g \
-         that is almost-symmetric, has every Ap\u{e9}ry element &gt;\u{a0}2m, \
-         and level\u{a0}\u{2265}\u{a0}3 (i.e. f\u{a0}\u{2212}\u{a0}m\u{a0}&gt;\u{a0}2m). \
-         Empirically S\u{2032}\u{a0}=\u{a0}S\u{a0}\u{222a}\u{a0}{f} then lies in \
-         shift\u{2192}(g\u{2212}1).</dd>\
-         <dt>shift\u{2192}(g)</dt><dd>conjectural target of the shift: \
-         S of genus g with f+m a minimal generator, every Ap\u{e9}ry element \
-         &gt;\u{a0}2m, and every r<sub>i</sub>\u{a0}\u{2208}\u{a0}{1,\u{a0}2} \
-         for i\u{a0}\u{2260}\u{a0}\u{03bc}. Conjectured: \
-         shift\u{2190}(g+1)\u{a0}=\u{a0}shift\u{2192}(g).</dd>\
          </dl>\n\
          <p class=\"note\">Empirical: <code>f&lt;m</code> is always 1 (the unique \
          ordinary semigroup \u{27e8}g+1,\u{2026},2g+1\u{27e9}); \

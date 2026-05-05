@@ -143,6 +143,13 @@ fn check(
         f,
     );
 
+    // all_apery_gt_2m ⇔ every Kunz quotient q_i = (w_i − i)/m ≥ 2 (i ∈ 1..m).
+    let all_q_ge_2 = (1..m).all(|i| (s.apery_set[i] - i) / m >= 2);
+    assert_eq!(
+        s.all_apery_gt_2m, all_q_ge_2,
+        "all_apery_gt_2m ↔ q_i ≥ 2 for {gens:?}",
+    );
+
     // Symmetric ⇒ r = 0 and genus = sporadics. (Every gap x has f − x ∈ S,
     // so no gap x has f − x as a gap.)
     if s.is_symmetric {

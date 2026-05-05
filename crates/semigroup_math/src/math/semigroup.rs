@@ -50,6 +50,11 @@ pub struct Semigroup {
     /// `ra = r`, and `PF(S) ∖ {f}` equals the set of reflected gaps).
     /// Symmetric semigroups satisfy this trivially.
     pub is_almost_symmetric: bool,
+    /// True iff every Apéry element `w_i = apery_set[i]` with `i ∈ 1..m`
+    /// satisfies `w_i > 2m`. Equivalently every Kunz quotient
+    /// `q_i = (w_i − i) / m` is `≥ 2`, i.e. `m + i` is a gap for every
+    /// non-zero residue class. Vacuously true when `m = 1`.
+    pub all_apery_gt_2m: bool,
 }
 
 /// Two semigroups are equal iff they have the same generators, Frobenius number,

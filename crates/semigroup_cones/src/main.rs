@@ -368,13 +368,14 @@ fn props_cells(sg: &Semigroup) -> String {
     let sym = glyph(sg.is_symmetric);
     let asym = glyph(sg.is_almost_symmetric);
     let any2 = glyph(sg.any_ri_eq_2());
+    let ap2m = glyph(sg.all_apery_gt_2m);
     format!(
         "<td>{f}</td><td>{e}</td><td>{cg}</td><td>{r}</td><td>{ra}</td>\
          <td>{fg}</td><td>{t}</td><td>{sym}</td><td>{asym}</td><td>{level}</td>\
          <td><input class=\"gens\" type=\"text\" readonly value=\"{gens_str}\"></td>\
          <td><input class=\"pfs\" type=\"text\" readonly value=\"{pf_str}\"></td>\
          <td>{wilf:.4}</td><td>{inv_e:.4}</td>\
-         <td>{min_ri}</td><td>{max_ri}</td><td>{any2}</td>",
+         <td>{min_ri}</td><td>{max_ri}</td><td>{any2}</td><td>{ap2m}</td>",
         f = sg.f,
         e = sg.e,
         cg = sg.count_set,
@@ -917,7 +918,9 @@ fn build_list_html(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
          <th title=\"min over i\u{2208}1..m of r_i (reflected gaps in residue class i mod m)\">\
          min r<sub>i</sub></th>\
          <th title=\"max over i\u{2208}1..m of r_i\">max r<sub>i</sub></th>\
-         <th title=\"True iff some residue class i has r_i = 2\">\u{2203}r<sub>i</sub>=2</th>",
+         <th title=\"True iff some residue class i has r_i = 2\">\u{2203}r<sub>i</sub>=2</th>\
+         <th title=\"True iff every Ap\u{e9}ry element w_i (i\u{2208}1..m) exceeds 2m, \
+         equivalently every Kunz quotient q_i \u{2265} 2\">w<sub>i</sub>&gt;2m</th>",
     );
     for j in 1..=gmax {
         let cls = if j == 1 { " class=\"sep\"" } else { "" };
@@ -1045,6 +1048,7 @@ fn build_list_json(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
              \"wilf\":{wilf:.6},\"inv_e\":{inv_e:.6},\
              \"max_gen\":{max_gen},\
              \"min_ri\":{min_ri},\"max_ri\":{max_ri},\"any_ri_eq_2\":{any2},\
+             \"all_apery_gt_2m\":{ap2m},\
              \"gen\":{gen},\"pf\":{pf},\"apery\":{apery},\
              \"c1\":{c1_arr}}}",
             f = sg.f,
@@ -1062,6 +1066,7 @@ fn build_list_json(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
             min_ri = sg.min_ri(),
             max_ri = sg.max_ri(),
             any2 = sg.any_ri_eq_2(),
+            ap2m = sg.all_apery_gt_2m,
             gen = json_array(&sg.gen_set),
             pf = json_array(&sg.pf_set),
             apery = json_array(&sg.apery_set),
@@ -1151,6 +1156,89 @@ fn print_asym_anomalies(all_data: &[(usize, GenusData)]) {
         "→ {anomalies}/{total} almost-symmetric semigroups have S\u{2032} \
          that does NOT match ae=f+m=2g\u{2032}."
     );
+}
+
+/// Conjecture probe: among S that are almost-symmetric AND have every Apéry
+/// element `> 2m`, does `S' = S ∪ {f}` land in the well-behaved regime — namely
+/// (a) `f+m` is a minimal generator of S', (b) every Apéry element of S' is
+/// `> 2m'`, and (c) every `r_i(S') ∈ {1, 2}`? Tabulate outcomes bucketed by
+/// `level(S) ≥ 3` (equivalently `f − m > 2m`), since that may be the missing
+/// hypothesis. Prints one summary line per (level≥3, all-checks) outcome.
+fn print_asym_apery_shift(all_data: &[(usize, GenusData)]) {
+    println!(
+        "\n── conjecture probe: S almost-symmetric \u{2227} all w_i>2m, \
+         S\u{2032} = S \u{222a} {{f}}. ──"
+    );
+    let mut buckets: std::collections::BTreeMap<(bool, &str), usize> =
+        std::collections::BTreeMap::new();
+    let mut total = 0usize;
+    for (_g, data) in all_data {
+        for (_m, _q1, _, lats) in data {
+            for (_pt, sg) in lats {
+                if !(sg.is_almost_symmetric && sg.all_apery_gt_2m) {
+                    continue;
+                }
+                total += 1;
+                let mut gens = sg.gen_set.clone();
+                gens.push(sg.f);
+                let s2 = compute(&gens);
+                let fm2 = s2.f + s2.m;
+                let fm_is_gen = s2.gen_set.contains(&fm2);
+                let apery_ok = s2.all_apery_gt_2m;
+                // Exclude i = μ (always r_μ = 0); for the others, check r_i ∈ {1, 2}.
+                let ri_ok = (1..s2.m)
+                    .filter(|&i| i != s2.mu)
+                    .all(|i| matches!(s2.r_i(i), 1 | 2));
+                let level_ge_3 = sg.level >= 3;
+                let label = if fm_is_gen && apery_ok && ri_ok {
+                    "all_three_ok"
+                } else if !fm_is_gen {
+                    "f+m_not_gen"
+                } else if !apery_ok {
+                    "apery_fail"
+                } else {
+                    "ri_fail"
+                };
+                *buckets.entry((level_ge_3, label)).or_insert(0) += 1;
+            }
+        }
+    }
+    println!("  total in filter: {total}");
+    for ((level_ge_3, label), n) in &buckets {
+        let lbl = if *level_ge_3 { "level>=3" } else { "level<3 " };
+        println!("  {lbl}  {label:<14}  {n}");
+    }
+}
+
+/// Histograms of `r_i(S')` values across all S in `asym ∧ all_apery>2m ∧ level≥3`.
+/// One bar per residue class i ∈ 1..m'(S'), tabulated globally.
+fn print_asym_apery_shift_ri_hist(all_data: &[(usize, GenusData)]) {
+    println!("\n── r_i(S\u{2032}) histogram for S asym \u{2227} w_i>2m \u{2227} level\u{2265}3:");
+    let mut hist: std::collections::BTreeMap<usize, usize> = std::collections::BTreeMap::new();
+    let mut total_classes = 0usize;
+    let mut total_s = 0usize;
+    for (_g, data) in all_data {
+        for (_m, _q1, _, lats) in data {
+            for (_pt, sg) in lats {
+                if !(sg.is_almost_symmetric && sg.all_apery_gt_2m && sg.level >= 3) {
+                    continue;
+                }
+                let mut gens = sg.gen_set.clone();
+                gens.push(sg.f);
+                let s2 = compute(&gens);
+                total_s += 1;
+                for i in 1..s2.m {
+                    let v = s2.r_i(i);
+                    *hist.entry(v).or_insert(0) += 1;
+                    total_classes += 1;
+                }
+            }
+        }
+    }
+    println!("  S in filter: {total_s}, residue classes counted: {total_classes}");
+    for (v, n) in &hist {
+        println!("  r_i={v}  {n}");
+    }
 }
 
 /// Preflight: confirm the bundled Normaliz binary exists, runs, and is
@@ -1253,6 +1341,8 @@ fn main() {
     }
     let all_data = load_all_data(gmax, mode).expect("failed to load Normaliz output");
     print_asym_anomalies(&all_data);
+    print_asym_apery_shift(&all_data);
+    print_asym_apery_shift_ri_hist(&all_data);
     write_html_files(gmax, &all_data).expect("failed to write HTML summary");
     println!("done: summary + list in normaliz/semigroup_g_from2to{gmax}_*.html");
 }

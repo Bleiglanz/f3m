@@ -164,10 +164,9 @@ fn check(
         );
         let mut pf_minus_f: Vec<usize> = s.pf_set.iter().copied().filter(|&p| p != s.f).collect();
         pf_minus_f.sort_unstable();
-        let mut reflected: Vec<usize> = (1..s.f).filter(|&x| s.is_reflected_gap(x)).collect();
-        reflected.sort_unstable();
         assert_eq!(
-            pf_minus_f, reflected,
+            pf_minus_f,
+            s.blob(),
             "almost-symmetric ⇒ PF\\{{f}} = reflected gaps for {gens:?}",
         );
     }

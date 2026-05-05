@@ -364,7 +364,12 @@ fn props_cells(sg: &Semigroup) -> String {
         .collect::<Vec<_>>()
         .join(", ");
 
-    let sym = if sg.is_symmetric() {
+    let sym = if sg.is_symmetric {
+        "\u{2705}"
+    } else {
+        "\u{1F6AB}"
+    };
+    let asym = if sg.is_almost_symmetric {
         "\u{2705}"
     } else {
         "\u{1F6AB}"
@@ -377,7 +382,7 @@ fn props_cells(sg: &Semigroup) -> String {
     };
     format!(
         "<td>{f}</td><td>{e}</td><td>{cg}</td><td>{r}</td><td>{ra}</td>\
-         <td>{fg}</td><td>{t}</td><td>{sym}</td>\
+         <td>{fg}</td><td>{t}</td><td>{sym}</td><td>{asym}</td><td>{level}</td>\
          <td><input class=\"gens\" type=\"text\" readonly value=\"{gens_str}\"></td>\
          <td><input class=\"pfs\" type=\"text\" readonly value=\"{pf_str}\"></td>\
          <td>{wilf:.4}</td><td>{inv_e:.4}</td>\
@@ -389,6 +394,7 @@ fn props_cells(sg: &Semigroup) -> String {
         ra = sg.ra,
         fg = sg.fg,
         t = sg.t,
+        level = sg.level,
         wilf = sg.wilf(),
         inv_e = 1.0 / sg.e as f64,
         min_ri = sg.min_ri(),
@@ -473,10 +479,10 @@ fn tally_genus(g: usize, data: &GenusData, cols: usize) -> GenusTally {
             if sg.gen_set.contains(&sg.apery_set[1]) {
                 w1gen += 1;
             }
-            if sg.is_symmetric() {
+            if sg.is_symmetric {
                 sym += 1;
             }
-            if sg.r == 1 {
+            if sg.is_almost_symmetric {
                 asym += 1;
             }
             // Refinement: ae = f + m (i.e. f+m is the largest minimal generator).
@@ -674,8 +680,9 @@ fn build_scalars_table(cols: usize, all_data: &[(usize, GenusData)]) -> String {
          is a minimal generator.</dd>\
          <dt>N<sub>sym</sub>(g)</dt><dd>symmetric semigroups: type t=1, \
          equivalently g=(f+1)/2.</dd>\
-         <dt>N<sub>asym</sub>(g)</dt><dd>almost-symmetric semigroups, \
-         identified here by exactly one reflected gap (r=1).</dd>\
+         <dt>N<sub>asym</sub>(g)</dt><dd>almost-symmetric semigroups: \
+         f+t=2g, equivalently ra=r and PF(S)\u{2216}{f} equals the set of \
+         reflected gaps. Includes the symmetric case (t=1, f+1=2g).</dd>\
          <dt>f&lt;m, m&lt;f&lt;2m, 2m&lt;f&lt;3m, 3m&lt;f</dt>\
          <dd>partition of all semigroups by where the Frobenius number sits \
          relative to the multiplicity. f never equals km for k\u{a0}\u{2265}\u{a0}1 \
@@ -864,21 +871,8 @@ fn build_summary_body(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
     h
 }
 
-/// Wraps `build_summary_body` with `<head>`, the given title/intro, and `</body></html>`.
-fn build_summary_page(
-    gmax: usize,
-    all_data: &[(usize, GenusData)],
-    title: &str,
-    intro: &str,
-) -> String {
-    let mut h = html_head(title, intro);
-    h.push_str(&build_summary_body(gmax, all_data));
-    h.push_str("</body></html>\n");
-    h
-}
-
-/// Builds the unfiltered summary page (every numerical semigroup with
-/// genus 2..=gmax).
+/// Builds the summary page (every numerical semigroup with genus 2..=gmax),
+/// wrapping `build_summary_body` with `<head>`, title/intro, and `</body></html>`.
 fn build_summary_html(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
     let title = format!("Numerical Semigroups \u{2014} genus 2 to {gmax} (summary)");
     let intro = format!(
@@ -890,7 +884,10 @@ fn build_summary_html(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
          <a href=\"semigroup_g_from2to{gmax}_list.json\">\
          semigroup_g_from2to{gmax}_list.json</a>).</p>\n"
     );
-    build_summary_page(gmax, all_data, &title, &intro)
+    let mut h = html_head(&title, &intro);
+    h.push_str(&build_summary_body(gmax, all_data));
+    h.push_str("</body></html>\n");
+    h
 }
 
 /// Builds the list page: one row per semigroup, ordered by (g, m, q1), with
@@ -921,7 +918,10 @@ fn build_list_html(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
          <th title=\"Reflected Ap\u{e9}ry\">ra</th>\
          <th title=\"Fundamental gaps\">fg</th>\
          <th title=\"Type (|PF|)\">t</th>\
-         <th title=\"Symmetric?\">Sym</th>\
+         <th title=\"Symmetric? (t=1, equivalently f+1=2g)\">Sym</th>\
+         <th title=\"Almost-symmetric? (f+t=2g, equivalently ra=r and PF\u{2216}{f}=reflected gaps)\">\
+         ASym</th>\
+         <th title=\"Level of f: level\u{00b7}m &lt; f &lt; (level+1)\u{00b7}m\">level</th>\
          <th title=\"Minimal generators\">gen</th>\
          <th title=\"Pseudo-Frobenius numbers\">PF</th>\
          <th title=\"Wilf quotient \u{03c3}/(f+1)\">Wilf</th>\
@@ -1053,7 +1053,8 @@ fn build_list_json(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
             "{{\"g\":{g},\"m\":{m},\"q1\":{q1},\
              \"f\":{f},\"e\":{e},\"sigma\":{sigma},\
              \"r\":{r},\"ra\":{ra},\"fg\":{fg},\"type\":{type_t},\
-             \"sym\":{sym},\"wilf\":{wilf:.6},\"inv_e\":{inv_e:.6},\
+             \"sym\":{sym},\"asym\":{asym},\"level\":{level},\
+             \"wilf\":{wilf:.6},\"inv_e\":{inv_e:.6},\
              \"max_gen\":{max_gen},\
              \"min_ri\":{min_ri},\"max_ri\":{max_ri},\"any_ri_eq_2\":{any2},\
              \"gen\":{gen},\"pf\":{pf},\"apery\":{apery},\
@@ -1065,7 +1066,9 @@ fn build_list_json(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
             ra = sg.ra,
             fg = sg.fg,
             type_t = sg.t,
-            sym = sg.is_symmetric(),
+            sym = sg.is_symmetric,
+            asym = sg.is_almost_symmetric,
+            level = sg.level,
             wilf = sg.wilf(),
             max_gen = sg.max_gen,
             min_ri = sg.min_ri(),
@@ -1085,59 +1088,6 @@ fn build_list_json(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
     out
 }
 
-/// One predicate-restricted view of the full data set. Each entry produces a
-/// summary HTML at `semigroup_g_from2to{gmax}_summary_{label}.html` containing
-/// exactly the same five aggregate tables as the unfiltered summary, but
-/// tallied only over semigroups for which `predicate` returns true.
-///
-/// To add a new analysis lens, append a `FilteredView` here — no other code
-/// changes required.
-struct FilteredView {
-    /// File-stem suffix (after `_summary_`). Must be filename-safe.
-    label: &'static str,
-    /// Human-readable description, rendered into the page intro.
-    description: &'static str,
-    /// Returns true for semigroups that should be retained in the summary.
-    predicate: fn(&Semigroup) -> bool,
-}
-
-const FILTERED_VIEWS: &[FilteredView] = &[FilteredView {
-    label: "maxapery_is_minimal_generator",
-    description: "Numerical semigroups in which f+m is itself a minimal generator \
-         (equivalently, the largest Apéry value w<sub>m\u{2212}1</sub> = f+m \
-         and a<sub>e</sub> = f+m). Empirically these are the only candidates \
-         for which closing the last gap S \u{21a6} S \u{222a} \u{007b}f\u{007d} \
-         lands inside the well-behaved Kunz-cone neighbour.",
-    predicate: |sg| sg.max_gen == sg.f + sg.m,
-}];
-
-/// Returns a copy of `all_data` with each genus's lattices filtered by
-/// `pred`. Tuples with no surviving lattices are dropped to keep the
-/// per-genus m × q1 tables sparse-friendly.
-fn filter_data(
-    all_data: &[(usize, GenusData)],
-    pred: fn(&Semigroup) -> bool,
-) -> Vec<(usize, GenusData)> {
-    all_data
-        .iter()
-        .map(|(g, data)| {
-            let filtered: GenusData = data
-                .iter()
-                .filter_map(|(m, q1, _, lats)| {
-                    let kept: Vec<Lattice> =
-                        lats.iter().filter(|(_, sg)| pred(sg)).cloned().collect();
-                    if kept.is_empty() {
-                        None
-                    } else {
-                        Some((*m, *q1, kept.len(), kept))
-                    }
-                })
-                .collect();
-            (*g, filtered)
-        })
-        .collect()
-}
-
 fn write_html_files(gmax: usize, all_data: &[(usize, GenusData)]) -> std::io::Result<()> {
     let dir = Path::new("normaliz");
 
@@ -1152,30 +1102,6 @@ fn write_html_files(gmax: usize, all_data: &[(usize, GenusData)]) -> std::io::Re
     let json_path = dir.join(format!("semigroup_g_from2to{gmax}_list.json"));
     fs::write(&json_path, build_list_json(gmax, all_data).as_bytes())?;
     println!("wrote {}", json_path.display());
-
-    for view in FILTERED_VIEWS {
-        let filtered = filter_data(all_data, view.predicate);
-        let title = format!(
-            "Numerical Semigroups \u{2014} genus 2 to {gmax} (summary, filter: {})",
-            view.label,
-        );
-        let intro = format!(
-            "<p>Aggregate counts restricted to: {}</p>\n\
-             <p>For the full unfiltered summary see\n\
-             <a href=\"semigroup_g_from2to{gmax}_summary.html\">\
-             semigroup_g_from2to{gmax}_summary.html</a>.</p>\n",
-            view.description,
-        );
-        let path = dir.join(format!(
-            "semigroup_g_from2to{gmax}_summary_{}.html",
-            view.label,
-        ));
-        fs::write(
-            &path,
-            build_summary_page(gmax, &filtered, &title, &intro).as_bytes(),
-        )?;
-        println!("wrote {}", path.display());
-    }
 
     Ok(())
 }

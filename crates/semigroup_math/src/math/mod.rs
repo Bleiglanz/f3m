@@ -172,6 +172,9 @@ pub fn compute(input: &[usize]) -> Semigroup {
         apery_sum: sum_apery,
         pf_set,
         mu: max_apery % m,
+        level: (max_apery - m) / m,
+        is_symmetric: type_count == 1,
+        is_almost_symmetric: max_apery + type_count == m + 2 * (sum_apery - ((m - 1) * m) / 2) / m,
     }
 }
 
@@ -208,7 +211,7 @@ pub fn gap_block(sg: &Semigroup, idx: usize) -> String {
         .map(usize::to_string)
         .collect::<Vec<_>>();
     let pf_strs = sg.pf_set.iter().map(usize::to_string).collect::<Vec<_>>();
-    let sym = if sg.is_symmetric() { "true" } else { "false" };
+    let sym = if sg.is_symmetric { "true" } else { "false" };
     let mut out = String::new();
     writeln!(out, "# ── Semigroup {idx}: <{}> ──", gens.join(", ")).unwrap();
     writeln!(out, "ng{idx} := NumericalSemigroup({});", gens.join(",")).unwrap();
@@ -340,7 +343,7 @@ fn gap_block_matrix(sg: &Semigroup, idx: usize, out: &mut String) {
          p -> {f} - p);;"
     )
     .unwrap();
-    if sg.is_symmetric() {
+    if sg.is_symmetric {
         writeln!(out, "Assert(0, IsSymmetric(ng{idx}));").unwrap();
         writeln!(out, "Assert(0, ks_gens{idx} = []);").unwrap();
     } else if !ks_gens.is_empty() && gcd_vec(&ks_gens) == 1 {

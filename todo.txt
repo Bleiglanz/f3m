@@ -234,9 +234,16 @@ any_ri_eq_2 (a bool - is there a residue i such that r_i==2?
 inspect the code, check for consistency, and add these three to our waldicone binary = summary, list, json
 idea is to use the pivot in our index.html to compare the number of semigroups ...
 
+53) [DONE] remove the special _summary_maxapery_is_minimal_generator it is not necessary now (because we have the Pivot)
 
-
-
+54) [DONE] there are three new props of a numerical semigroup level, is symmetric, is almost symmetric
+again show them in our summary, list, details
+add tests in for our test semigroup
+level*m < f < (level+1)m
+if is_symmetric : test for r==0, g=number of sporadics
+if is_almost_symmetric: test for ra=r, the set PF\{f} is the set of reflected gaps, f+t=2g
+inspect the code, check for consistency, and add these three to our waldicone binary = summary, list, json
+idea is to use the pivot in our index.html to compare the number of semigroups ...
 
 
 

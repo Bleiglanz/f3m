@@ -146,7 +146,7 @@ impl JsSemigroup {
     #[wasm_bindgen(getter)]
     #[must_use]
     pub fn is_symmetric(&self) -> bool {
-        self.0.is_symmetric()
+        self.0.is_symmetric
     }
     /// Number of reflected gaps (gaps n with f−n also a gap).
     #[wasm_bindgen(getter)]

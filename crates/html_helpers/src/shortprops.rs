@@ -41,7 +41,7 @@ pub fn shortprop_cells(sg: &Semigroup) -> String {
         ra = sg.ra,
         fg = sg.fg,
         t = sg.t,
-        sym = if sg.is_symmetric() {
+        sym = if sg.is_symmetric {
             "\u{2705}"
         } else {
             "\u{1F6AB}"

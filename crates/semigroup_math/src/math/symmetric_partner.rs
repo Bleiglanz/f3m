@@ -105,7 +105,7 @@ mod tests {
 
         // S̄ must be symmetric.
         assert!(
-            s_bar.is_symmetric(),
+            s_bar.is_symmetric,
             "S̄ not symmetric for S=<{gens:?}>, F(S̄)={}",
             s_bar.f
         );

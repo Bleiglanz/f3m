@@ -66,7 +66,7 @@ fn check(
     assert_eq!(s.m, m, "m     for {gens:?}");
     assert_eq!(s.count_gap, g, "genus for {gens:?}");
     assert_eq!(s.count_set, c, "c     for {gens:?}");
-    assert_eq!(s.is_symmetric(), sym, "sym   for {gens:?}");
+    assert_eq!(s.is_symmetric, sym, "sym   for {gens:?}");
     assert_eq!(s.apery_set.as_slice(), apery, "apery for {gens:?}");
     let mut actual_pf = s.pf_set.clone();
     actual_pf.sort_unstable();
@@ -130,6 +130,45 @@ fn check(
             wi + di,
             f_plus_m_plus_r,
             "w_{i} + d_{i} = f+m+r for {gens:?}"
+        );
+    }
+
+    // level: level·m < f < (level+1)·m. f mod m = μ ≥ 1 (m ∈ S, f ∉ S),
+    // so f never equals k·m and the strict inequality always holds.
+    assert!(
+        s.level * m < f && f < (s.level + 1) * m,
+        "level invariant for {gens:?}: level={} m={} f={}",
+        s.level,
+        m,
+        f,
+    );
+
+    // Symmetric ⇒ r = 0 and genus = sporadics. (Every gap x has f − x ∈ S,
+    // so no gap x has f − x as a gap.)
+    if s.is_symmetric {
+        assert_eq!(s.r, 0, "symmetric ⇒ r=0 for {gens:?}");
+        assert_eq!(
+            s.count_gap, s.count_set,
+            "symmetric ⇒ g = #sporadics for {gens:?}",
+        );
+    }
+
+    // Almost-symmetric ⇒ ra = r, PF \ {f} = reflected gaps, and f + t = 2g.
+    // The symmetric case is included (t = 1, both sides empty).
+    if s.is_almost_symmetric {
+        assert_eq!(s.ra, s.r, "almost-symmetric ⇒ ra=r for {gens:?}");
+        assert_eq!(
+            s.f + s.t,
+            2 * s.count_gap,
+            "almost-symmetric ⇒ f+t=2g for {gens:?}",
+        );
+        let mut pf_minus_f: Vec<usize> = s.pf_set.iter().copied().filter(|&p| p != s.f).collect();
+        pf_minus_f.sort_unstable();
+        let mut reflected: Vec<usize> = (1..s.f).filter(|&x| s.is_reflected_gap(x)).collect();
+        reflected.sort_unstable();
+        assert_eq!(
+            pf_minus_f, reflected,
+            "almost-symmetric ⇒ PF\\{{f}} = reflected gaps for {gens:?}",
         );
     }
 }
@@ -2221,7 +2260,7 @@ fn test_canonical_ideal_symmetric() {
         [2, 11].as_slice(),    // symmetric, f=9
     ] {
         let s = compute(gens);
-        assert!(s.is_symmetric(), "{gens:?} should be symmetric");
+        assert!(s.is_symmetric, "{gens:?} should be symmetric");
         let k = s.canonical_ideal();
         assert_eq!(
             s.partial_cmp(&k),

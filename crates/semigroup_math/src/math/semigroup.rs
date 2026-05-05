@@ -40,6 +40,16 @@ pub struct Semigroup {
     pub pf_set: Vec<usize>,
     /// the index of the Frobenius f mod m
     pub mu: usize,
+    /// The level of `f`: `level * m < f < (level + 1) * m`. Equivalently
+    /// `f / m` (integer division), since `f mod m = μ ≥ 1` whenever `m ≥ 2`.
+    pub level: usize,
+    /// True iff S is symmetric (equivalently, `t = 1`, `f + 1 = 2g`,
+    /// `count_gap = count_set`, and every gap `x` has `f − x ∈ S`).
+    pub is_symmetric: bool,
+    /// True iff S is almost-symmetric (equivalently, `f + t = 2g`,
+    /// `ra = r`, and `PF(S) ∖ {f}` equals the set of reflected gaps).
+    /// Symmetric semigroups satisfy this trivially.
+    pub is_almost_symmetric: bool,
 }
 
 /// Two semigroups are equal iff they have the same generators, Frobenius number,
@@ -81,19 +91,6 @@ impl Semigroup {
     #[must_use]
     pub fn is_gap(&self, x: usize) -> bool {
         !self.element(x)
-    }
-    /// Returns `true` if S is symmetric (genus == `count_set`, equivalently f+1 = 2·genus).
-    ///
-    /// The well-known equivalence `g = (f+1)/2` is checked in debug builds only;
-    /// release builds trust the value computed by [`super::compute`].
-    #[must_use]
-    pub fn is_symmetric(&self) -> bool {
-        let sym = self.count_gap == self.count_set;
-        debug_assert!(
-            !sym || self.f + 1 == 2 * self.count_gap,
-            "symmetric semigroup invariant f+1 = 2g violated",
-        );
-        sym
     }
     /// Wilf quotient: `count_set` / (f+1). Wilf's conjecture states this is ≥ 1/e for all S.
     #[must_use]

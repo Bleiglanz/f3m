@@ -229,16 +229,15 @@
           <tr><td>.csv</td><td>History table in CSV format, ready to copy. Includes a final <em>generators</em> column with the minimal generating set.</td></tr>
           <tr><td>LaTeX</td><td>Editable LaTeX source with live KaTeX preview of semigroup properties.</td></tr>
           <tr><td>Help</td><td>This reference page, plus a dynamic summary of the current semigroup.</td></tr>
+          <tr><td>Pivot</td><td>Cross-tabulation of the precomputed semigroup catalogue using <a href="https://pivottable.js.org/" target="_blank">PivotTable.js</a>. Pick a <code>gmax</code> from the dropdown to load <code>normaliz/semigroup_g_from2to{gmax}_list.json</code>, then drag fields (g, m, e, t, sym, asym, level, min_r&#x1d62;, max_r&#x1d62;, all_apery&gt;2m, &hellip;) into rows / columns / values to count or aggregate. Click <em>Open</em> on a leaf row to load that semigroup into the calculator.</td></tr>
+          <tr><td>Comp</td><td>Side-by-side comparison of the current semigroup and the immediately previous history entry &mdash; both rendered as the structure grid plus shortprops table. Shown only when the history has at least two entries.</td></tr>
           <tr><td>Diagonals</td><td>
-            The <b>U(m)</b> matrix and the product <b>U(m)&middot;C</b> where C is the Kunz coefficient matrix.<br>
-            <b>U(m)</b> is m&times;m with a unit border (row&nbsp;0 and col&nbsp;0 are (1,0,&hellip;,0));
-            interior entries are k&minus;m (below diagonal) and k (on/above diagonal).
-            <b>det(U(m))&nbsp;=&nbsp;m<sup>m&minus;2</sup></b>.<br>
-            <b>U(m)&middot;C</b> is <em>symmetric</em> with closed-form entries:
-            (U&middot;C)[k][j]&nbsp;=&nbsp;&Sigma;<sub>l=0..k&minus;1</sub>&thinsp;[w<sub>(l+j)&thinsp;mod&thinsp;m</sub>&nbsp;&minus;&nbsp;w<sub>l</sub>]
-            &mdash; partial sums of cyclically shifted Ap&eacute;ry differences.
-            Column&nbsp;0 is always zero; <b>column&nbsp;1 = row&nbsp;1 = the Ap&eacute;ry set</b> (w<sub>0</sub>,&hellip;,w<sub>m&minus;1</sub>);
-            last row: w<sub>m&minus;1</sub>&nbsp;&minus;&nbsp;w<sub>(m&minus;1+j)&thinsp;mod&thinsp;m</sub>.
+            Five matrices around the Kunz cone, all (m&minus;1)&times;(m&minus;1) unless noted.<br>
+            <b>U(m)</b> with <b>det&nbsp;=&nbsp;m<sup>m&minus;2</sup></b>: row&nbsp;i has (i&minus;1) copies of (i&minus;m) followed by (m&minus;i) copies of i; <b>U(m)&middot;c<sub>1</sub>&nbsp;=&nbsp;(w<sub>1</sub>,&hellip;,w<sub>m&minus;1</sub>)</b> where c<sub>1</sub> is the first column of C<sub>red</sub>.<br>
+            <b>V(m)</b>: the inverse partner; <b>V(m)&middot;U(m)&nbsp;=&nbsp;m&middot;I<sub>m&minus;1</sub></b>.<br>
+            <b>D(m)</b>: anti-diagonal sums; <b>w<sub>i</sub>&nbsp;+&nbsp;d<sub>i</sub>&nbsp;=&nbsp;f&nbsp;+&nbsp;m&nbsp;+&nbsp;r</b> for every i.<br>
+            <b>zd(m)</b>: 1&times;(m&minus;1) zero-diag row vector with <b>zd&middot;c<sub>1</sub>&nbsp;=&nbsp;f&nbsp;+&nbsp;m&nbsp;+&nbsp;r&nbsp;=&nbsp;2g&nbsp;+&nbsp;m&nbsp;&minus;&nbsp;1</b>.<br>
+            <b>Pair relations</b>: the Kunz-cone inequalities k(i,j)&nbsp;&ge;&nbsp;0 in c<sub>1</sub>-coordinates, the input that <code>waldicone</code> hands to Normaliz.
           </td></tr>
         </tbody>
       </table>

@@ -148,6 +148,12 @@ impl JsSemigroup {
     pub fn is_symmetric(&self) -> bool {
         self.0.is_symmetric
     }
+    /// True if the semigroup is almost-symmetric (f + t = 2g).
+    #[wasm_bindgen(getter)]
+    #[must_use]
+    pub fn is_almost_symmetric(&self) -> bool {
+        self.0.is_almost_symmetric
+    }
     /// Number of reflected gaps (gaps n with f−n also a gap).
     #[wasm_bindgen(getter)]
     #[must_use]

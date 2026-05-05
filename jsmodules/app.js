@@ -766,7 +766,11 @@ document.getElementById('random-r1-btn').addEventListener('click', guarded(() =>
   findRandomMatching(s => s.r === 1, 'PSym', 'a pseudo-symmetric semigroup (r = 1)');
 }));
 document.getElementById('random-asym-btn').addEventListener('click', guarded(() => {
-  findRandomMatching(s => s.is_almost_symmetric, 'ASym', 'an almost-symmetric semigroup (f + t = 2g)');
+  findRandomMatching(
+    s => s.is_almost_symmetric && s.r >= 2,
+    'ASym',
+    'a proper almost-symmetric semigroup (r = t − 1 with r ≥ 2)',
+  );
 }));
 
 // "Prime": pick a random subset of 4–8 primes from the fixed list.

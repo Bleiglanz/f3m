@@ -272,8 +272,20 @@ add decent to the summary, list and Pivot
 especially to the top table in the summary html produced by waldicone
 
 
-
-
+57) [DONE] A step to figure out how to speed up the computation
+Block-matrix identity L(m)+U(m) = ⎡U(m-1)  (1..m-2)ᵀ⎤
+                                  ⎣0…0      m-1     ⎦
+verified for m=2..50 in matrix.rs tests (l_plus_u_matches_block_form).
+Applied-to-c₁ recursion verified on real semigroups
+(l_plus_u_times_c1_recursion_on_semigroups). l_matrix() helper added
+next to u_matrix/v_matrix in matrix.rs — no separate induction.rs.
+Note: the original RHS picture had "k·c_{1,k}" varying per row; correct
+form (block-mult of Claim 1) is constant c_{1,m-1} multiplied by k:
+          | 1·c_{1,m-1}
+U(m-1)c1' | 2·c_{1,m-1}
+          | 3·c_{1,m-1}
+          ...
+000000 .. | (m-1)·c_{1,m-1}
 
 
 

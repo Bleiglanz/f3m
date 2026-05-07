@@ -567,6 +567,50 @@ pub fn u_matrix(m: usize) -> DenseMatrix<i64> {
     }
 }
 
+// ── L(m) matrix ───────────────────────────────────────────────────────────────
+
+/// Constructs the (m−1) × (m−1) strictly lower-triangular matrix L(m) of 1s.
+///
+/// `L(m)[i][j] = 1` if `i > j`, else `0`. The main diagonal and everything
+/// above it are zero; everything strictly below is one.
+///
+/// Used together with [`u_matrix`] in the block identity
+///
+/// ```text
+/// L(m) + U(m) = ⎡ U(m−1)   (1, 2, …, m−2)ᵀ ⎤
+///               ⎣ 0  …  0           m−1     ⎦
+/// ```
+///
+/// (verified in `tests::l_plus_u_matches_block_form`). Applying both sides
+/// to the first row `c₁` of `C_red` yields the recursion
+///
+/// ```text
+/// (L(m)+U(m))·c₁ = ⎛ U(m−1)·c₁′ + c_{1,m−1} · (1, 2, …, m−2)ᵀ ⎞
+///                  ⎝            (m−1) · c_{1,m−1}              ⎠
+/// ```
+///
+/// where `c₁′` is `c₁` with its last entry dropped.
+///
+/// # Panics
+///
+/// Panics if `m < 2`.
+#[must_use]
+pub fn l_matrix(m: usize) -> DenseMatrix<i64> {
+    assert!(m >= 2, "l_matrix requires m ≥ 2");
+    let n = m - 1;
+    let mut data = vec![0i64; n * n];
+    for i in 0..n {
+        for j in 0..i {
+            data[i * n + j] = 1;
+        }
+    }
+    DenseMatrix {
+        rows: n,
+        cols: n,
+        data,
+    }
+}
+
 // ── V(m) matrix ───────────────────────────────────────────────────────────────
 
 /// Constructs the (m−1) × (m−1) matrix V(m), the integer left inverse of U(m)
@@ -1462,6 +1506,184 @@ mod tests {
         // U(3) = [[1,1],[-1,2]], det = 1·2 − 1·(−1) = 3.
         let u = u_matrix(3);
         assert_eq!(u.det(), 3);
+    }
+
+    // ── L(m) ──────────────────────────────────────────────────────────────────
+
+    #[test]
+    fn l_matrix_m2_is_zero() {
+        // m=2 → 1×1 strictly lower triangular = [[0]].
+        let l = l_matrix(2);
+        assert_eq!(l.rows, 1);
+        assert_eq!(l.cols, 1);
+        assert_eq!(l[(0, 0)], 0);
+    }
+
+    #[test]
+    fn l_matrix_m5_pattern() {
+        let l = l_matrix(5);
+        let expected: &[&[i64]] = &[&[0, 0, 0, 0], &[1, 0, 0, 0], &[1, 1, 0, 0], &[1, 1, 1, 0]];
+        for (i, row) in expected.iter().enumerate() {
+            for (j, &v) in row.iter().enumerate() {
+                assert_eq!(l[(i, j)], v, "L(5)[{i}][{j}]");
+            }
+        }
+    }
+
+    #[test]
+    fn l_plus_u_matches_block_form() {
+        // L(m) + U(m) =
+        //   ⎡ U(m-1)   (1, 2, …, m-2)ᵀ ⎤
+        //   ⎣ 0 … 0          m-1        ⎦
+        for m in 2..=50 {
+            let sum = l_matrix(m).mat_add(&u_matrix(m));
+            let n = m - 1;
+
+            if m == 2 {
+                // Degenerate: U(m-1) = U(1) is 0×0; matrix reduces to [[m-1]] = [[1]].
+                #[allow(clippy::cast_possible_wrap)]
+                let expected = (m - 1) as i64;
+                assert_eq!(sum[(0, 0)], expected, "L+U for m=2");
+                continue;
+            }
+
+            let u_prev = u_matrix(m - 1);
+
+            // Top-left (m-2)×(m-2) block equals U(m-1).
+            for a in 0..(n - 1) {
+                for b in 0..(n - 1) {
+                    assert_eq!(
+                        sum[(a, b)],
+                        u_prev[(a, b)],
+                        "L+U top-left block at ({a},{b}) for m={m}",
+                    );
+                }
+            }
+
+            // Top-right column entries are 1, 2, …, m-2.
+            for a in 0..(n - 1) {
+                #[allow(clippy::cast_possible_wrap)]
+                let expected = (a + 1) as i64;
+                assert_eq!(
+                    sum[(a, n - 1)],
+                    expected,
+                    "L+U top-right col at row {a} for m={m}",
+                );
+            }
+
+            // Bottom row: zeros except the last entry, which is m-1.
+            for b in 0..(n - 1) {
+                assert_eq!(sum[(n - 1, b)], 0, "L+U bottom row at col {b} for m={m}");
+            }
+            #[allow(clippy::cast_possible_wrap)]
+            let expected = (m - 1) as i64;
+            assert_eq!(
+                sum[(n - 1, n - 1)],
+                expected,
+                "L+U bottom-right corner for m={m}",
+            );
+        }
+    }
+
+    #[test]
+    fn l_plus_u_times_c1_recursion_on_random_vectors() {
+        // Pure algebraic identity — holds for any (m-1)-vector v, not only c₁.
+        // For each m, fabricate a few vectors and check
+        //   (L(m)+U(m))·v = ⎛ U(m-1)·v' + v_{m-1} · (1..m-2)ᵀ ⎞
+        //                   ⎝          (m-1) · v_{m-1}        ⎠
+        // where v' = v[..m-2].
+        let cases: &[&[i64]] = &[
+            &[1],
+            &[3, 7],
+            &[2, 5, 11],
+            &[4, 1, 9, 2],
+            &[7, 3, 5, 8, 2, 6, 4, 9, 1, 10],
+        ];
+        for v in cases {
+            let n = v.len();
+            let m = n + 1;
+            let lpu = l_matrix(m).mat_add(&u_matrix(m));
+            let v_col = DenseMatrix::from_row_slice(n, 1, v);
+            let lhs = lpu.mat_mul(&v_col);
+
+            // Build RHS by the block recipe.
+            let last = v[n - 1];
+            let mut rhs = vec![0i64; n];
+            if m == 2 {
+                #[allow(clippy::cast_possible_wrap)]
+                let scale = (m - 1) as i64;
+                rhs[0] = scale * last;
+            } else {
+                let v_prime = DenseMatrix::from_row_slice(n - 1, 1, &v[..n - 1]);
+                let top = u_matrix(m - 1).mat_mul(&v_prime);
+                for i in 0..(n - 1) {
+                    #[allow(clippy::cast_possible_wrap)]
+                    let k = (i + 1) as i64;
+                    rhs[i] = top[(i, 0)] + k * last;
+                }
+                #[allow(clippy::cast_possible_wrap)]
+                let scale = (m - 1) as i64;
+                rhs[n - 1] = scale * last;
+            }
+
+            for i in 0..n {
+                assert_eq!(lhs[(i, 0)], rhs[i], "row {i} for m={m}, v={v:?}");
+            }
+        }
+    }
+
+    #[test]
+    fn l_plus_u_times_c1_recursion_on_semigroups() {
+        // Same identity, applied to c₁ = first row of C_red of real semigroups.
+        let gens_cases: &[&[usize]] = &[
+            &[2, 5],
+            &[3, 4],
+            &[3, 7, 11],
+            &[4, 6, 9, 11],
+            &[5, 7, 11, 13, 17],
+            &[6, 9, 20],
+            &[7, 9, 11, 13, 15, 17],
+            &[8, 11, 13, 14, 17, 19, 21],
+        ];
+        for gens in gens_cases {
+            let s = compute(gens);
+            if s.m < 2 {
+                continue;
+            }
+            let m = s.m;
+            let n = m - 1;
+            let cred = c_red(&s);
+            let cred_i = to_i64(&cred);
+
+            // c₁ = first row of C_red, as a column vector.
+            let c1: Vec<i64> = (0..n).map(|j| cred_i[(0, j)]).collect();
+            let c1_col = DenseMatrix::from_row_slice(n, 1, &c1);
+
+            let lhs = l_matrix(m).mat_add(&u_matrix(m)).mat_mul(&c1_col);
+
+            let last = c1[n - 1];
+            let mut rhs = vec![0i64; n];
+            if m == 2 {
+                #[allow(clippy::cast_possible_wrap)]
+                let scale = (m - 1) as i64;
+                rhs[0] = scale * last;
+            } else {
+                let c1_prime = DenseMatrix::from_row_slice(n - 1, 1, &c1[..n - 1]);
+                let top = u_matrix(m - 1).mat_mul(&c1_prime);
+                for i in 0..(n - 1) {
+                    #[allow(clippy::cast_possible_wrap)]
+                    let k = (i + 1) as i64;
+                    rhs[i] = top[(i, 0)] + k * last;
+                }
+                #[allow(clippy::cast_possible_wrap)]
+                let scale = (m - 1) as i64;
+                rhs[n - 1] = scale * last;
+            }
+
+            for i in 0..n {
+                assert_eq!(lhs[(i, 0)], rhs[i], "row {i} for gens={gens:?}");
+            }
+        }
     }
 
     // ── V(m) ──────────────────────────────────────────────────────────────────

@@ -287,6 +287,46 @@ U(m-1)c1' | 2·c_{1,m-1}
           ...
 000000 .. | (m-1)·c_{1,m-1}
 
+   Remark (future usage, no code yet):
+
+   The block identity is stated using c_1 only because the residue 1
+   generates Z/mZ additively. Any other generator works just as well
+   with the same U(m). For m prime, every a ∈ {1,…,m-1} generates
+   Z/mZ, so we get m-1 parallel identities — one per row c_a of C_red
+   — all sharing the same U(m) / U(m-1) infrastructure.
+
+   Caveat: L(m) is "below the diagonal" in the natural integer order,
+   which is not symmetric under the (Z/mZ)* action. The literal
+   identity for c_a is
+
+       (L(m)+U(m)) · Π_a · c_a = block-form with Π_a-conjugated U(m-1)
+
+   where Π_a is the permutation i ↦ a·i mod m. In code Π_a is just
+   an index relabelling; no real matrix multiply needed.
+
+   Why it matters for waldicone (potential, gated by profiling):
+
+   - For m prime, when an enumeration sweep changes any single q_k,
+     pick a ≡ -k^{-1} mod m; under σ_a the changed coordinate becomes
+     "last", and the c_a recursion gives an O(m) constraint update
+     instead of O(m²) (vs. the c_1-only version, which only saved
+     work when q_{m-1} was the variable). So "incremental update on
+     any coordinate" — not just the last.
+
+   - For m composite, only a ∈ (Z/mZ)* (φ(m) residues) give clean
+     recursions; the rest don't generate the full chain.
+
+   - The m-1 identities are not independent — they all follow from
+     the Kunz relations — but together they may give a cheaper
+     feasibility certificate for cone membership than the standard
+     O(m²) inequality scan. Open question.
+
+   Next step (only if profiling shows our enumeration over Normaliz
+   output is the bottleneck): derive Π_a-conjugated block form for
+   each c_a, build a small Π_a table, prototype an incremental
+   constraint check on a prime-m sweep, benchmark vs. the straight
+   recompute. Until then: keep this remark, don't refactor.
+
 
 
 

@@ -182,6 +182,38 @@ impl Semigroup {
             compute(&newgen)
         }
     }
+    /// Descent: a controlled step down the gaps ladder.
+    ///
+    /// - When `f < m` (only the trivial `S = ℕ` case) returns `self`.
+    /// - When [`Self::is_descent`] holds (every Apéry element is `f+m` or
+    ///   strictly less than `f`) adds `f` itself as a generator.
+    /// - Otherwise picks the largest Apéry element `x` with `f < x < f+m`
+    ///   and adds `x - m` (which is a gap in the same residue class as `x`)
+    ///   as a new generator.
+    #[must_use]
+    pub fn descent(&self) -> Self {
+        if self.f < self.m {
+            self.clone()
+        } else if self.is_descent() {
+            let mut newgen = self.gen_set.clone();
+            newgen.push(self.f);
+            compute(&newgen)
+        } else {
+            // Safe: !is_descent guarantees at least one Apéry element strictly
+            // between f and f+m, so the iterator is non-empty.
+            let largest = *self
+                .apery_set
+                .iter()
+                .filter(|&&x| self.f < x && x < self.f + self.m)
+                .max()
+                .unwrap_or(&0);
+            let mut newgen = self.gen_set.clone();
+            // x > f >= m here, so x - m >= 1 is well-defined.
+            newgen.push(largest - self.m);
+            compute(&newgen)
+        }
+    }
+
     /// classify a number
     #[must_use]
     pub fn classify(&self, n: usize) -> &str {

@@ -191,6 +191,12 @@ impl JsSemigroup {
         to_u32(&self.0.compute_s_over_2().gen_set)
     }
 
+    /// Generators of the descent of S — a controlled step down the gaps ladder.
+    #[must_use]
+    pub fn descent(&self) -> Vec<u32> {
+        to_u32(&self.0.descent().gen_set)
+    }
+
     /// Generators of S with every pseudo-Frobenius number ≠ f added.
     #[must_use]
     pub fn add_all_pf(&self) -> Vec<u32> {

@@ -327,7 +327,13 @@ U(m-1)c1' | 2·c_{1,m-1}
    constraint check on a prime-m sweep, benchmark vs. the straight
    recompute. Until then: keep this remark, don't refactor.
 
-
+---------------------------
+58) in semigroup.rs there is a new creator - pub fn descent
+check it, is it mathematically sound, will it create a new semigroup
+for every given one
+then create a new modifier button in our index.html
+as the first one in the "Manipulator" section called "Descent"
+(button works analogous to toggle or the others)
 
 
 

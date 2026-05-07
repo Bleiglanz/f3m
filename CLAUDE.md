@@ -103,8 +103,8 @@ interpretation. These guidelines take precedence over general defaults.
 
 ## 1. Toolchain & Edition
 
-- Target **Rust stable**, current edition (`edition = "2021"` in `Cargo.toml`).
-- Pin the MSRV explicitly: `rust-version = "1.XX"` in `Cargo.toml`.
+- Target **Rust stable**, current edition (`edition = "2024"` in `Cargo.toml`).
+- Pin the MSRV explicitly: `rust-version = "1.88"` in `Cargo.toml`.
 - Format with `rustfmt` (default config). Every file must pass `cargo fmt --check`.
 - Lint with `cargo clippy -- -D warnings`. Zero clippy warnings are permitted.
 - Run `cargo deny check` (licenses, advisories, duplicates) in CI.

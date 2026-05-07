@@ -21,10 +21,17 @@ path = "src/main.rs"
 [[bin]]
 name = "waldicone_k"
 path = "src/bin/waldicone_k.rs"
+required-features = ["experimental"]
 
 [[bin]]
 name = "waldicone_kappa"
 path = "src/bin/waldicone_kappa.rs"
+required-features = ["experimental"]
+
+[features]
+# Abandoned experimental binaries kept for reference only. Build with
+# `cargo build -p semigroup_cones --features experimental` if you need them.
+experimental = []
 
 [dependencies]
 semigroup_math.workspace = true

@@ -143,12 +143,9 @@ fn check(
         f,
     );
 
-    // all_apery_gt_2m ⇔ every Kunz quotient q_i = (w_i − i)/m ≥ 2 (i ∈ 1..m).
+    // deep ⇔ every Kunz quotient q_i = (w_i − i)/m ≥ 2 (i ∈ 1..m).
     let all_q_ge_2 = (1..m).all(|i| (s.apery_set[i] - i) / m >= 2);
-    assert_eq!(
-        s.all_apery_gt_2m, all_q_ge_2,
-        "all_apery_gt_2m ↔ q_i ≥ 2 for {gens:?}",
-    );
+    assert_eq!(s.deep, all_q_ge_2, "deep ↔ q_i ≥ 2 for {gens:?}",);
 
     // Symmetric ⇒ r = 0 and genus = sporadics. (Every gap x has f − x ∈ S,
     // so no gap x has f − x as a gap.)
@@ -2428,40 +2425,37 @@ fn test_min_max_any_ri() {
 
 #[test]
 fn test_is_deep() {
-    // Helper: checks that is_deep() matches whether all {m+1,...,2m-1} are gaps.
+    // Helper: checks that `deep` matches whether all {m+1,...,2m-1} are gaps.
     let check_deep = |sg: &semigroup_math::math::Semigroup| {
         let all_gaps = (1..sg.m).all(|i| sg.is_gap(sg.m + i));
         assert_eq!(
-            sg.is_deep(),
-            all_gaps,
-            "is_deep disagrees with direct gap check for gens={:?} m={} f={}",
-            sg.gen_set,
-            sg.m,
-            sg.f
+            sg.deep, all_gaps,
+            "deep disagrees with direct gap check for gens={:?} m={} f={}",
+            sg.gen_set, sg.m, sg.f
         );
     };
 
     // <3, 7, 11>: m=3, f=8. {4, 5} are gaps (apery=[0,7,11]). deep=true.
     let sg = compute(&[3, 7, 11]);
-    assert!(sg.is_deep());
+    assert!(sg.deep);
     assert!(sg.is_gap(4) && sg.is_gap(5));
     check_deep(&sg);
 
     // <3, 4>: m=3, 4 ∈ S (generator). {4,5}: 4 in S → not deep.
     let sg = compute(&[3, 4]);
-    assert!(!sg.is_deep());
+    assert!(!sg.deep);
     assert!(!sg.is_gap(4));
     check_deep(&sg);
 
     // <3, 5>: m=3, 5 ∈ S (generator). {4,5}: 5 in S → not deep.
     let sg = compute(&[3, 5]);
-    assert!(!sg.is_deep());
+    assert!(!sg.deep);
     assert!(!sg.is_gap(5));
     check_deep(&sg);
 
     // <5, 11, 12, 13, 14>: m=5. {6,7,8,9} are all gaps (apery=[0,11,12,13,14]). deep=true.
     let sg = compute(&[5, 11, 12, 13, 14]);
-    assert!(sg.is_deep());
+    assert!(sg.deep);
     for i in 1..sg.m {
         assert!(sg.is_gap(sg.m + i), "expected gap at {}", sg.m + i);
     }
@@ -2469,50 +2463,50 @@ fn test_is_deep() {
 
     // <2, 3>: m=2. {3} is in S → not deep.
     let sg = compute(&[2, 3]);
-    assert!(!sg.is_deep());
+    assert!(!sg.deep);
     assert!(!sg.is_gap(3));
     check_deep(&sg);
 
     // <2, 5>: m=2. {3} — 3 mod 2 = 1, apery[1]=5 > 3, so 3 is a gap. deep=true.
     let sg = compute(&[2, 5]);
-    assert!(sg.is_deep());
+    assert!(sg.deep);
     assert!(sg.is_gap(3));
     check_deep(&sg);
 }
 
 #[test]
 fn test_is_descent() {
-    // Checks the implication: is_descent() && max_gen == f+m  =>  is_deep().
+    // Checks the implication: is_descent() && max_gen == f+m  =>  deep.
     let check = |sg: &semigroup_math::math::Semigroup| {
         if sg.is_descent() && sg.max_gen == sg.f + sg.m {
             assert!(
-                sg.is_deep(),
-                "is_descent && max_gen==f+m should imply is_deep for gens={:?}",
+                sg.deep,
+                "is_descent && max_gen==f+m should imply deep for gens={:?}",
                 sg.gen_set,
             );
         }
     };
 
-    // <2,5>: apery=[0,5], f=3, f+m=5=max_gen. is_descent=true, is_deep=true.
+    // <2,5>: apery=[0,5], f=3, f+m=5=max_gen. is_descent=true, deep=true.
     let sg = compute(&[2, 5]);
     assert!(sg.is_descent());
     assert_eq!(sg.max_gen, sg.f + sg.m);
-    assert!(sg.is_deep());
+    assert!(sg.deep);
     check(&sg);
 
-    // <3,7,11>: apery=[0,7,11], f=8, f+m=11=max_gen. is_descent=true, is_deep=true.
+    // <3,7,11>: apery=[0,7,11], f=8, f+m=11=max_gen. is_descent=true, deep=true.
     let sg = compute(&[3, 7, 11]);
     assert!(sg.is_descent());
     assert_eq!(sg.max_gen, sg.f + sg.m);
-    assert!(sg.is_deep());
+    assert!(sg.deep);
     check(&sg);
 
     // <3,4>: apery=[0,4,8], f=5, f+m=8. is_descent=true (4<f, 8=f+m),
-    // but max_gen=4≠8=f+m and is_deep=false (4∈S). Implication not triggered.
+    // but max_gen=4≠8=f+m and deep=false (4∈S). Implication not triggered.
     let sg = compute(&[3, 4]);
     assert!(sg.is_descent());
     assert_ne!(sg.max_gen, sg.f + sg.m);
-    assert!(!sg.is_deep());
+    assert!(!sg.deep);
     check(&sg);
 
     // <3,4,5>: apery=[0,4,5], f=2. w_1=4>f=2 and 4≠f+m=5. is_descent=false.

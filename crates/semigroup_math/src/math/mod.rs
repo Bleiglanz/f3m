@@ -155,7 +155,7 @@ pub fn compute(input: &[usize]) -> Semigroup {
         .filter(|x| is_fundamental_gap(*x))
         .count();
 
-    let all_apery_gt_2m = aperyset[1..].iter().all(|&w| w > 2 * m);
+    let deep = aperyset[1..].iter().all(|&w| w > 2 * m);
 
     Semigroup {
         e: minimal_generators,
@@ -177,7 +177,7 @@ pub fn compute(input: &[usize]) -> Semigroup {
         level: (max_apery - m) / m,
         is_symmetric: type_count == 1,
         is_almost_symmetric: max_apery + type_count == m + 2 * (sum_apery - ((m - 1) * m) / 2) / m,
-        all_apery_gt_2m,
+        deep,
     }
 }
 

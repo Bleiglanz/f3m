@@ -291,7 +291,7 @@ fn props_cells(sg: &Semigroup) -> String {
     let sym = glyph(sg.is_symmetric);
     let asym = glyph(sg.is_almost_symmetric);
     let any2 = glyph(sg.any_ri_eq_2());
-    let deep = glyph(sg.is_deep());
+    let deep = glyph(sg.deep);
     format!(
         "<td>{f}</td><td>{e}</td><td>{cg}</td><td>{r}</td><td>{ra}</td>\
          <td>{fg}</td><td>{t}</td><td>{sym}</td><td>{asym}</td><td>{level}</td>\
@@ -466,7 +466,7 @@ fn tally_genus(g: usize, data: &GenusData, cols: usize) -> GenusTally {
             if sg.any_ri_eq_2() {
                 count_any_ri_eq_2 += 1;
             }
-            if sg.is_deep() {
+            if sg.deep {
                 deep += 1;
             }
             if sg.is_descent() {
@@ -1021,7 +1021,7 @@ fn build_list_json(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
             min_ri = sg.min_ri(),
             max_ri = sg.max_ri(),
             any2 = sg.any_ri_eq_2(),
-            deep = sg.is_deep(),
+            deep = sg.deep,
             descent = sg.is_descent(),
             gen = json_array(&sg.gen_set),
             pf = json_array(&sg.pf_set),
@@ -1131,7 +1131,7 @@ fn print_asym_apery_shift(all_data: &[(usize, GenusData)]) {
     for (_g, data) in all_data {
         for (_m, _q1, _, lats) in data {
             for (_pt, sg) in lats {
-                if !(sg.is_almost_symmetric && sg.all_apery_gt_2m) {
+                if !(sg.is_almost_symmetric && sg.deep) {
                     continue;
                 }
                 total += 1;
@@ -1140,7 +1140,7 @@ fn print_asym_apery_shift(all_data: &[(usize, GenusData)]) {
                 let s2 = compute(&gens);
                 let fm2 = s2.f + s2.m;
                 let fm_is_gen = s2.gen_set.contains(&fm2);
-                let apery_ok = s2.all_apery_gt_2m;
+                let apery_ok = s2.deep;
                 // Exclude i = μ (always r_μ = 0); for the others, check r_i ∈ {1, 2}.
                 let ri_ok = (1..s2.m)
                     .filter(|&i| i != s2.mu)
@@ -1176,7 +1176,7 @@ fn print_asym_apery_shift_ri_hist(all_data: &[(usize, GenusData)]) {
     for (_g, data) in all_data {
         for (_m, _q1, _, lats) in data {
             for (_pt, sg) in lats {
-                if !(sg.is_almost_symmetric && sg.all_apery_gt_2m && sg.level >= 3) {
+                if !(sg.is_almost_symmetric && sg.deep && sg.level >= 3) {
                     continue;
                 }
                 let mut gens = sg.gen_set.clone();

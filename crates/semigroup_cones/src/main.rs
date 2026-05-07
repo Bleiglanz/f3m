@@ -291,14 +291,14 @@ fn props_cells(sg: &Semigroup) -> String {
     let sym = glyph(sg.is_symmetric);
     let asym = glyph(sg.is_almost_symmetric);
     let any2 = glyph(sg.any_ri_eq_2());
-    let ap2m = glyph(sg.all_apery_gt_2m);
+    let deep = glyph(sg.is_deep());
     format!(
         "<td>{f}</td><td>{e}</td><td>{cg}</td><td>{r}</td><td>{ra}</td>\
          <td>{fg}</td><td>{t}</td><td>{sym}</td><td>{asym}</td><td>{level}</td>\
          <td><input class=\"gens\" type=\"text\" readonly value=\"{gens_str}\"></td>\
          <td><input class=\"pfs\" type=\"text\" readonly value=\"{pf_str}\"></td>\
          <td>{wilf:.4}</td><td>{inv_e:.4}</td>\
-         <td>{min_ri}</td><td>{max_ri}</td><td>{any2}</td><td>{ap2m}</td>",
+         <td>{min_ri}</td><td>{max_ri}</td><td>{any2}</td><td>{deep}</td>",
         f = sg.f,
         e = sg.e,
         cg = sg.count_set,
@@ -359,6 +359,11 @@ struct GenusTally {
     /// Count of semigroups with `any_ri_eq_2() == true`, i.e. some residue class
     /// has exactly two reflected gaps.
     count_any_ri_eq_2: usize,
+    /// Count of deep semigroups: those where all elements m+1 … 2m−1 are gaps.
+    deep: usize,
+    /// Count of descent semigroups: every Apéry element is either exactly f+m
+    /// or strictly less than f (adding f to S is "clean").
+    descent: usize,
     by_m: Vec<usize>,
     by_e: Vec<usize>,
     by_t: Vec<usize>,
@@ -380,6 +385,8 @@ fn tally_genus(g: usize, data: &GenusData, cols: usize) -> GenusTally {
     let mut by_max_ri = vec![0usize; cols];
     let mut f_vs_m = [0usize; 4];
     let mut count_any_ri_eq_2 = 0usize;
+    let mut deep = 0usize;
+    let mut descent = 0usize;
     let (mut total, mut zero, mut w1gen, mut sym, mut asym, mut ae_fm_2g_plus_1, mut ae_fm_2g) =
         (0usize, 0usize, 0usize, 0usize, 0usize, 0usize, 0usize);
     for (m, _, _, lats) in data {
@@ -459,6 +466,12 @@ fn tally_genus(g: usize, data: &GenusData, cols: usize) -> GenusTally {
             if sg.any_ri_eq_2() {
                 count_any_ri_eq_2 += 1;
             }
+            if sg.is_deep() {
+                deep += 1;
+            }
+            if sg.is_descent() {
+                descent += 1;
+            }
         }
     }
     GenusTally {
@@ -471,6 +484,8 @@ fn tally_genus(g: usize, data: &GenusData, cols: usize) -> GenusTally {
         ae_fm_2g,
         f_vs_m,
         count_any_ri_eq_2,
+        deep,
+        descent,
         by_m,
         by_e,
         by_t,
@@ -540,16 +555,22 @@ fn build_scalars_table(cols: usize, all_data: &[(usize, GenusData)]) -> String {
          ae=f+m=2g</th>\
          <th class=\"sep\" title=\"Count of semigroups where some residue class i has \
          exactly two reflected gaps (r_i = 2)\">\u{2203}r<sub>i</sub>=2</th>\
+         <th class=\"sep\" title=\"Count of deep semigroups: all elements \
+         m+1\u{2026}2m\u{2212}1 are gaps (equivalently every Kunz quotient q_i \u{2265} 2)\">\
+         N<sub>deep</sub>(g)</th>\
+         <th class=\"sep\" title=\"Count of descent semigroups: every Ap\u{e9}ry \
+         element is either exactly f+m or strictly less than f\">\
+         N<sub>descent</sub>(g)</th>\
          </tr></thead><tbody>",
     );
     let sep_at = |i: usize| {
-        if i == 5 || i == 9 || i == 11 {
+        if i == 5 || i == 9 || i == 11 || i == 12 || i == 13 {
             "sum sep"
         } else {
             "sum"
         }
     };
-    let mut totals = [0usize; 12];
+    let mut totals = [0usize; 14];
     for (g, data) in all_data {
         let row = tally_genus(*g, data, cols);
         let cells = [
@@ -565,6 +586,8 @@ fn build_scalars_table(cols: usize, all_data: &[(usize, GenusData)]) -> String {
             row.ae_fm_2g_plus_1,
             row.ae_fm_2g,
             row.count_any_ri_eq_2,
+            row.deep,
+            row.descent,
         ];
         for (acc, c) in totals.iter_mut().zip(cells.iter()) {
             *acc += *c;
@@ -608,6 +631,14 @@ fn build_scalars_table(cols: usize, all_data: &[(usize, GenusData)]) -> String {
          <dd>semigroups where the count of reflected gaps in some residue class \
          i\u{a0}\u{2208}\u{a0}1..m equals 2 \u{2014} a coarse predicate for \
          the closure step S\u{a0}\u{21a6}\u{a0}S\u{a0}\u{222a}\u{a0}{f}.</dd>\
+         <dt>N<sub>deep</sub>(g)</dt>\
+         <dd>deep semigroups: all elements m+1\u{2026}2m\u{2212}1 are gaps, \
+         equivalently every Kunz quotient q<sub>i</sub>\u{a0}\u{2265}\u{a0}2 \
+         (equivalently every Ap\u{e9}ry element w<sub>i</sub>\u{a0}&gt;\u{a0}2m).</dd>\
+         <dt>N<sub>descent</sub>(g)</dt>\
+         <dd>descent semigroups: every Ap\u{e9}ry element is either exactly f+m \
+         or strictly less than f \
+         (adding f to S is \u{201c}clean\u{201d}).</dd>\
          </dl>\n\
          <p class=\"note\">Empirical: <code>f&lt;m</code> is always 1 (the unique \
          ordinary semigroup \u{27e8}g+1,\u{2026},2g+1\u{27e9}); \
@@ -842,8 +873,9 @@ fn build_list_html(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
          min r<sub>i</sub></th>\
          <th title=\"max over i\u{2208}1..m of r_i\">max r<sub>i</sub></th>\
          <th title=\"True iff some residue class i has r_i = 2\">\u{2203}r<sub>i</sub>=2</th>\
-         <th title=\"True iff every Ap\u{e9}ry element w_i (i\u{2208}1..m) exceeds 2m, \
-         equivalently every Kunz quotient q_i \u{2265} 2\">w<sub>i</sub>&gt;2m</th>",
+         <th title=\"Deep: all elements m+1\u{2026}2m\u{2212}1 are gaps \
+         (equivalently every Ap\u{e9}ry element w_i&gt;2m, every Kunz quotient q_i\u{2265}2)\">\
+         deep</th>",
     );
     for j in 1..=gmax {
         let cls = if j == 1 { " class=\"sep\"" } else { "" };
@@ -971,7 +1003,7 @@ fn build_list_json(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
              \"wilf\":{wilf:.6},\"inv_e\":{inv_e:.6},\
              \"max_gen\":{max_gen},\
              \"min_ri\":{min_ri},\"max_ri\":{max_ri},\"any_ri_eq_2\":{any2},\
-             \"all_apery_gt_2m\":{ap2m},\
+             \"deep\":{deep},\"descent\":{descent},\
              \"gen\":{gen},\"pf\":{pf},\"apery\":{apery},\
              \"c1\":{c1_arr}}}",
             f = sg.f,
@@ -989,7 +1021,8 @@ fn build_list_json(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
             min_ri = sg.min_ri(),
             max_ri = sg.max_ri(),
             any2 = sg.any_ri_eq_2(),
-            ap2m = sg.all_apery_gt_2m,
+            deep = sg.is_deep(),
+            descent = sg.is_descent(),
             gen = json_array(&sg.gen_set),
             pf = json_array(&sg.pf_set),
             apery = json_array(&sg.apery_set),

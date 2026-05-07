@@ -328,4 +328,27 @@ impl Semigroup {
             .filter(|&i| i != self.mu)
             .any(|i| self.r_i(i) == 2)
     }
+    /// True iff all elements of S in the range `m+1 … 2m−1` are gaps.
+    ///
+    /// Equivalently, every non-zero Apéry element `w_i = apery_set[i]` (i ≥ 1)
+    /// satisfies `w_i > 2m`, i.e. every Kunz quotient `q_i = (w_i − i)/m ≥ 2`.
+    /// Vacuously true when `m ≤ 1`.
+    #[must_use]
+    pub const fn is_deep(&self) -> bool {
+        self.all_apery_gt_2m
+    }
+
+    /// True iff every Apéry
+    /// element is either exactly `f + m` or strictly less than `f`.
+    ///
+    /// Informally: adding `f` to `S` (via closure) is "clean" — the only
+    /// Apéry element at or above `f` is `f + m` itself, which then becomes
+    /// the new conductor.  Note that this is *not* equivalent to `is_deep`:
+    /// for example `<3, 4, 8>` satisfies `is_descent` but has `4 = m+1 ∈ S`.
+    #[must_use]
+    pub fn is_descent(&self) -> bool {
+        self.apery_set
+            .iter()
+            .all(|&w| w == self.f + self.m || w < self.f)
+    }
 }

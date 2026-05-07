@@ -245,7 +245,30 @@ if is_almost_symmetric: test for ra=r, the set PF\{f} is the set of reflected ga
 inspect the code, check for consistency, and add these three to our waldicone binary = summary, list, json
 idea is to use the pivot in our index.html to compare the number of semigroups ...
 
+55) verify the followin
+we do have (for a given m) two matrices V and U such the UV=VU=m Id_{m-1}
+currently we solve (in waldicone)
+INEQ) U_i+U_j-U_{i+j} x>=0
+EQU1) <1_{m-1},x>=q1 m + t
+EQU2) 1_{m-1} U x = qm + m(m-1)/2
+this is what we call normaliz on.
+If this is right so far, consider the following
+Suppose x is a solution (i.e. in the polytope), then 
+we can write x=Vx' for some other vector x', and then satisfies
 
+INEQ') U_i+U_j-U_{i+j} V x'>=0
+EQU1') <1_{m-1},V x'>=q1 m + t
+EQU2') 1_{m-1} U V x' = qm + m(m-1)/2
+
+however, these thre equations define another Polytype.
+Suppose now that x' is not of the form x'=V^(-1), but instead any solution
+to the primed inequalites and equalizies.
+
+if we throw away any such solutions where a coordinate is not divisible by m
+and only keep the solutions x' where all coordinates are divisible by m
+we can then compute (1/m)Vx' 
+
+does this give all the solutions to the original equations?
 
 
 

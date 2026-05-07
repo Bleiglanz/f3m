@@ -43,57 +43,16 @@
 #![deny(clippy::all, clippy::pedantic, clippy::nursery)]
 
 use rayon::prelude::*;
+use semigroup_cones::{
+    ExecMode, SEQ_FLAG, ensure_normaliz_available, join_row, parse_out_file, run_normaliz,
+};
 use semigroup_math::math::matrix::u_pair_relations;
 use semigroup_math::math::{Semigroup, compute};
 use std::fmt::Write as _;
 use std::fs;
-use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::path::Path;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Instant;
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-fn join_row(iter: impl Iterator<Item = impl ToString>) -> String {
-    iter.map(|v| v.to_string()).collect::<Vec<_>>().join(" ")
-}
-
-/// Returns the project-relative path to the bundled Normaliz 3.11.1 binary
-/// for the current OS, resolved relative to the current working directory.
-/// Linux: `normaliz/normaliz-3.11.1-Linux/normaliz`
-/// Windows: `normaliz/normaliz-3.11.1-Windows/normaliz.exe`
-fn bundled_normaliz_path() -> PathBuf {
-    let (subdir, exe) = if cfg!(target_os = "windows") {
-        ("normaliz-3.11.1-Windows", "normaliz.exe")
-    } else {
-        ("normaliz-3.11.1-Linux", "normaliz")
-    };
-    Path::new("normaliz").join(subdir).join(exe)
-}
-
-/// Spawns `normaliz_bin` with the given input file and waits for completion,
-/// capturing stdout/stderr and stdin-isolating the child. Inheriting stdio
-/// (the previous behaviour) caused two Windows-only failure modes to be
-/// silent: child errors lost in the parallel storm, and a phantom console
-/// window flashing for every spawn.
-fn run_normaliz(normaliz_bin: &Path, in_path: &Path) -> std::io::Result<()> {
-    let output = Command::new(normaliz_bin)
-        .arg(in_path)
-        .stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .output()?;
-    if output.status.success() {
-        return Ok(());
-    }
-    Err(std::io::Error::other(format!(
-        "normaliz exited with code {} for {}\n--- stdout ---\n{}\n--- stderr ---\n{}",
-        output.status.code().unwrap_or(-1),
-        in_path.display(),
-        String::from_utf8_lossy(&output.stdout).trim_end(),
-        String::from_utf8_lossy(&output.stderr).trim_end(),
-    )))
-}
 
 // ── Normaliz file generation ──────────────────────────────────────────────────
 
@@ -254,42 +213,6 @@ fn write_normaliz_files(g: usize, normaliz_bin: &Path, mode: ExecMode) -> std::i
         ExecMode::Sequential => pairs.into_iter().try_for_each(process)?,
     }
     Ok(())
-}
-
-// ── Output parsing ────────────────────────────────────────────────────────────
-
-/// Parses a Normaliz `.out` file, returning the lattice-point count and each
-/// point's coordinate vector with the trailing dehomogenization column removed.
-///
-/// Returns `(0, [])` for infeasible (empty) polytopes.
-fn parse_out_file(path: &Path) -> std::io::Result<(usize, Vec<Vec<i64>>)> {
-    let content = fs::read_to_string(path)?;
-    let first = content.lines().next().unwrap_or_default();
-    let count: usize = first
-        .split_whitespace()
-        .next()
-        .and_then(|s| s.parse().ok())
-        .unwrap_or(0);
-    if count == 0 {
-        return Ok((0, Vec::new()));
-    }
-    let sep_pos = content.find("***").unwrap_or(content.len());
-    let after = &content[sep_pos..];
-    let marker = format!("{count} lattice points in polytope (module generators):");
-    let mut points = Vec::with_capacity(count);
-    if let Some(pos) = after.find(&marker) {
-        for line in after[pos..].lines().skip(1).take(count) {
-            let row: Vec<i64> = line
-                .split_whitespace()
-                .filter_map(|s| s.parse().ok())
-                .collect();
-            if !row.is_empty() {
-                let n = row.len().saturating_sub(1);
-                points.push(row[..n].to_vec());
-            }
-        }
-    }
-    Ok((count, points))
 }
 
 // ── Generator recovery ────────────────────────────────────────────────────────
@@ -1241,97 +1164,17 @@ fn print_asym_apery_shift_ri_hist(all_data: &[(usize, GenusData)]) {
     }
 }
 
-/// Preflight: confirm the bundled Normaliz binary exists, runs, and is
-/// distinct from the calling executable. Returns the **absolute** path so
-/// every subsequent spawn is unambiguous — on Windows in particular a bare
-/// or relative program name fed to `CreateProcess` searches the directory of
-/// the calling executable first, which is `target\release\` and contains the
-/// cargo-built `normaliz.exe` (this binary itself). That self-spawn caused
-/// the historical fork-bomb where the loop kept restarting the same g/m/q1.
-fn ensure_normaliz_available() -> PathBuf {
-    let rel = bundled_normaliz_path();
-    let abs = match rel.canonicalize() {
-        Ok(p) => p,
-        Err(e) => {
-            eprintln!(
-                "error: cannot resolve bundled Normaliz at `{}` ({e}). Run \
-                 from the project root and make sure the `normaliz/` folder \
-                 with the bundled distribution is present.",
-                rel.display(),
-            );
-            std::process::exit(1);
-        }
-    };
-
-    // Defence against the original Windows fork-bomb: bail loudly if the
-    // bundled binary path resolves to this very executable.
-    if let Ok(self_path) = std::env::current_exe()
-        && let Ok(self_canon) = self_path.canonicalize()
-        && self_canon == abs
-    {
-        eprintln!(
-            "error: bundled Normaliz path {} resolves to this binary itself \
-             — refusing to self-spawn. Check the `normaliz/` folder layout.",
-            abs.display(),
-        );
-        std::process::exit(1);
-    }
-
-    match Command::new(&abs)
-        .arg("--version")
-        .stdin(Stdio::null())
-        .output()
-    {
-        Ok(out) if out.status.success() => {
-            let banner = String::from_utf8_lossy(&out.stdout);
-            let version = banner.lines().next().unwrap_or("Normaliz");
-            println!("using bundled {version} at {}", abs.display());
-            abs
-        }
-        Ok(out) => {
-            eprintln!(
-                "error: `{} --version` exited with {}\n--- stderr ---\n{}",
-                abs.display(),
-                out.status,
-                String::from_utf8_lossy(&out.stderr).trim_end(),
-            );
-            std::process::exit(1);
-        }
-        Err(e) => {
-            eprintln!(
-                "error: cannot launch bundled Normaliz at {} ({e}). On Linux \
-                 ensure the file is executable (`chmod +x {}`); only Linux \
-                 and Windows binaries are bundled.",
-                abs.display(),
-                abs.display(),
-            );
-            std::process::exit(1);
-        }
-    }
-}
-
 // ── Entry point ───────────────────────────────────────────────────────────────
-
-/// Whether the `(m, q1)` workload and the per-lattice-point post-processing run
-/// across rayon worker threads or single-threaded. Sequential mode exists
-/// because Normaliz itself parallelises heavily inside each spawn; layering
-/// rayon on top causes thread contention with no measurable speedup on the
-/// machines tested so far.
-#[derive(Debug, Clone, Copy)]
-enum ExecMode {
-    Parallel,
-    Sequential,
-}
 
 fn main() {
     let normaliz_bin = ensure_normaliz_available();
     let mut args = std::env::args().skip(1);
     let gmax: usize = args.next().and_then(|s| s.parse().ok()).unwrap_or(10);
     let mode = match args.next().as_deref() {
-        Some("seq") => ExecMode::Sequential,
+        Some(s) if s == SEQ_FLAG => ExecMode::Sequential,
         None => ExecMode::Parallel,
         Some(other) => {
-            eprintln!("error: unknown second argument {other:?} (expected 'seq' or omit)");
+            eprintln!("error: unknown second argument {other:?} (expected {SEQ_FLAG:?} or omit)");
             std::process::exit(1);
         }
     };

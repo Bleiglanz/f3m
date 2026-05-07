@@ -10,9 +10,21 @@ keywords.workspace = true
 categories.workspace = true
 readme.workspace = true
 
+[lib]
+name = "semigroup_cones"
+path = "src/lib.rs"
+
 [[bin]]
 name = "waldicone"
 path = "src/main.rs"
+
+[[bin]]
+name = "waldicone_k"
+path = "src/bin/waldicone_k.rs"
+
+[[bin]]
+name = "waldicone_kappa"
+path = "src/bin/waldicone_kappa.rs"
 
 [dependencies]
 semigroup_math.workspace = true

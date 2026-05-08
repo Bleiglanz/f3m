@@ -391,7 +391,7 @@ async function fetchPivotData(gmax) {
   // gen and pf are list fields kept in the JSON but excluded from the pivot.
   // gen is kept raw in __genArr for the drill-down "Open" handler.
   const rows = json.semigroups.map(s => ({
-    g: s.g, m: s.m, e: s.e, type: s.type, q1: s.q1,
+    g: s.g, m: s.m, mu: s.f % s.m, e: s.e, type: s.type, q1: s.q1,
     f: s.f, r: s.r, ra: s.ra, fg: s.fg,
     sym: s.sym, asym: s.asym, level: s.level, max_gen: s.max_gen,
     min_ri: s.min_ri, max_ri: s.max_ri, any_ri_eq_2: s.any_ri_eq_2,

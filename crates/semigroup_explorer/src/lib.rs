@@ -212,6 +212,13 @@ impl JsSemigroup {
         to_u32(&self.0.fast_descent().gen_set)
     }
 
+    /// Generators of the ascent of S — toggles the largest min-gen in
+    /// `(f − m, f)` past `f`. Dual to [`descent`].
+    #[must_use]
+    pub fn ascent(&self) -> Vec<u32> {
+        to_u32(&self.0.ascent().gen_set)
+    }
+
     /// Generators of S with every pseudo-Frobenius number ≠ f added.
     #[must_use]
     pub fn add_all_pf(&self) -> Vec<u32> {

@@ -29,6 +29,33 @@ impl Semigroup {
             compute(&newgen)
         }
     }
+    /// Ascent: dual of [`Self::descent`]. Picks the largest minimal
+    /// generator `w > m` strictly in `(f − m, f)` and toggles it, pushing
+    /// it past `f`; the residue class of `w` then has `w + m` as its new
+    /// Apéry element.
+    ///
+    /// "Largest min-gen below `f`" mirrors descent's "smallest Apéry above
+    /// `f`" — the two operations form a visual flip in the UI buttons.
+    /// Filtering on `gen_set` (rather than `apery_set`) ensures `toggle`
+    /// removes only `w` cleanly without cascading through reducible
+    /// elements. The `w > m` guard skips the degenerate case where `m`
+    /// itself sits in the window (i.e. `f < 2m`); toggling `m` would
+    /// destroy the semigroup's multiplicity rather than push an apéry.
+    ///
+    /// Returns `self` when `f < m` or no eligible generator exists.
+    #[must_use]
+    pub fn ascent(&self) -> Self {
+        if self.f < self.m {
+            return self.clone();
+        }
+        let lo = self.f - self.m;
+        self.gen_set
+            .iter()
+            .copied()
+            .filter(|&x| lo < x && x < self.f && x > self.m)
+            .max()
+            .map_or_else(|| self.clone(), |w| self.toggle(w))
+    }
 
     /// Descent: a controlled step down the gaps ladder.
     ///

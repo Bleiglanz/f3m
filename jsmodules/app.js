@@ -834,6 +834,7 @@ function wireGenSetBtn(id, method, label, beforeCompute) {
 
 wireGenSetBtn('fast-descent-btn', 'fast_descent',       'FastDescent');
 wireGenSetBtn('descent-btn',      'descent',            'Descent');
+wireGenSetBtn('ascent-btn',       'ascent',             'Ascent');
 wireGenSetBtn('half-btn',         's_over_2',           'S/2');
 wireGenSetBtn('sym-partner-btn',  'symmetric_partner',  'S=SYM/2');
 wireGenSetBtn('ks-btn',           'canonical_ideal',    'K(S)');

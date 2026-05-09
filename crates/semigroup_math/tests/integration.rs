@@ -2762,6 +2762,65 @@ fn test_fast_descent_changes_r_by_exact_amount() {
 }
 
 #[test]
+fn test_ascent_pushes_apery_past_f() {
+    // When a min-gen `w` lies in (f − m, f), ascent toggles it and the
+    // resulting semigroup has w + m as the apéry element of residue
+    // w mod m (the apéry "moves past f" by m). When no such min-gen
+    // exists, ascent is a no-op.
+    let mut tested = 0;
+    let mut active = 0;
+    for a in 2..=15 {
+        for b in (a + 1)..=25 {
+            if gcd(a, b) != 1 {
+                continue;
+            }
+            for c in (b + 1)..=30 {
+                if gcd(gcd(a, b), c) != 1 {
+                    continue;
+                }
+                let s = compute(&[a, b, c]);
+                if s.f < s.m {
+                    continue;
+                }
+                let lo = s.f - s.m;
+                let w = s
+                    .gen_set
+                    .iter()
+                    .copied()
+                    .filter(|&x| lo < x && x < s.f && x > s.m)
+                    .max();
+                let ascended = s.ascent();
+                match w {
+                    Some(w) => {
+                        active += 1;
+                        let r = w % s.m;
+                        assert_eq!(
+                            ascended.apery_set[r],
+                            w + s.m,
+                            "ascent on gens={:?}: apéry of residue {} should be {} (w+m), got {}",
+                            s.gen_set,
+                            r,
+                            w + s.m,
+                            ascended.apery_set[r],
+                        );
+                    }
+                    None => {
+                        assert_eq!(
+                            ascended.gen_set, s.gen_set,
+                            "ascent should be a no-op when no min-gen lies in (f−m, f); gens={:?}",
+                            s.gen_set,
+                        );
+                    }
+                }
+                tested += 1;
+            }
+        }
+    }
+    assert!(tested > 0, "sweep must exercise at least one case");
+    assert!(active > 0, "sweep must exercise at least one active ascent");
+}
+
+#[test]
 fn test_apery_shift_first_when_kunz_move_is_blocked() {
     // For <6,9,20>, w₂+w₅ = 20+29 = 49 = w₁, so c_25 = 0 and the move
     // would force c_25 → -1. compute() then collapses back: 9 + 40 = 49

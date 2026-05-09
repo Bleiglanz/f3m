@@ -404,7 +404,7 @@ else {
             toggle(smallest)
         }
 
-64) a question for analysis: in descent
+64) [DONE] a question for analysis: in descent
 it could happen that the number of minimal generators goes
 up. we essentially add a pseudo-frobenius element L > f-m
 if L+m (our apery > f) is itself a minimal generator, e stays the same
@@ -412,6 +412,15 @@ but if L+m is the sum of two minimal generators we get a new minimal generator (
 in this case L+m must have at least one summand a \in min_gen, that is >f/2
 what if we toggle(a) before doing this? 2a > f
 could this be controlled?
+
+65) [DONE] i added a new manipulator "ascent"
+in descent we add new apery-elements in the range
+f-m < x < f
+(becase w-m is itself a apery of the descent semigroup. w-m,w-2m,w-3m... are all gaps)
+i want to undo this: if there is an aperyelement
+>f-m and < f, toggle it, i.e. push it to the right of f,
+in the ascent semigroup w+m will be a new apery-Element
+ok
 
 
 

@@ -642,6 +642,13 @@ body.hide-classification .classify-row { display: none; }
 #pivot-detail th { background: #f0f4f8; }
 #pivot-detail .open-btn { cursor: pointer; padding: 2px 8px; font-size: 0.85rem; background: #fff; border: 1px solid #999; color: #000; }
 #pivot-detail .open-btn:hover { background: #e8eef4; }
+/* PivotTable.js filter modal — appended to body, so scoped selectors above
+   don't reach it. Force a bright scheme matching the rest of #tab-pivot. */
+.pvtFilterBox { background: #fff !important; color: #000 !important; border: 1px solid #999 !important; }
+.pvtFilterBox * { color: #000 !important; }
+.pvtFilterBox input, .pvtFilterBox select { background: #fff !important; color: #000 !important; border: 1px solid #999 !important; }
+.pvtFilterBox button { background: #f0f4f8 !important; color: #000 !important; border: 1px solid #999 !important; padding: 4px 12px; cursor: pointer; font-size: 0.9rem; }
+.pvtFilterBox button:hover { background: #d8e2ec !important; }
 
 /* ─── Comp Tab ──────────────────────────────────────────────────── */
 .comp-header { font-size: 1.1rem; margin: 0.4rem 0 0.6rem; color: var(--label); }

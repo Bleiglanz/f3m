@@ -367,9 +367,51 @@ this should be done reglularly...
 if we do descent or fast_descent, then the number
 of reflected groups changes by and even number
 
+63) [DONE] I think that fn descent can be simplified
+it has the same effect as picking
+the smalles apery-element > f (there always is one)
+and then adds L
+(this would have the same effect, the aperys f < w < f+m
+are just added from smallest to largest)
+is this true? my proposal is
+instead of
+        } else if self.is_descent() {
+            let mut newgen = self.gen_set.clone();
+            newgen.push(self.f);
+            compute(&newgen)
+        } else {
+            // Safe: !is_descent guarantees at least one Apéry element strictly
+            // between f and f+m, so the iterator is non-empty.
+            let largest = *self
+                .apery_set
+                .iter()
+                .filter(|&&x| self.f < x && x < self.f + self.m)
+                .max()
+                .unwrap_or(&0);
+            let mut newgen = self.gen_set.clone();
+            // x > f >= m here, so x - m >= 1 is well-defined.
+            newgen.push(largest - self.m);
+            compute(&newgen)
+        }
+just remove the else if and do this:
+else {
+            let smalles = *self
+                .apery_set
+                .iter()
+                .filter(|&&x| self.f < x )
+                .min()
+                .unwrap_or(&0);
+            toggle(smallest)
+        }
 
-
-
+64) a question for analysis: in descent
+it could happen that the number of minimal generators goes
+up. we essentially add a pseudo-frobenius element L > f-m
+if L+m (our apery > f) is itself a minimal generator, e stays the same
+but if L+m is the sum of two minimal generators we get a new minimal generator (e becomes e+1)
+in this case L+m must have at least one summand a \in min_gen, that is >f/2
+what if we toggle(a) before doing this? 2a > f
+could this be controlled?
 
 
 

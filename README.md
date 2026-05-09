@@ -82,8 +82,8 @@ The first five always appear in the Manipulate section; the last four only when 
 
 | Button | Action |
 |---|---|
-| FastDescent | Collapses every Descent step needed to drop f by exactly m into a single closure. Adds f and (x − m) for every Apéry element x strictly between f and f+m. Returns S unchanged when f < 2m; otherwise the result has new f = old f − m and unchanged μ |
-| Descent | A controlled step down the gaps ladder: adds f as a generator when every Apéry element equals f+m or is strictly below f; otherwise adds (largest Apéry strictly between f and f+m) − m |
+| FastDescent | Collapses every Descent step needed to drop f by exactly m into a single closure. Adds (x − m) for every Apéry element x > f (the x = f+m case contributes f itself; cases with x ∈ (f, f+m) contribute the gap below x in the same residue class). Returns S unchanged when f < 2m; otherwise the result has new f = old f − m and unchanged μ |
+| Descent | A controlled step down the gaps ladder: picks the smallest Apéry element x > f (always exists since a_μ = f+m) and adds x − m as a new generator. When `is_descent` holds the smallest such x is f+m and the rule reduces to "add f" |
 | S/2 | Replace generators with those of S/2 = { x : 2x ∈ S } |
 | S=SYM/2 | Compute the symmetric partner S̄ such that S = S̄/2 (Rosales–García-Sánchez 2008) |
 | K(S) | Canonical ideal: numerical semigroup with generators { f − p : p ∈ PF(S), p ≠ f } |

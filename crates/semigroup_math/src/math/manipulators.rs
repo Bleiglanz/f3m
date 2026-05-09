@@ -32,56 +32,53 @@ impl Semigroup {
 
     /// Descent: a controlled step down the gaps ladder.
     ///
-    /// - When `f < m` (only the trivial `S = ℕ` case) returns `self`.
-    /// - When [`Self::is_descent`] holds (every Apéry element is `f+m` or
-    ///   strictly less than `f`) adds `f` itself as a generator.
-    /// - Otherwise picks the largest Apéry element `x` with `f < x < f+m`
-    ///   and adds `x - m` (which is a gap in the same residue class as `x`)
-    ///   as a new generator.
+    /// Returns `self` when `f < m` (only the trivial `S = ℕ` case).
+    /// Otherwise picks the smallest Apéry element `x` with `x > f` and
+    /// adds `x − m` (a gap in the same residue class as `x`) as a new
+    /// generator.
+    ///
+    /// The two-branch presentation in the literature (add `f` when
+    /// [`Self::is_descent`], otherwise add `x − m` for some `x ∈ (f, f+m)`)
+    /// is the same rule: when `is_descent` holds the only Apéry element
+    /// above `f` is `a_μ = f+m`, and `(f+m) − m = f`.
     #[must_use]
     pub fn descent(&self) -> Self {
         if self.f < self.m {
-            self.clone()
-        } else if self.is_descent() {
-            let mut newgen = self.gen_set.clone();
-            newgen.push(self.f);
-            compute(&newgen)
-        } else {
-            // Safe: !is_descent guarantees at least one Apéry element strictly
-            // between f and f+m, so the iterator is non-empty.
-            let largest = *self
-                .apery_set
-                .iter()
-                .filter(|&&x| self.f < x && x < self.f + self.m)
-                .max()
-                .unwrap_or(&0);
-            let mut newgen = self.gen_set.clone();
-            // x > f >= m here, so x - m >= 1 is well-defined.
-            newgen.push(largest - self.m);
-            compute(&newgen)
+            return self.clone();
         }
+        // a_μ = f + m is always an Apéry element above f, so this iterator is
+        // non-empty whenever m ≥ 1.
+        let smallest = *self
+            .apery_set
+            .iter()
+            .filter(|&&x| x > self.f)
+            .min()
+            .unwrap_or(&0);
+        let mut newgen = self.gen_set.clone();
+        // x > f ≥ m here, so x − m ≥ 1.
+        newgen.push(smallest - self.m);
+        compute(&newgen)
     }
 
     /// Fast descent: collapses every [`Self::descent`] step needed to drop
     /// `f` by exactly `m` into a single closure computation.
     ///
-    /// Returns `self` when `f < 2m`. Otherwise the result satisfies
-    /// `result.f == self.f − self.m` and `result.mu == self.mu`. Achieved
-    /// by adding `f` and `x − m` for every Apéry element `x ∈ (f, f+m)`
-    /// (each such `x − m` is a gap in the same residue class as `x`).
+    /// Returns `self` when `f < 2m`. Otherwise extends the generator set
+    /// with `x − m` for every Apéry element `x > f`, then closes. The
+    /// `x = f + m` case contributes `f` itself; cases with `x ∈ (f, f+m)`
+    /// contribute the gap below `x` in the same residue class. The result
+    /// satisfies `result.f == self.f − self.m` and `result.mu == self.mu`.
     #[must_use]
     pub fn fast_descent(&self) -> Self {
         if self.f < 2 * self.m {
             return self.clone();
         }
         let mut newgen = self.gen_set.clone();
-        newgen.push(self.f);
-        // x > f ≥ 2m here, so x − m ≥ m + 1 ≥ 2 is well-defined and is a gap
-        // of S in the same residue class as the Apéry element x.
+        // x > f ≥ 2m here, so x − m ≥ m + 1.
         newgen.extend(
             self.apery_set
                 .iter()
-                .filter(|&&x| self.f < x && x < self.f + self.m)
+                .filter(|&&x| x > self.f)
                 .map(|&x| x - self.m),
         );
         compute(&newgen)

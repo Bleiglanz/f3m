@@ -40,3 +40,10 @@ pub use diagonals::diagonals_table;
 pub use shortprops::{shortprop, shortprop_cells};
 pub use spans::{ClassSets, class_sets, span};
 pub use tilt::tilt_table;
+
+/// Render a boolean as the bright check / red prohibited glyph used
+/// throughout the property tables and waldicone reports.
+#[must_use]
+pub const fn glyph(b: bool) -> &'static str {
+    if b { "\u{2705}" } else { "\u{1F6AB}" }
+}

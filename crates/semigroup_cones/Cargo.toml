@@ -35,4 +35,5 @@ experimental = []
 
 [dependencies]
 semigroup_math.workspace = true
+html_helpers.workspace = true
 rayon.workspace = true

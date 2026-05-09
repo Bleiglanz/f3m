@@ -521,6 +521,7 @@ dependencies = [
 name = "semigroup_cones"
 version = "0.1.0"
 dependencies = [
+ "html_helpers",
  "rayon",
  "semigroup_math",
 ]

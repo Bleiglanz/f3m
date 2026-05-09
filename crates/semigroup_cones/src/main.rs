@@ -287,12 +287,11 @@ fn props_cells(sg: &Semigroup) -> String {
         .collect::<Vec<_>>()
         .join(", ");
 
-    let glyph = |b: bool| if b { "\u{2705}" } else { "\u{1F6AB}" };
-    let sym = glyph(sg.is_symmetric);
-    let asym = glyph(sg.is_almost_symmetric);
-    let any2 = glyph(sg.any_ri_eq_2());
-    let deep = glyph(sg.deep);
-    let di = glyph(sg.is_descent_image());
+    let sym = html_helpers::glyph(sg.is_symmetric);
+    let asym = html_helpers::glyph(sg.is_almost_symmetric);
+    let any2 = html_helpers::glyph(sg.any_ri_eq_2());
+    let deep = html_helpers::glyph(sg.deep);
+    let di = html_helpers::glyph(sg.is_descent_image());
     format!(
         "<td>{f}</td><td>{e}</td><td>{cg}</td><td>{r}</td><td>{ra}</td>\
          <td>{fg}</td><td>{t}</td><td>{sym}</td><td>{asym}</td><td>{level}</td>\

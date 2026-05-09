@@ -2762,71 +2762,6 @@ fn test_fast_descent_changes_r_by_exact_amount() {
 }
 
 #[test]
-fn test_ascent_pushes_apery_past_f() {
-    // When a min-gen `w` lies in (f − m, f), ascent toggles it and the
-    // resulting semigroup has w + m as the apéry element of residue
-    // w mod m (the apéry "moves past f" by m). When no such min-gen
-    // exists, ascent is a no-op.
-    let mut tested = 0;
-    let mut active = 0;
-    for a in 2..=15 {
-        for b in (a + 1)..=25 {
-            if gcd(a, b) != 1 {
-                continue;
-            }
-            for c in (b + 1)..=30 {
-                if gcd(gcd(a, b), c) != 1 {
-                    continue;
-                }
-                let s = compute(&[a, b, c]);
-                if s.f < s.m {
-                    continue;
-                }
-                let lo = s.f - s.m;
-                let w = s
-                    .gen_set
-                    .iter()
-                    .copied()
-                    .filter(|&x| lo < x && x < s.f && x > s.m)
-                    .max();
-                let max_apery = s.f + s.m;
-                let ascended = s.ascent();
-                if let Some(w) = w {
-                    active += 1;
-                    let r = w % s.m;
-                    assert_eq!(
-                        ascended.apery_set[r],
-                        w + s.m,
-                        "ascent on gens={:?}: apéry of residue {} should be {} (w+m), got {}",
-                        s.gen_set,
-                        r,
-                        w + s.m,
-                        ascended.apery_set[r],
-                    );
-                } else if s.gen_set.contains(&max_apery) {
-                    active += 1;
-                    // f+m fallback fires; result must differ from self.
-                    assert_ne!(
-                        ascended.gen_set, s.gen_set,
-                        "ascent on gens={:?}: f+m={} fallback should activate",
-                        s.gen_set, max_apery,
-                    );
-                } else {
-                    assert_eq!(
-                        ascended.gen_set, s.gen_set,
-                        "ascent should be a no-op when neither clause applies; gens={:?}",
-                        s.gen_set,
-                    );
-                }
-                tested += 1;
-            }
-        }
-    }
-    assert!(tested > 0, "sweep must exercise at least one case");
-    assert!(active > 0, "sweep must exercise at least one active ascent");
-}
-
-#[test]
 fn test_is_descent_image_holds_for_every_descent_output() {
     // Forward direction: every descent output is recognised by the predicate.
     // Sweep over generator triples T, descend, and verify the result is
@@ -2889,16 +2824,17 @@ fn test_is_descent_image_concrete_cases() {
 
 #[test]
 fn test_ascent_active_iff_in_descent_image() {
-    // ascent's two-clause rule activates exactly when is_descent_image()
-    // holds. Verified empirically over 3-gen sweeps plus T(m,f) families.
+    // ascent activates exactly when is_descent_image() holds, and when the
+    // !is_descent branch fires (largest min-gen w in (m, f)) the residue
+    // class of w has apéry w + m in the result.
     let mut tested = 0;
     let mut active = 0;
-    for a in 2..=12 {
-        for b in (a + 1)..=20 {
+    for a in 2..=15 {
+        for b in (a + 1)..=25 {
             if gcd(a, b) != 1 {
                 continue;
             }
-            for c in (b + 1)..=25 {
+            for c in (b + 1)..=30 {
                 if gcd(gcd(a, b), c) != 1 {
                     continue;
                 }
@@ -2914,6 +2850,23 @@ fn test_ascent_active_iff_in_descent_image() {
                 );
                 if predicted {
                     active += 1;
+                    let lo = s.f.saturating_sub(s.m);
+                    if let Some(w) = s
+                        .gen_set
+                        .iter()
+                        .copied()
+                        .filter(|&x| lo < x && x < s.f && x > s.m)
+                        .max()
+                    {
+                        assert_eq!(
+                            after.apery_set[w % s.m],
+                            w + s.m,
+                            "ascent on gens={:?}: apéry of residue {} should be {} (w+m)",
+                            s.gen_set,
+                            w % s.m,
+                            w + s.m,
+                        );
+                    }
                 }
                 tested += 1;
             }

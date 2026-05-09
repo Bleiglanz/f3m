@@ -1,5 +1,6 @@
 //! HTML rendering for the compact summary row and the per-history-entry row.
 
+use crate::glyph;
 use crate::spans::span;
 use semigroup_math::math::Semigroup;
 
@@ -27,9 +28,6 @@ pub fn shortprop_cells(sg: &Semigroup) -> String {
     };
     let gen_td = popup_cell(sg.e, &fmt_spans(&sg.gen_set, "sg-gen"));
     let pf_td = popup_cell(sg.t, &fmt_spans(&sg.pf_set, "sg-pf"));
-    let glyph = |b: bool| {
-        if b { "\u{2705}" } else { "\u{1F6AB}" }
-    };
     format!(
         "<td>{m}</td><td>{f}</td><td>{e}</td><td>{g}</td><td>{cg}</td>\
          <td>{r}</td><td>{ra}</td><td>{fg}</td><td>{t}</td><td>{sym}</td><td>{di}</td>\

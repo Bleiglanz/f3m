@@ -13,7 +13,7 @@ fn popup_cell(count: usize, content: &str) -> String {
 
 /// Render the data `<td>` cells shared by the compact summary row and history table rows.
 ///
-/// Columns: m, f, e, g, σ, r, ra, fg, t, Sym, gen, PF, Wilf, 1/e — in that order.
+/// Columns: m, f, e, g, σ, r, ra, fg, t, Sym, di, gen, PF, Wilf, 1/e — in that order.
 /// `gen` and `PF` show counts with a hover popup listing the actual values.
 #[allow(clippy::cast_precision_loss)]
 #[must_use]
@@ -27,9 +27,12 @@ pub fn shortprop_cells(sg: &Semigroup) -> String {
     };
     let gen_td = popup_cell(sg.e, &fmt_spans(&sg.gen_set, "sg-gen"));
     let pf_td = popup_cell(sg.t, &fmt_spans(&sg.pf_set, "sg-pf"));
+    let glyph = |b: bool| {
+        if b { "\u{2705}" } else { "\u{1F6AB}" }
+    };
     format!(
         "<td>{m}</td><td>{f}</td><td>{e}</td><td>{g}</td><td>{cg}</td>\
-         <td>{r}</td><td>{ra}</td><td>{fg}</td><td>{t}</td><td>{sym}</td>\
+         <td>{r}</td><td>{ra}</td><td>{fg}</td><td>{t}</td><td>{sym}</td><td>{di}</td>\
          {gen_td}{pf_td}\
          <td>{wilf:.4}</td><td>{inv_e:.4}</td>",
         m = sg.m,
@@ -41,11 +44,8 @@ pub fn shortprop_cells(sg: &Semigroup) -> String {
         ra = sg.ra,
         fg = sg.fg,
         t = sg.t,
-        sym = if sg.is_symmetric {
-            "\u{2705}"
-        } else {
-            "\u{1F6AB}"
-        },
+        sym = glyph(sg.is_symmetric),
+        di = glyph(sg.is_descent_image()),
         wilf = sg.wilf(),
         inv_e = 1.0 / sg.e as f64,
     )
@@ -66,6 +66,7 @@ pub fn shortprop(sg: &Semigroup) -> String {
          <th title=\"Fundamental gaps: gaps not expressible as sum of two smaller gaps\">fg</th>\
          <th title=\"Type: number of pseudo-Frobenius numbers\">t</th>\
          <th title=\"Symmetric: t=1 and g=(f+1)/2\">Sym</th>\
+         <th title=\"Descent image: \u{2203} T with T.descent()=S; equivalently a min-gen lies in (f\u{2212}m, f) or at f+m\">di</th>\
          <th title=\"Minimal generators\">gen</th>\
          <th title=\"Pseudo-Frobenius numbers: maximals of \u{2124} \u{2216} S\">PF</th>\
          <th title=\"Wilf quotient: \u{03C3}/(f+1) \u{2265} 1/e (conjecture)\">Wilf</th>\

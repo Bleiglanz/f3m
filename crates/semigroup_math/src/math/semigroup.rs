@@ -240,4 +240,27 @@ impl Semigroup {
             .iter()
             .all(|&w| w == self.f + self.m || w < self.f)
     }
+
+    /// True iff `S` lies in the image of [`Self::descent`] — i.e. there
+    /// exists a numerical semigroup `T` with `T.descent() == S`.
+    ///
+    /// Concretely: descent's added generator is `x − m` where `x` is the
+    /// smallest Apéry element of `T` strictly above `T.f`. Two cases land
+    /// the new generator in `S` at different positions:
+    /// - `T.is_descent` (so `x = T.f + T.m`): the added gen equals `T.f`,
+    ///   which becomes `S`'s max Apéry element `a_μ = S.f + S.m`. So `S`
+    ///   sits in this image iff `a_μ` is a minimal generator of `S`.
+    /// - Otherwise: the added gen lies strictly in `(T.f − T.m, T.f) =
+    ///   (S.f − S.m, S.f)`. So `S` sits in this image iff some min-gen
+    ///   falls in the half-open window `(f − m, f)`.
+    ///
+    /// The disjunction is implemented in one pass over `gen_set`:
+    /// `g + m > f && g < f` is the underflow-free form of `f − m < g < f`.
+    #[must_use]
+    pub fn is_descent_image(&self) -> bool {
+        let max_apery = self.f + self.m;
+        self.gen_set
+            .iter()
+            .any(|&g| g == max_apery || (g < self.f && g + self.m > self.f))
+    }
 }

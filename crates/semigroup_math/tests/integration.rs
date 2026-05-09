@@ -2821,6 +2821,67 @@ fn test_ascent_pushes_apery_past_f() {
 }
 
 #[test]
+fn test_is_descent_image_holds_for_every_descent_output() {
+    // Forward direction: every descent output is recognised by the predicate.
+    // Sweep over generator triples T, descend, and verify the result is
+    // labeled as in the descent image. Includes the is_descent regime
+    // (where the added gen lands at a_μ = f+m, not in (f−m, f)).
+    let mut tested = 0;
+    for a in 2..=15 {
+        for b in (a + 1)..=25 {
+            if gcd(a, b) != 1 {
+                continue;
+            }
+            for c in (b + 1)..=30 {
+                if gcd(gcd(a, b), c) != 1 {
+                    continue;
+                }
+                let t = compute(&[a, b, c]);
+                if t.f < t.m {
+                    continue;
+                }
+                let s = t.descent();
+                assert!(
+                    s.is_descent_image(),
+                    "descent output of T={:?} should be in image; \
+                     S.gen_set={:?}, S.f={}, S.m={}, is_descent(T)={}",
+                    t.gen_set,
+                    s.gen_set,
+                    s.f,
+                    s.m,
+                    t.is_descent(),
+                );
+                tested += 1;
+            }
+        }
+    }
+    assert!(tested > 0);
+}
+
+#[test]
+fn test_is_descent_image_concrete_cases() {
+    // ⟨5, 7, 23⟩ is image of ⟨5, 7⟩ via the is_descent branch; its min-gen
+    // 23 = a_μ = f+m caches the descent step.
+    let s = compute(&[5, 7, 23]);
+    assert_eq!((s.m, s.f), (5, 18));
+    assert_eq!(s.f + s.m, 23);
+    assert!(s.is_descent_image());
+
+    // ⟨5, 7⟩ itself: gens 5, 7, both below f−m=18; max apery 28 ≠ any min-gen.
+    // So it's outside the descent image — there's no T with T.descent()=⟨5,7⟩.
+    let s = compute(&[5, 7]);
+    assert!(!s.is_descent_image());
+
+    // ⟨10, 11, 13, 29⟩: image via the !is_descent branch (29 ∈ (28, 38)).
+    let s = compute(&[10, 11, 13, 29]);
+    assert!(s.is_descent_image());
+
+    // ⟨10, 11, 13⟩ itself: no min-gen in (28, 38), max apery 48 ≠ any min-gen.
+    let s = compute(&[10, 11, 13]);
+    assert!(!s.is_descent_image());
+}
+
+#[test]
 fn test_apery_shift_first_when_kunz_move_is_blocked() {
     // For <6,9,20>, w₂+w₅ = 20+29 = 49 = w₁, so c_25 = 0 and the move
     // would force c_25 → -1. compute() then collapses back: 9 + 40 = 49

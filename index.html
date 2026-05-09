@@ -228,7 +228,8 @@
             <b>&sigma;</b>&nbsp;semigroup elements below the conductor, <b>r</b>&nbsp;reflected gaps,
             <b>ra</b>&nbsp;Ap&eacute;ry elements w where w&minus;m is a reflected gap,
             <b>fg</b>&nbsp;fundamental gaps (gaps not expressible as a sum of two gaps),
-            <b>t</b>&nbsp;type, <b>Sym</b>&nbsp;symmetric?, <b>gen</b>&nbsp;generators, <b>PF</b>&nbsp;pseudo-Frobenius,
+            <b>t</b>&nbsp;type, <b>Sym</b>&nbsp;symmetric?, <b>di</b>&nbsp;descent image (some T with T.descent()=S exists),
+            <b>gen</b>&nbsp;generators, <b>PF</b>&nbsp;pseudo-Frobenius,
             <b>Wilf</b>&nbsp;Wilf quotient &sigma;/(f+1),
             <b>1/e</b>&nbsp;Wilf conjecture lower bound, <b>expr</b>&nbsp;expression, <b>value</b>&nbsp;result,
             <b>&sube;?</b>&nbsp;set-containment relation.</td></tr>
@@ -239,7 +240,7 @@
           <tr><td>.csv</td><td>History table in CSV format, ready to copy. Includes a final <em>generators</em> column with the minimal generating set.</td></tr>
           <tr><td>LaTeX</td><td>Editable LaTeX source with live KaTeX preview of semigroup properties.</td></tr>
           <tr><td>Help</td><td>This reference page, plus a dynamic summary of the current semigroup.</td></tr>
-          <tr><td>Pivot</td><td>Cross-tabulation of the precomputed semigroup catalogue using <a href="https://pivottable.js.org/" target="_blank">PivotTable.js</a>. Pick a <code>gmax</code> from the dropdown to load <code>normaliz/semigroup_g_from2to{gmax}_list.json</code>, then drag fields (g, m, e, t, sym, asym, level, min_r&#x1d62;, max_r&#x1d62;, deep, &hellip;) into rows / columns / values to count or aggregate. Click <em>Open</em> on a leaf row to load that semigroup into the calculator.</td></tr>
+          <tr><td>Pivot</td><td>Cross-tabulation of the precomputed semigroup catalogue using <a href="https://pivottable.js.org/" target="_blank">PivotTable.js</a>. Pick a <code>gmax</code> from the dropdown to load <code>normaliz/semigroup_g_from2to{gmax}_list.json</code>, then drag fields (g, m, e, t, sym, asym, level, min_r&#x1d62;, max_r&#x1d62;, deep, descent, di, &hellip;) into rows / columns / values to count or aggregate. Click <em>Open</em> on a leaf row to load that semigroup into the calculator.</td></tr>
           <tr><td>Comp</td><td>Side-by-side comparison of the current semigroup and the immediately previous history entry &mdash; both rendered as the structure grid plus shortprops table. Shown only when the history has at least two entries.</td></tr>
           <tr><td>Diagonals</td><td>
             Five matrices around the Kunz cone, all (m&minus;1)&times;(m&minus;1) unless noted.<br>

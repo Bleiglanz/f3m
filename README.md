@@ -18,6 +18,7 @@ A browser-based tool for computing properties of numerical semigroups from a lis
 | Fundamental gaps | fg | Gaps not expressible as a sum of two smaller gaps |
 | Type | t | Cardinality of PF(S) |
 | Symmetric | ✅/🚫 | Whether t = 1 (equivalently f + 1 = 2g) |
+| Descent image | di | Whether ∃ T with T.descent() = S; equivalently a min-gen lies in (f − m, f) or at f + m |
 | Generators | gen | Minimal generating set |
 | Pseudo-Frobenius | PF(S) | Gaps x such that x + s ∈ S for all s ∈ S \ {0} |
 | Wilf quotient | — | σ/(f+1); Wilf conjecture says ≥ 1/e |
@@ -97,7 +98,7 @@ The first five always appear in the Manipulate section; the last four only when 
 
 Every computed semigroup is appended to a summary table with rows labelled S₀, S₁, … The last column shows the set-containment relation (⊂, =, ⊃, ?) between the new entry and the previous one. Click a row number to restore that semigroup as the current input.
 
-Summary columns: **#** index:label, **toggle** set operation, **m** multiplicity, **f** Frobenius number, **e** embedding dimension, **g** genus (gaps), **σ** semigroup elements below the conductor, **r** reflected gaps, **ra** Apéry elements w where w−m is a reflected gap, **fg** fundamental gaps (gaps not a sum of two gaps), **t** type, **Sym** symmetric?, **gen** generators, **PF** pseudo-Frobenius numbers, **Wilf** Wilf quotient σ/(f+1), **1/e** Wilf conjecture lower bound, **expr** expression, **value** evaluated result, **⊆?** set-containment relation.
+Summary columns: **#** index:label, **toggle** set operation, **m** multiplicity, **f** Frobenius number, **e** embedding dimension, **g** genus (gaps), **σ** semigroup elements below the conductor, **r** reflected gaps, **ra** Apéry elements w where w−m is a reflected gap, **fg** fundamental gaps (gaps not a sum of two gaps), **t** type, **Sym** symmetric?, **di** descent image (some T with T.descent()=S exists), **gen** generators, **PF** pseudo-Frobenius numbers, **Wilf** Wilf quotient σ/(f+1), **1/e** Wilf conjecture lower bound, **expr** expression, **value** evaluated result, **⊆?** set-containment relation.
 
 The GAP tab accumulates a full [GAP](https://gap-packages.github.io/numericalsgps/) script for all entries that can be verified with the `NumericalSgps` package. A **Copy** button copies it to the clipboard.
 

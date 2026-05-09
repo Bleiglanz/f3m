@@ -414,13 +414,11 @@ what if we toggle(a) before doing this? 2a > f
 could this be controlled?
 
 65) [DONE] i added a new manipulator "ascent"
-in descent we add new apery-elements in the range
-f-m < x < f
-(becase w-m is itself a apery of the descent semigroup. w-m,w-2m,w-3m... are all gaps)
-i want to undo this: if there is an aperyelement
+in descent we add new apery-elements that are also min_gens in the range
+f-m < x < f (becase w-m is itself a apery of the descent semigroup. w-m,w-2m,w-3m... are all gaps)
+i want to undo this: if there is a minimal generator
 >f-m and < f, toggle it, i.e. push it to the right of f,
-in the ascent semigroup w+m will be a new apery-Element
-ok
+
 
 
 

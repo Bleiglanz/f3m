@@ -426,7 +426,7 @@ test that 2L is an element of S
  sharp counterexample to the unconditional claim: ⟨7,11,13⟩ has
  f=30, PF={15,30}, L=15, 2L=30=f.)
 
-67) add a button for semigroups with f even
+67) [DONE] add a button for semigroups with f even
 f/2 is then always a reflected gap,
 add a button (manipulator) "Add f/2" (button is only visible if f is even)
 

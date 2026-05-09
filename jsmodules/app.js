@@ -288,6 +288,7 @@ function render(s, toggle = null, label = '⏎') {
 
   document.getElementById('add-pf-btn').style.display = (s.type_t > 1 && s.f > 0) ? '' : 'none';
   document.getElementById('add-blobs-btn').style.display = s.blob.length > 0 ? '' : 'none';
+  document.getElementById('add-fhalf-btn').style.display = (s.f > 0 && s.f % 2 === 0) ? '' : 'none';
   document.getElementById('selfglue-btn').style.display = s.can_self_glue() ? '' : 'none';
   // w₁+m is meaningful only when w₁ is a minimal generator; otherwise the
   // shift collapses back to S because w₁ stays expressible from {m, w₂, …}.
@@ -846,6 +847,12 @@ wireGenSetBtn('selfglue-btn',  'self_glue',           'glue', () => {
   state_set_show_kunz(false);
   document.getElementById('show-kunz').checked = false;
 });
+
+// "+f/2": toggle f/2 (always a reflected gap when f is even).
+document.getElementById('add-fhalf-btn').addEventListener('click', guarded(() => {
+  if (!currentS || currentS.f === 0 || currentS.f % 2 !== 0) { return; }
+  doToggle(currentS.f / 2);
+}));
 
 document.getElementById('compute-btn').addEventListener('click', guardedCompute);
 document.getElementById('reset-btn').addEventListener('click', guarded(() => {

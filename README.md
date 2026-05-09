@@ -92,6 +92,7 @@ The first five always appear in the Manipulate section; the last four only when 
 | w₁+m | Apéry shift ⟨m, w₁+m, w₂, …, w_{m−1}⟩ — Kunz-cone neighbour reached by adding (2,1,…,1) to row 1 of C; shown when w₁ is a minimal generator |
 | +PF | Add every pseudo-Frobenius number other than f as a generator (shown when t > 1) |
 | +refl | Add all reflected gaps as generators |
+| +f/2 | Add f/2 as a generator (shown only when f is even; f/2 is then always a reflected gap, since 2·(f/2) = f ∉ S) |
 | glue | Self-gluing: compute m·S + x·S where x is the first generator with gcd(m, x) = 1 (shown when such x exists) |
 
 ### History tab

@@ -465,7 +465,7 @@ then also test the the sum
  the unique level-0 semigroup for m ∈ {2,…,12} and checks its
  invariants.)
 
-71) now onto l=2
+71) [PARTIAL] now onto l=2
 evaluate N(g,l=2,m,mu)
 I want to compute the part that comes from l=1 by ascent
 and identify the remaining ones
@@ -479,6 +479,62 @@ C(mu-1,3) have three generators m <...<...f, can lift in C(3,1)+C(3,2)+C(3,3) wa
 in general do we create
 sum C(mu-1,i)*(2^i-1) semigroups in level 2?
 if so, can you find the missing ones?
+(missing pile fully described — see item 72. Lifted pile still
+ open: the conjectured count 3^(μ−1) − 2^(μ−1) is the candidate
+ count without Kunz filtering; actual lifted count is strictly
+ smaller for μ ≥ 3 because each r ∈ T \ {μ} adds a Kunz
+ inequality M+M ⊅ {r}.)
+
+72) [DONE] full picture of the map S(g, l=1, m, μ) → S(g+1, l=2, m, μ, missing)
+
+Both sets are indexed by subsets M ⊆ {1, …, μ−1} where
+M = {r : w_r = m+r}. The lift map L (M ↦ M, with the only change
+being w_μ jumping from 2m+μ to 3m+μ — equivalently, 2m+μ
+becomes a gap) lands in the level-2 missing pile iff M is
+sum-avoiding for μ:
+  ∀ a, b ∈ M (allowing a = b),  a + b ≠ μ
+equivalently, M ∩ (μ − M) = ∅ and μ/2 ∉ M when μ is even.
+Otherwise 2m+μ becomes reachable as (m+a) + (m+b) and the
+"lifted" candidate collapses back to level 1.
+
+Genus shift, uniform across strata:
+  g_{l=2, missing} = g_{l=1} + 1.
+
+Stratification by k = |M| = m + μ − 1 − g_{l=1}:
+
+   k                level-1 stratum   level-2 missing stratum   killed Δ(k)
+   |S(g, l=1, m, μ) ∩ {|M|=k}|        |S(g+1, l=2, m, μ, missing) ∩ {|M|=k}|
+
+   k                C(μ−1, k)         C(⌊(μ−1)/2⌋, k) · 2^k     Δ(k) =
+                                                                C(μ−1, k)
+                                                                − C(⌊(μ−1)/2⌋, k) · 2^k
+
+Sum-over-k totals:
+  level-1:                  2^(μ−1)               (item 69)
+  level-2 missing:          3^⌊(μ−1)/2⌋           (orbit GF)
+
+Per-genus closed form for missing:
+  N(g, l=2, m, μ, missing) = C(⌊(μ−1)/2⌋, m+μ−g) · 2^(m+μ−g)
+  valid range: m + ⌈(μ−1)/2⌉ + 1 ≤ g ≤ m + μ.
+
+Concrete worked example (μ = 5):
+{1,…,μ−1} = {1, 2, 3, 4}, paired by r ↔ 5−r as orbits {1,4} and
+{2,3}; no fixed point (μ odd); ⌊(μ−1)/2⌋ = 2 orbits.
+
+   k    g_{l=1}    level-1 C(4,k)    sum-avoiding C(2,k)·2^k    Δ(k)    killed M's
+   0    m+4        1                 1                          0       —
+   1    m+3        4                 4                          0       —
+   2    m+2        6                 4                          2       {1,4}, {2,3}
+   3    m+1        4                 0                          4       all 3-subsets
+   4    m          1                 0                          1       {1,2,3,4}
+   Σ              16                 9                          7
+
+Verified by brute-force test test_level_2_missing_stratification
+in semigroup_math integration: for every (m, μ) with m ≤ 8, every
+M ⊆ {1,…,μ−1} is built into both a level-1 and a candidate
+level-2 missing, and the per-stratum closed forms match. The
+test also confirms that non-sum-avoiding M's collapse to level 1
+under the lift.
 
 
 

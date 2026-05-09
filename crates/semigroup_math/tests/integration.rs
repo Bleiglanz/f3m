@@ -131,6 +131,138 @@ fn test_level_0_uniqueness() {
     }
 }
 
+/// Bit-encoded enumeration helper: subset of `{1, …, μ−1}` from a mask where
+/// bit `r−1` set means `r` is included.
+fn mask_to_subset(mask: u32, mu: usize) -> Vec<usize> {
+    (1..mu).filter(|&r| (mask >> (r - 1)) & 1 == 1).collect()
+}
+
+/// `M` is sum-avoiding for parameter `μ`: no `a, b ∈ M` (allowing `a = b`)
+/// satisfy `a + b = μ`. Equivalently, `M ∩ (μ − M) = ∅`, with the additional
+/// requirement that `μ/2 ∉ M` when `μ` is even.
+fn is_sum_avoiding(m_set: &[usize], mu: usize) -> bool {
+    for &a in m_set {
+        for &b in m_set {
+            if a + b == mu {
+                return false;
+            }
+        }
+    }
+    true
+}
+
+/// Builds the candidate level-2 "missing" semigroup whose Apéry set is
+/// `(0, …, w_r = m+r if r ∈ M, 2m+r otherwise; w_μ = 3m+μ; m+r forced for r > μ)`.
+/// Returns the result of `compute` on those Apéry elements as generators
+/// (plus `m`). The resulting semigroup is level 2 with the intended `(m, μ)`
+/// **iff** `M` is sum-avoiding for `μ`; otherwise `2m+μ` becomes reachable
+/// and the result collapses back to level 1.
+fn build_level_2_missing(m: usize, mu: usize, m_set: &[usize]) -> semigroup_math::math::Semigroup {
+    let mut gens = vec![m];
+    for r in 1..m {
+        let w = if r == mu {
+            3 * m + mu
+        } else if r > mu || m_set.contains(&r) {
+            m + r
+        } else {
+            2 * m + r
+        };
+        gens.push(w);
+    }
+    compute(&gens)
+}
+
+/// Same as [`build_level_2_missing`] but with `w_μ = 2m+μ`, producing the
+/// level-1 semigroup at the same `M`. Always valid (level 1 has no Kunz
+/// filtering).
+fn build_level_1(m: usize, mu: usize, m_set: &[usize]) -> semigroup_math::math::Semigroup {
+    let mut gens = vec![m];
+    for r in 1..m {
+        let w = if r == mu {
+            2 * m + mu
+        } else if r > mu || m_set.contains(&r) {
+            m + r
+        } else {
+            2 * m + r
+        };
+        gens.push(w);
+    }
+    compute(&gens)
+}
+
+#[test]
+fn test_level_2_missing_stratification() {
+    // For every (m, μ) with m ≤ 8, verify:
+    //   • Per-stratum count by k = |M|:
+    //       level-1 stratum has C(μ−1, k) subsets,
+    //       level-2 missing stratum has C(⌊(μ−1)/2⌋, k) · 2^k subsets,
+    //   • The lift M ↦ M takes a level-1 with sum-avoiding M to a level-2
+    //     "missing" with the same M, raising genus by exactly 1.
+    //   • Non-sum-avoiding M's "lift" to a level-1 (collapse), not a
+    //     level-2.
+    for m in 2..=8 {
+        for mu in 1..m {
+            let mut l1_by_k: Vec<usize> = vec![0; mu];
+            let mut l2_missing_by_k: Vec<usize> = vec![0; mu];
+            for mask in 0..(1u32 << (mu - 1)) {
+                let m_set = mask_to_subset(mask, mu);
+                let k = m_set.len();
+                l1_by_k[k] += 1;
+
+                let s1 = build_level_1(m, mu, &m_set);
+                assert_eq!(s1.m, m, "(m={m}, μ={mu}, M={m_set:?})");
+                assert_eq!(s1.mu, mu, "(m={m}, μ={mu}, M={m_set:?})");
+                assert_eq!(s1.level, 1, "(m={m}, μ={mu}, M={m_set:?})");
+                assert_eq!(s1.count_gap, m + mu - 1 - k, "level-1 genus formula");
+
+                let s2 = build_level_2_missing(m, mu, &m_set);
+                if is_sum_avoiding(&m_set, mu) {
+                    l2_missing_by_k[k] += 1;
+                    assert_eq!(s2.m, m, "(m={m}, μ={mu}, M={m_set:?})");
+                    assert_eq!(s2.mu, mu, "(m={m}, μ={mu}, M={m_set:?})");
+                    assert_eq!(s2.level, 2, "(m={m}, μ={mu}, M={m_set:?})");
+                    assert_eq!(s2.count_gap, m + mu - k, "missing genus formula");
+                    assert_eq!(
+                        s2.count_gap,
+                        s1.count_gap + 1,
+                        "genus shift l=1 → l=2 missing must be +1",
+                    );
+                } else {
+                    // Bad pair in M: 2m+μ reduces, w_μ collapses to 2m+μ,
+                    // and the result lands back in level 1 (not level 2).
+                    assert_ne!(
+                        s2.level, 2,
+                        "non-sum-avoiding M must not lift to level 2: m={m}, μ={mu}, M={m_set:?}",
+                    );
+                }
+            }
+
+            // Closed forms.
+            let half = (mu - 1) / 2;
+            for k in 0..mu {
+                assert_eq!(
+                    l1_by_k[k],
+                    binom(mu - 1, k).expect("small"),
+                    "level-1 stratum (m={m}, μ={mu}, k={k})",
+                );
+                let predicted_missing = if k <= half {
+                    binom(half, k).expect("small") * (1usize << k)
+                } else {
+                    0
+                };
+                assert_eq!(
+                    l2_missing_by_k[k], predicted_missing,
+                    "level-2 missing stratum (m={m}, μ={mu}, k={k})",
+                );
+            }
+
+            // Sum totals: level-1 = 2^(μ−1), level-2 missing = 3^⌊(μ−1)/2⌋.
+            assert_eq!(l1_by_k.iter().sum::<usize>(), 1usize << (mu - 1));
+            assert_eq!(l2_missing_by_k.iter().sum::<usize>(), 3usize.pow(half as u32));
+        }
+    }
+}
+
 #[test]
 fn test_level_1_count_formula() {
     // N(g, l=1, m, μ) = C(μ−1, m + μ − 1 − g) for g ∈ {m, …, m+μ−1};

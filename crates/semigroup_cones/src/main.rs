@@ -448,6 +448,13 @@ fn tally_genus(g: usize, data: &GenusData, cols: usize) -> GenusTally {
                 3
             };
             f_vs_m[bucket] += 1;
+            // Level 0 ⇒ unique "ordinary" semigroup of multiplicity m:
+            // gaps are exactly {1, …, m−1}, so f = g = μ = m − 1.
+            if sg.level == 0 {
+                assert_eq!(sg.f, sg.m - 1, "l=0: expected f=m-1");
+                assert_eq!(sg.mu, sg.m - 1, "l=0: expected μ=m-1");
+                assert_eq!(g, sg.m - 1, "l=0: expected g=m-1");
+            }
             if *m < cols {
                 by_m[*m] += 1;
             }

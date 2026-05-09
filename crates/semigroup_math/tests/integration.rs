@@ -5,12 +5,12 @@
 
 use semigroup_math::math::{
     compute,
-    creators::{arith, arith_generators, rolf_primes, tmf, tmf_generators},
+    creators::{arith_generators, rolf_primes, tmf_generators},
     gcd,
     matrix::{c_red, d_matrix, u_matrix, zd_vector},
     random_creators::{
-        random, random_almost_symmetric, random_generators, random_primes_subset,
-        random_pseudo_symmetric, random_symmetric, random_with_multiplier,
+        random_generators, random_matching_generators, random_primes_subset,
+        random_with_multiplier_generators,
     },
 };
 
@@ -2597,13 +2597,11 @@ fn test_fast_descent_returns_self_when_f_lt_2m() {
 
 #[test]
 fn test_creators_tmf() {
-    // The generator-list helper preserves the raw input.
     assert_eq!(tmf_generators(3, 6), vec![3, 7, 8, 9]);
 
-    // T(m, f) has Frobenius exactly f when gcd(f, m) makes f a gap. For
-    // T(4, 7) the gens are ⟨4, 8, 9, 10, 11⟩; 8 reduces to 4+4 so minimal
-    // gens are ⟨4, 9, 10, 11⟩, Apéry [0, 9, 10, 11], f = 11 − 4 = 7.
-    let s = tmf(4, 7);
+    // T(4, 7): ⟨4, 8, 9, 10, 11⟩; 8 reduces to 4+4 so minimal gens are
+    // ⟨4, 9, 10, 11⟩, Apéry [0, 9, 10, 11], f = 11 − 4 = 7.
+    let s = compute(&tmf_generators(4, 7));
     assert_eq!(s.m, 4);
     assert_eq!(s.f, 7);
     assert_eq!(s.apery_set, vec![0, 9, 10, 11]);
@@ -2612,21 +2610,20 @@ fn test_creators_tmf() {
 #[test]
 fn test_creators_arith() {
     assert_eq!(arith_generators(3, 2, 3), vec![3, 5, 7, 9]);
-    // ⟨3, 5, 7, 9⟩ — 9 = 3+3+3 is reducible so minimal gens are ⟨3, 5, 7⟩.
-    let s = arith(3, 2, 3);
+    // 9 = 3+3+3 is reducible so minimal gens are ⟨3, 5, 7⟩.
+    let s = compute(&arith_generators(3, 2, 3));
     assert_eq!(s.gen_set, vec![3, 5, 7]);
-    assert_eq!(s.m, 3);
 
     // Single generator m,d=1,n=0 → ⟨m⟩ which compute() rescales to ⟨1⟩ = ℕ.
-    let s = arith(5, 0, 0);
+    let s = compute(&arith_generators(5, 0, 0));
     assert_eq!(s.m, 1);
 }
 
 #[test]
 fn test_creators_rolf_primes() {
-    // p_1 = 2; primes 2 ≤ p ≤ 10 are 2, 3, 5, 7.
+    // p_1 = 2; primes 2 ≤ p ≤ 10.
     assert_eq!(rolf_primes(1), vec![2, 3, 5, 7]);
-    // p_3 = 5; primes 5 ≤ p ≤ 25 are 5, 7, 11, 13, 17, 19, 23.
+    // p_3 = 5; primes 5 ≤ p ≤ 25.
     assert_eq!(rolf_primes(3), vec![5, 7, 11, 13, 17, 19, 23]);
     // n=0 clamps to n=1.
     assert_eq!(rolf_primes(0), rolf_primes(1));
@@ -2634,19 +2631,14 @@ fn test_creators_rolf_primes() {
 
 #[test]
 fn test_random_creators_basic_shape() {
-    // Eight integers, all in [10, 100], compute() succeeds.
     let nums = random_generators();
     assert_eq!(nums.len(), 8);
     assert!(nums.iter().all(|&x| (10..=100).contains(&x)));
-    let _ = random();
 
-    // multiplier-extended list at least covers the [k·m, k·m+k·m] block.
-    let s = random_with_multiplier(2);
-    // The construction always yields a valid semigroup; the only post-condition
-    // we can assert without locking randomness is that compute() succeeded.
+    // multiplier-extended list yields a valid semigroup.
+    let s = compute(&random_with_multiplier_generators(2));
     assert!(s.m >= 1);
 
-    // 4..=8 distinct primes from the fixed list.
     let primes = random_primes_subset();
     assert!((4..=8).contains(&primes.len()));
     assert!(primes.windows(2).all(|w| w[0] < w[1]));
@@ -2654,18 +2646,119 @@ fn test_random_creators_basic_shape() {
 
 #[test]
 fn test_random_creators_predicate_postconditions() {
-    // Each find-by-predicate helper returns Some within the retry budget for
-    // these well-populated families, and the returned semigroup satisfies
-    // the predicate it was searching for.
-    let s = random_symmetric().expect("random_symmetric should succeed");
-    assert!(s.is_symmetric);
+    let g =
+        random_matching_generators(|s| s.is_symmetric).expect("random_symmetric should succeed");
+    assert!(compute(&g).is_symmetric);
 
-    let s = random_pseudo_symmetric().expect("random_pseudo_symmetric should succeed");
-    assert_eq!(s.r, 1);
+    let g =
+        random_matching_generators(|s| s.r == 1).expect("random_pseudo_symmetric should succeed");
+    assert_eq!(compute(&g).r, 1);
 
-    let s = random_almost_symmetric().expect("random_almost_symmetric should succeed");
+    let g = random_matching_generators(|s| s.is_almost_symmetric && s.r >= 2)
+        .expect("random_almost_symmetric should succeed");
+    let s = compute(&g);
     assert!(s.is_almost_symmetric);
     assert!(s.r >= 2);
+}
+
+#[test]
+fn test_descent_changes_r_by_exact_amount() {
+    // Per-step descent changes the reflected-gap count `r` by an exact
+    // amount that depends on which descent branch ran:
+    //   - is_descent (add f as generator):     Δr =  m − 2
+    //   - !is_descent (add x − m for largest   Δr = −2
+    //     apéry x ∈ (f, f+m))
+    //
+    // The is_descent branch can flip parity (m odd → m−2 odd); the
+    // !is_descent branch always stays even.
+    //
+    // The !is_descent claim assumes the multiplicity is preserved. When
+    // f < 2m the added gap x − m can be smaller than m and the new
+    // semigroup has a smaller multiplicity (e.g. ⟨3,5,7⟩ has f=4, x=5,
+    // and adds 2; new m drops to 2 and Δr = −1). The sweep restricts to
+    // f ≥ 2m where x > f ≥ 2m, so x − m > m and m is preserved.
+    let mut tested = 0;
+    for a in 2..=15 {
+        for b in (a + 1)..=25 {
+            if gcd(a, b) != 1 {
+                continue;
+            }
+            for c in (b + 1)..=30 {
+                if gcd(gcd(a, b), c) != 1 {
+                    continue;
+                }
+                let s = compute(&[a, b, c]);
+                if s.f < 2 * s.m {
+                    continue;
+                }
+
+                let after = s.descent();
+                let dr = isize::try_from(after.r).unwrap() - isize::try_from(s.r).unwrap();
+                let expected = if s.is_descent() {
+                    isize::try_from(s.m).unwrap() - 2
+                } else {
+                    -2
+                };
+                assert_eq!(
+                    dr,
+                    expected,
+                    "descent on gens={:?} (m={}, f={}, is_descent={}): \
+                     expected Δr = {}, got {} (r: {} → {})",
+                    s.gen_set,
+                    s.m,
+                    s.f,
+                    s.is_descent(),
+                    expected,
+                    dr,
+                    s.r,
+                    after.r,
+                );
+                tested += 1;
+            }
+        }
+    }
+    assert!(tested > 0, "sweep must exercise at least one case");
+}
+
+#[test]
+fn test_fast_descent_changes_r_by_exact_amount() {
+    // fast_descent (when f ≥ 2m) collapses k = #(apéry ∈ (f, f+m)) per-step
+    // !is_descent removals (each Δr = −2) followed by one is_descent step
+    // (Δr = m − 2). Net: Δr = (m − 2) − 2·k.
+    let mut tested = 0;
+    for a in 2..=15 {
+        for b in (a + 1)..=25 {
+            if gcd(a, b) != 1 {
+                continue;
+            }
+            for c in (b + 1)..=30 {
+                if gcd(gcd(a, b), c) != 1 {
+                    continue;
+                }
+                let s = compute(&[a, b, c]);
+                if s.f < 2 * s.m {
+                    continue;
+                }
+
+                let after = s.fast_descent();
+                let dr = isize::try_from(after.r).unwrap() - isize::try_from(s.r).unwrap();
+                let k = s
+                    .apery_set
+                    .iter()
+                    .filter(|&&x| s.f < x && x < s.f + s.m)
+                    .count();
+                let expected = isize::try_from(s.m).unwrap() - 2 - 2 * isize::try_from(k).unwrap();
+                assert_eq!(
+                    dr, expected,
+                    "fast_descent on gens={:?} (m={}, f={}, k={}): \
+                     expected Δr = {}, got {} (r: {} → {})",
+                    s.gen_set, s.m, s.f, k, expected, dr, s.r, after.r,
+                );
+                tested += 1;
+            }
+        }
+    }
+    assert!(tested > 0, "sweep must exercise at least one case");
 }
 
 #[test]

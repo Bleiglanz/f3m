@@ -40,9 +40,16 @@ Cargo.toml                               — [workspace] root, shared dependency
 crates/
   semigroup_math/                        — pure Rust, no wasm, no HTML
     src/lib.rs                           — declares math + eva
-    src/math/{mod,glue,matrix,semigroup,symmetric_partner}.rs
-                                         — Semigroup, compute(), gcd, GAP code generation,
-                                           Kunz matrix utilities, gluing, canonical ideal
+    src/math/mod.rs                      — compute(), gcd, GAP code generation
+    src/math/semigroup.rs                — Semigroup struct + inspectors
+    src/math/manipulators.rs             — (&self) -> Semigroup methods (descent,
+                                           fast_descent, S/2, K(S), Apéry shift, …)
+    src/math/creators.rs                 — parameterized creators (T(m,f), A(m,d,n),
+                                           Rolf primes, PRIMES_LIST)
+    src/math/random_creators.rs          — random creators (Rnd, Sym, PSym, ASym, P)
+    src/math/{glue,matrix,symmetric_partner}.rs
+                                         — gluing, U(m)/V(m)/D(m) matrices, symmetric
+                                           partner
     src/eva/mod.rs                       — arithmetic expression evaluator
     tests/integration.rs                 — GAP-cross-checked property tests
   html_helpers/                          — pure-string HTML generators, no wasm-bindgen

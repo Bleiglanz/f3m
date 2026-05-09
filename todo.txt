@@ -355,6 +355,22 @@ and all the manipulations
 to the new files
 we need to de-clutter the codebase
 
+61) [DONE] it's time to do a complete sync check
+source-code
+index.html buttons
+README.md
+Help-Tab in the index.html
+are all functions in sync, do the descriptions match
+this should be done reglularly...
+
+62) [DONE] add new tests in integration.rs
+if we do descent or fast_descent, then the number
+of reflected groups changes by and even number
+
+
+
+
+
 
 
 

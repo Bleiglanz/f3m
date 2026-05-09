@@ -65,19 +65,10 @@ impl Semigroup {
     /// Fast descent: collapses every [`Self::descent`] step needed to drop
     /// `f` by exactly `m` into a single closure computation.
     ///
-    /// When `f < 2m` (the trivial `S = ℕ` case and the terminal range
-    /// `m < f < 2m`) returns `self` unchanged. Otherwise extends the
-    /// generators with `f` and with `x − m` for every Apéry element `x`
-    /// strictly between `f` and `f + m`, then computes the closure.
-    ///
-    /// Each `x − m` is a gap of `S` in the same residue class as the
-    /// Apéry element `x`, so adding it kills that Apéry element exactly
-    /// as one step of [`Self::descent`] would. After all such gaps are
-    /// added, [`Self::is_descent`] holds for the intermediate semigroup,
-    /// so adding `f` drops the Frobenius number by `m` and leaves
-    /// `μ = f mod m` invariant. The result therefore satisfies
-    /// `result.f == self.f − self.m` and `result.mu == self.mu`
-    /// whenever `self.f >= 2 * self.m`.
+    /// Returns `self` when `f < 2m`. Otherwise the result satisfies
+    /// `result.f == self.f − self.m` and `result.mu == self.mu`. Achieved
+    /// by adding `f` and `x − m` for every Apéry element `x ∈ (f, f+m)`
+    /// (each such `x − m` is a gap in the same residue class as `x`).
     #[must_use]
     pub fn fast_descent(&self) -> Self {
         if self.f < 2 * self.m {

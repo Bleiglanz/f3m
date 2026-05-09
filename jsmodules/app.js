@@ -765,21 +765,17 @@ document.getElementById('random-primes-btn').addEventListener('click', guarded((
 // "T(m,f)": generate semigroup <m, f+1, f+2, ..., f+m>; default f=2m when only m given.
 document.getElementById('tmf-btn').addEventListener('click', guarded(() => {
   const nums = parseGens(gensInput.value);
-  let m, f;
-  if (nums.length === 0) { m = 2; f = 2 * m; }
-  else if (nums.length === 1) { [m] = nums; f = 2 * m; }
-  else { [m, f] = nums; }
+  const m = nums[0] ?? 2;
+  const f = nums[1] ?? 2 * m;
   driveCreator(() => js_tmf(m, f), `T(${m},${f})`);
 }));
 
 // "A(m,d,n)": generate arithmetic sequence m, m+d, m+2d, ..., m+nd.
 document.getElementById('amdn-btn').addEventListener('click', guarded(() => {
   const nums = parseGens(gensInput.value);
-  let m, d, n;
-  if (nums.length === 0) { m = 3; d = 1; n = 3; }
-  else if (nums.length === 1) { [m] = nums; d = 1; n = 3; }
-  else if (nums.length === 2) { [m, d] = nums; n = 3; }
-  else { [m, d, n] = nums; }
+  const m = nums[0] ?? 3;
+  const d = nums[1] ?? 1;
+  const n = nums[2] ?? 3;
   driveCreator(() => js_arith(m, d, n), `A(${m},${d},${n})`);
 }));
 
@@ -819,12 +815,8 @@ document.getElementById('rolf-btn').addEventListener('click', guarded(() => {
       setBusy(false);
     }
   } else {
-    const nums = parseGens(raw);
-    const n = nums.length > 0 ? nums[0] : 3;
-    const primes = Array.from(js_rolf_primes(n));
-    gensInput.value = primes.join(', ');
-    _computeLabel = `Rolf(${n})`;
-    compute();
+    const n = parseGens(raw)[0] ?? 3;
+    driveCreator(() => js_rolf_primes(n), `Rolf(${n})`);
   }
 }));
 

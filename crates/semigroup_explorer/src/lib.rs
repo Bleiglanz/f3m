@@ -39,8 +39,7 @@ use semigroup_math::math::{
     creators::{arith_generators, rolf_primes, tmf_generators},
     gap_block,
     random_creators::{
-        random_almost_symmetric_generators, random_generators, random_primes_subset,
-        random_pseudo_symmetric_generators, random_symmetric_generators,
+        random_generators, random_matching_generators, random_primes_subset,
         random_with_multiplier_generators,
     },
 };
@@ -355,7 +354,9 @@ pub fn js_random_with_multiplier(k: usize) -> Vec<u32> {
 #[wasm_bindgen]
 #[must_use]
 pub fn js_random_symmetric() -> Vec<u32> {
-    random_symmetric_generators().map_or_else(Vec::new, |g| to_u32(&g))
+    random_matching_generators(|s| s.is_symmetric)
+        .map(|g| to_u32(&g))
+        .unwrap_or_default()
 }
 
 /// Generators of a randomly drawn pseudo-symmetric semigroup (`r = 1`),
@@ -363,7 +364,9 @@ pub fn js_random_symmetric() -> Vec<u32> {
 #[wasm_bindgen]
 #[must_use]
 pub fn js_random_pseudo_symmetric() -> Vec<u32> {
-    random_pseudo_symmetric_generators().map_or_else(Vec::new, |g| to_u32(&g))
+    random_matching_generators(|s| s.r == 1)
+        .map(|g| to_u32(&g))
+        .unwrap_or_default()
 }
 
 /// Generators of a randomly drawn proper almost-symmetric semigroup
@@ -371,7 +374,9 @@ pub fn js_random_pseudo_symmetric() -> Vec<u32> {
 #[wasm_bindgen]
 #[must_use]
 pub fn js_random_almost_symmetric() -> Vec<u32> {
-    random_almost_symmetric_generators().map_or_else(Vec::new, |g| to_u32(&g))
+    random_matching_generators(|s| s.is_almost_symmetric && s.r >= 2)
+        .map(|g| to_u32(&g))
+        .unwrap_or_default()
 }
 
 /// 4 to 8 randomly chosen primes from the fixed list, sorted ascending.

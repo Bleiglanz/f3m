@@ -78,10 +78,12 @@ A color-coded layout of elements and gaps, with an Apéry row and Kunz coefficie
 
 ### Modify buttons
 
-These appear in the toolbar (after the separator) when applicable:
+The first five always appear in the Manipulate section; the last four only when applicable to the current semigroup.
 
 | Button | Action |
 |---|---|
+| FastDescent | Collapses every Descent step needed to drop f by exactly m into a single closure. Adds f and (x − m) for every Apéry element x strictly between f and f+m. Returns S unchanged when f < 2m; otherwise the result has new f = old f − m and unchanged μ |
+| Descent | A controlled step down the gaps ladder: adds f as a generator when every Apéry element equals f+m or is strictly below f; otherwise adds (largest Apéry strictly between f and f+m) − m |
 | S/2 | Replace generators with those of S/2 = { x : 2x ∈ S } |
 | S=SYM/2 | Compute the symmetric partner S̄ such that S = S̄/2 (Rosales–García-Sánchez 2008) |
 | K(S) | Canonical ideal: numerical semigroup with generators { f − p : p ∈ PF(S), p ≠ f } |
@@ -236,9 +238,16 @@ Cargo.toml                               — [workspace] root, shared dependency
 crates/
   semigroup_math/                        — pure Rust: no wasm, no HTML, no rayon
     src/lib.rs                           — declares math + eva
-    src/math/{mod,glue,matrix,semigroup,symmetric_partner}.rs
-                                         — Semigroup, compute(), gcd, GAP code generation,
-                                           Kunz matrix utilities, gluing, canonical ideal
+    src/math/mod.rs                      — compute(), gcd, GAP code generation
+    src/math/semigroup.rs                — Semigroup struct + inspectors
+    src/math/manipulators.rs             — (&self) -> Semigroup methods (descent,
+                                           fast_descent, S/2, K(S), Apéry shift, …)
+    src/math/creators.rs                 — parameterized creators (T(m,f), A(m,d,n),
+                                           Rolf primes, PRIMES_LIST)
+    src/math/random_creators.rs          — random creators (Rnd, Sym, PSym, ASym, P)
+    src/math/{glue,matrix,symmetric_partner}.rs
+                                         — gluing, U(m)/V(m)/D(m) matrices, symmetric
+                                           partner construction
     src/eva/mod.rs                       — arithmetic expression evaluator
     tests/integration.rs                 — GAP-cross-checked property tests
   html_helpers/                          — pure-string HTML generators, no wasm-bindgen

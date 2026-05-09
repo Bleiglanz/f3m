@@ -419,7 +419,33 @@ f-m < x < f (becase w-m is itself a apery of the descent semigroup. w-m,w-2m,w-3
 i want to undo this: if there is a minimal generator
 >f-m and < f, toggle it, i.e. push it to the right of f,
 
+66) [DONE] add a test for semigroups having type t>1
+L = max PF(S)\{f}, the largest pseudofrob not beeing f
+test that 2L is an element of S
+(refined: for f odd test 2L ∈ S; for f even test 2L ∈ S or 2L = f.
+ sharp counterexample to the unconditional claim: ⟨7,11,13⟩ has
+ f=30, PF={15,30}, L=15, 2L=30=f.)
 
+67) add a button for semigroups with f even
+f/2 is then always a reflected gap,
+add a button (manipulator) "Add f/2" (button is only visible if f is even)
+
+68) in our math.rs i need a binom(a:usize,b:usize)->usize
+computes just the binomial coeffizient a over b
+use recursion or any more efficient algorithm
+carefully check for overflow, these get very large
+should of course return zero if b>a
+
+69) in our waldicone statistics section: i want two special counts
+N(g,l,m,mu) = number of semigroups with g gaps, level l < f < (l+1)f and residue mu= f mod m (in 1...m-1)
+N(g,l,m) = sum of N(g,l,m,mu) over all mu, mu=1...m-1
+then check the obvious formula in the case l==2
+only the mu-1 numbers in m+1,...,m+mu-1 are available for beeing in S (m+mu=f is a gap)
+pick k of then to be in S, if we want g gaps we must have
+(mu-1)-k + m-1 = g that means k=mu-1+m-1-g=mu+m-g
+N(g,l=2,m,mu)=binom(mu-1,mu+m-g) or something, check mu+m-g>=0 before computing
+can you run the tests?
+then also test the the sum
 
 
 

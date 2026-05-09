@@ -163,6 +163,32 @@ fn check(
         );
     }
 
+    // For t > 1, let L = max(PF(S) \ {f}). Then:
+    //   • if f is odd, 2L ∈ S;
+    //   • if f is even, 2L ∈ S or 2L = f (the boundary case where L = f/2).
+    if s.t > 1 {
+        let l = s
+            .pf_set
+            .iter()
+            .copied()
+            .filter(|&p| p != s.f)
+            .max()
+            .expect("t > 1 guarantees a pseudo-Frobenius element distinct from f");
+        let two_l = 2 * l;
+        if s.f.is_multiple_of(2) {
+            assert!(
+                s.element(two_l) || two_l == s.f,
+                "2L ∈ S ∪ {{f}} where L = max(PF\\{{f}}) for {gens:?}: L={l}, 2L={two_l}, f={}",
+                s.f,
+            );
+        } else {
+            assert!(
+                s.element(two_l),
+                "2L ∈ S where L = max(PF\\{{f}}) for {gens:?} (f odd): L={l}, 2L={two_l}",
+            );
+        }
+    }
+
     // Almost-symmetric ⇒ ra = r, PF \ {f} = reflected gaps, and f + t = 2g.
     // The symmetric case is included (t = 1, both sides empty).
     if s.is_almost_symmetric {

@@ -2789,28 +2789,34 @@ fn test_ascent_pushes_apery_past_f() {
                     .copied()
                     .filter(|&x| lo < x && x < s.f && x > s.m)
                     .max();
+                let max_apery = s.f + s.m;
                 let ascended = s.ascent();
-                match w {
-                    Some(w) => {
-                        active += 1;
-                        let r = w % s.m;
-                        assert_eq!(
-                            ascended.apery_set[r],
-                            w + s.m,
-                            "ascent on gens={:?}: apéry of residue {} should be {} (w+m), got {}",
-                            s.gen_set,
-                            r,
-                            w + s.m,
-                            ascended.apery_set[r],
-                        );
-                    }
-                    None => {
-                        assert_eq!(
-                            ascended.gen_set, s.gen_set,
-                            "ascent should be a no-op when no min-gen lies in (f−m, f); gens={:?}",
-                            s.gen_set,
-                        );
-                    }
+                if let Some(w) = w {
+                    active += 1;
+                    let r = w % s.m;
+                    assert_eq!(
+                        ascended.apery_set[r],
+                        w + s.m,
+                        "ascent on gens={:?}: apéry of residue {} should be {} (w+m), got {}",
+                        s.gen_set,
+                        r,
+                        w + s.m,
+                        ascended.apery_set[r],
+                    );
+                } else if s.gen_set.contains(&max_apery) {
+                    active += 1;
+                    // f+m fallback fires; result must differ from self.
+                    assert_ne!(
+                        ascended.gen_set, s.gen_set,
+                        "ascent on gens={:?}: f+m={} fallback should activate",
+                        s.gen_set, max_apery,
+                    );
+                } else {
+                    assert_eq!(
+                        ascended.gen_set, s.gen_set,
+                        "ascent should be a no-op when neither clause applies; gens={:?}",
+                        s.gen_set,
+                    );
                 }
                 tested += 1;
             }
@@ -2879,6 +2885,57 @@ fn test_is_descent_image_concrete_cases() {
     // ⟨10, 11, 13⟩ itself: no min-gen in (28, 38), max apery 48 ≠ any min-gen.
     let s = compute(&[10, 11, 13]);
     assert!(!s.is_descent_image());
+}
+
+#[test]
+fn test_ascent_active_iff_in_descent_image() {
+    // ascent's two-clause rule activates exactly when is_descent_image()
+    // holds. Verified empirically over 3-gen sweeps plus T(m,f) families.
+    let mut tested = 0;
+    let mut active = 0;
+    for a in 2..=12 {
+        for b in (a + 1)..=20 {
+            if gcd(a, b) != 1 {
+                continue;
+            }
+            for c in (b + 1)..=25 {
+                if gcd(gcd(a, b), c) != 1 {
+                    continue;
+                }
+                let s = compute(&[a, b, c]);
+                let after = s.ascent();
+                let predicted = s.is_descent_image();
+                let did_change = after.gen_set != s.gen_set;
+                assert_eq!(
+                    did_change, predicted,
+                    "ascent activity should match is_descent_image; \
+                     gens={:?}, is_descent_image={}, ascent.gen_set={:?}",
+                    s.gen_set, predicted, after.gen_set,
+                );
+                if predicted {
+                    active += 1;
+                }
+                tested += 1;
+            }
+        }
+    }
+    assert!(tested > 0);
+    assert!(active > 0, "sweep must exercise some descent-image cases");
+}
+
+#[test]
+fn test_ascent_f_plus_m_fallback_concrete() {
+    // ⟨5, 7, 23⟩: window (5, 18) has no min-gen, but f+m = 23 is one.
+    // Ascent toggles 23 and recovers ⟨5, 7⟩ exactly.
+    let s = compute(&[5, 7, 23]);
+    let parent = s.ascent();
+    assert_eq!(parent.gen_set, vec![5, 7]);
+
+    // ⟨2, 5⟩: window (2, 3) is empty; f+m = 5 is a min-gen. The extended
+    // range catches the new max apéry = 7, recovering ⟨2, 7⟩.
+    let s = compute(&[2, 5]);
+    let parent = s.ascent();
+    assert_eq!(parent.gen_set, vec![2, 7]);
 }
 
 #[test]

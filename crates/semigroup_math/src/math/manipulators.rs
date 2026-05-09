@@ -29,32 +29,48 @@ impl Semigroup {
             compute(&newgen)
         }
     }
-    /// Ascent: dual of [`Self::descent`]. Picks the largest minimal
-    /// generator `w > m` strictly in `(f − m, f)` and toggles it, pushing
-    /// it past `f`; the residue class of `w` then has `w + m` as its new
-    /// Apéry element.
+    /// Ascent: dual of [`Self::descent`], inverting both descent branches.
     ///
-    /// "Largest min-gen below `f`" mirrors descent's "smallest Apéry above
-    /// `f`" — the two operations form a visual flip in the UI buttons.
-    /// Filtering on `gen_set` (rather than `apery_set`) ensures `toggle`
-    /// removes only `w` cleanly without cascading through reducible
-    /// elements. The `w > m` guard skips the degenerate case where `m`
-    /// itself sits in the window (i.e. `f < 2m`); toggling `m` would
-    /// destroy the semigroup's multiplicity rather than push an apéry.
+    /// 1. **`!is_descent` inverse**: pick the largest minimal generator
+    ///    `w` with `m < w < f` and toggle it. Mirrors descent's
+    ///    "smallest Apéry > f" rule on `gen_set` instead of `apery_set`.
+    /// 2. **`is_descent` inverse** (fallback): if no such `w` exists and
+    ///    `f + m` is itself a minimal generator, remove `f + m` as an
+    ///    element of `S`. Toggle's standard `1..=(f+m)` enumeration
+    ///    range is too narrow here (the new max Apéry of `S \ {f+m}` can
+    ///    reach `f + 2m`), so the closure is computed over the elements
+    ///    of `S` in `1..=f+2m` minus `f+m`.
     ///
-    /// Returns `self` when `f < m` or no eligible generator exists.
+    /// The two clauses match the two cases of [`Self::is_descent_image`]:
+    /// `ascent` is non-trivial whenever `is_descent_image()` is true.
+    ///
+    /// Returns `self` unchanged when neither clause applies.
     #[must_use]
     pub fn ascent(&self) -> Self {
-        if self.f < self.m {
-            return self.clone();
-        }
-        let lo = self.f - self.m;
-        self.gen_set
+        // (m, f) window, underflow-free: g + m > f ⇔ g > f − m.
+        if let Some(w) = self
+            .gen_set
             .iter()
             .copied()
-            .filter(|&x| lo < x && x < self.f && x > self.m)
+            .filter(|&g| g > self.m && g < self.f && g + self.m > self.f)
             .max()
-            .map_or_else(|| self.clone(), |w| self.toggle(w))
+        {
+            return self.toggle(w);
+        }
+        let max_apery = self.f + self.m;
+        if !self.gen_set.contains(&max_apery) {
+            return self.clone();
+        }
+        // S \ {f+m}: enumerate up to f + 2m so the next Apéry (≤ f + 2m
+        // in residue μ) is included for `compute` to pick up.
+        let upper = max_apery + self.m;
+        let elts: Vec<usize> = (1..=upper)
+            .filter(|&x| x != max_apery && self.element(x))
+            .collect();
+        if elts.is_empty() {
+            return self.clone();
+        }
+        compute(&elts)
     }
 
     /// Descent: a controlled step down the gaps ladder.

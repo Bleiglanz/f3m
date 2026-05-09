@@ -1,6 +1,10 @@
 import init, {
   js_compute, combined_table, tilt_table, shortprop_tds, eval_expr,
   js_graph_edges_text, js_node_class, js_classify_table, js_diagonals_table, js_rolf_primes,
+  js_tmf, js_arith,
+  js_random_generators, js_random_with_multiplier,
+  js_random_symmetric, js_random_pseudo_symmetric, js_random_almost_symmetric,
+  js_random_primes,
   state_push, state_get, state_len, state_current_idx, state_set_current_idx,
   state_get_eva_expr, state_set_eva_expr, state_gap_output, state_cmp,
   state_get_show_kunz, state_set_show_kunz,
@@ -11,8 +15,6 @@ import { render3d } from './view3d.js';
 import { rebuildGraph, setupGraphUpto, setupShowGaps, setupGraphToggle } from './graph.js';
 
 const PROP_THEAD_TR = '<tr><th title="Index and operation label">#</th><th title="Generator added (+) or removed (\u2212)">toggle</th><th title="Multiplicity: smallest positive element">m</th><th title="Frobenius number: largest gap">f</th><th title="Embedding dimension: number of minimal generators">e</th><th title="Genus: number of gaps">g</th><th title="Sporadic elements: elements of S below the conductor f+1">\u03C3</th><th title="Reflected gaps: gaps n where f\u2212n is also a gap">r</th><th title="Reflected Ap\u00E9ry: Ap\u00E9ry elements w where w\u2212m is a reflected gap">ra</th><th title="Fundamental gaps: gaps not expressible as sum of two smaller gaps">fg</th><th title="Type: number of pseudo-Frobenius numbers">t</th><th title="Symmetric: t=1 and g=(f+1)/2">Sym</th><th title="Minimal generators">gen</th><th title="Pseudo-Frobenius numbers: maximals of \u2124 \u2216 S">PF</th><th title="Wilf quotient: \u03C3/(f+1) \u2265 1/e (conjecture)">Wilf</th><th title="Wilf conjecture lower bound: 1/e">1/e</th><th title="Expression evaluated for this semigroup">expr</th><th title="Result of the expression">value</th><th title="Set-containment relation with previous entry">&#8838;?</th></tr>';
-
-const PRIMES_LIST = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97];
 
 // ── UI-only state (Rust owns the data) ────────────────────────────────────────
 let currentGenSet = null;
@@ -351,19 +353,16 @@ function compute() {
   }
 }
 
-// Generate 8 random integers in [10, 100].
-function randNums() {
-  return Array.from({ length: 8 }, () => Math.floor(Math.random() * 91) + 10);
-}
-
-// "RndKf": random generators + generators [k*m .. (k+1)*m] to push f near k*m.
-function randWithMultiplier(k) {
-  const nums = randNums();
-  const peek = js_compute(nums.join(', ')); // peek without storing
-  if (!peek) { return; }
-  const m = peek.m;
-  const extra = Array.from({ length: k * m + 1 }, (_, i) => k * m + i);
-  gensInput.value = [...nums, ...extra].join(', ');
+// Drive a creator that returns a generator list from wasm: set the input
+// box and trigger compute. Bails (showing an error) when the list is empty.
+function driveCreator(genFn, label, emptyMsg) {
+  const gens = Array.from(genFn());
+  if (gens.length === 0) {
+    if (emptyMsg) { showError(emptyMsg); }
+    return;
+  }
+  gensInput.value = gens.join(', ');
+  _computeLabel = label;
   compute();
 }
 
@@ -735,50 +734,32 @@ document.getElementById('result').addEventListener('click', e => {
 const guardedCompute = guarded(compute);
 
 document.getElementById('random-btn').addEventListener('click', guarded(() => {
-  gensInput.value = randNums().join(', ');
-  _computeLabel = 'Rnd';
-  compute();
+  driveCreator(js_random_generators, 'Rnd');
 }));
 
-document.getElementById('random3f-btn').addEventListener('click', guarded(() => { _computeLabel = 'Rnd3m'; randWithMultiplier(3); }));
-document.getElementById('random2f-btn').addEventListener('click', guarded(() => { _computeLabel = 'Rnd2m'; randWithMultiplier(2); }));
-
-// Retry random samples until one matches `predicate`. Used for the Sym and
-// r=1 buttons (and any future "find a random S with property P").
-function findRandomMatching(predicate, label, description) {
-  for (let attempt = 0; attempt < 10000; attempt++) {
-    const nums = randNums();
-    if (predicate(js_compute(nums.join(', ')))) { // peek without storing
-      gensInput.value = nums.join(', ');
-      _computeLabel = label;
-      compute();
-      return;
-    }
-  }
-  showError(`Could not find ${description} after 10000 attempts.`);
-}
+document.getElementById('random3f-btn').addEventListener('click', guarded(() => {
+  driveCreator(() => js_random_with_multiplier(3), 'Rnd3m');
+}));
+document.getElementById('random2f-btn').addEventListener('click', guarded(() => {
+  driveCreator(() => js_random_with_multiplier(2), 'Rnd2m');
+}));
 
 document.getElementById('random-symmetric-btn').addEventListener('click', guarded(() => {
-  findRandomMatching(s => s.is_symmetric, 'Sym', 'a symmetric semigroup');
+  driveCreator(js_random_symmetric, 'Sym',
+    'Could not find a symmetric semigroup after 10000 attempts.');
 }));
 document.getElementById('random-r1-btn').addEventListener('click', guarded(() => {
-  findRandomMatching(s => s.r === 1, 'PSym', 'a pseudo-symmetric semigroup (r = 1)');
+  driveCreator(js_random_pseudo_symmetric, 'PSym',
+    'Could not find a pseudo-symmetric semigroup (r = 1) after 10000 attempts.');
 }));
 document.getElementById('random-asym-btn').addEventListener('click', guarded(() => {
-  findRandomMatching(
-    s => s.is_almost_symmetric && s.r >= 2,
-    'ASym',
-    'a proper almost-symmetric semigroup (r = t − 1 with r ≥ 2)',
-  );
+  driveCreator(js_random_almost_symmetric, 'ASym',
+    'Could not find a proper almost-symmetric semigroup (r = t − 1 with r ≥ 2) after 10000 attempts.');
 }));
 
 // "Prime": pick a random subset of 4–8 primes from the fixed list.
 document.getElementById('random-primes-btn').addEventListener('click', guarded(() => {
-  const count = Math.floor(Math.random() * 5) + 4; // 4..8
-  const chosen = PRIMES_LIST.slice().sort(() => Math.random() - 0.5).slice(0, count).sort((a, b) => a - b);
-  gensInput.value = chosen.join(', ');
-  _computeLabel = 'P';
-  compute();
+  driveCreator(js_random_primes, 'P');
 }));
 
 // "T(m,f)": generate semigroup <m, f+1, f+2, ..., f+m>; default f=2m when only m given.
@@ -788,9 +769,7 @@ document.getElementById('tmf-btn').addEventListener('click', guarded(() => {
   if (nums.length === 0) { m = 2; f = 2 * m; }
   else if (nums.length === 1) { [m] = nums; f = 2 * m; }
   else { [m, f] = nums; }
-  gensInput.value = [m, ...Array.from({ length: m }, (_, i) => f + 1 + i)].join(', ');
-  _computeLabel = `T(${m},${f})`;
-  compute();
+  driveCreator(() => js_tmf(m, f), `T(${m},${f})`);
 }));
 
 // "A(m,d,n)": generate arithmetic sequence m, m+d, m+2d, ..., m+nd.
@@ -801,9 +780,7 @@ document.getElementById('amdn-btn').addEventListener('click', guarded(() => {
   else if (nums.length === 1) { [m] = nums; d = 1; n = 3; }
   else if (nums.length === 2) { [m, d] = nums; n = 3; }
   else { [m, d, n] = nums; }
-  gensInput.value = Array.from({ length: n + 1 }, (_, i) => m + i * d).join(', ');
-  _computeLabel = `A(${m},${d},${n})`;
-  compute();
+  driveCreator(() => js_arith(m, d, n), `A(${m},${d},${n})`);
 }));
 
 // "Rolf": p_n and all primes > p_n up to 5·p_n.
@@ -863,6 +840,7 @@ function wireGenSetBtn(id, method, label, beforeCompute) {
   }));
 }
 
+wireGenSetBtn('fast-descent-btn', 'fast_descent',       'FastDescent');
 wireGenSetBtn('descent-btn',      'descent',            'Descent');
 wireGenSetBtn('half-btn',         's_over_2',           'S/2');
 wireGenSetBtn('sym-partner-btn',  'symmetric_partner',  'S=SYM/2');

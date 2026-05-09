@@ -17,4 +17,3 @@ crate-type = ["cdylib", "rlib"]
 semigroup_math.workspace = true
 html_helpers.workspace = true
 wasm-bindgen.workspace = true
-primal.workspace = true

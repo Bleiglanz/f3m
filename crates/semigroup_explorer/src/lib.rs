@@ -34,7 +34,16 @@ pub mod jsgraph;
 /// Global page state owned by the WASM module (history, toggles, expressions).
 pub mod pagestate;
 
-use semigroup_math::math::{Semigroup, compute, gap_block};
+use semigroup_math::math::{
+    Semigroup, compute,
+    creators::{arith_generators, rolf_primes, tmf_generators},
+    gap_block,
+    random_creators::{
+        random_almost_symmetric_generators, random_generators, random_primes_subset,
+        random_pseudo_symmetric_generators, random_symmetric_generators,
+        random_with_multiplier_generators,
+    },
+};
 use std::cmp::Ordering;
 use wasm_bindgen::prelude::*;
 
@@ -197,6 +206,13 @@ impl JsSemigroup {
         to_u32(&self.0.descent().gen_set)
     }
 
+    /// Generators of the fast descent of S — every step needed to drop `f`
+    /// by exactly `m` collapsed into a single closure computation.
+    #[must_use]
+    pub fn fast_descent(&self) -> Vec<u32> {
+        to_u32(&self.0.fast_descent().gen_set)
+    }
+
     /// Generators of S with every pseudo-Frobenius number ≠ f added.
     #[must_use]
     pub fn add_all_pf(&self) -> Vec<u32> {
@@ -301,17 +317,68 @@ pub fn js_cmp_semigroups(s1: &JsSemigroup, s2: &JsSemigroup) -> String {
 /// Return `p_n` and all primes > `p_n` up to `5·p_n` (1-indexed: n=1 → `p_1`=2).
 #[wasm_bindgen]
 #[must_use]
-#[allow(clippy::cast_possible_truncation)]
 pub fn js_rolf_primes(n: usize) -> Vec<u32> {
-    let idx = n.max(1);
-    let upper = primal::estimate_nth_prime(idx as u64).1 as usize;
-    let sieve = primal::Sieve::new(upper * 5);
-    let pn = sieve.primes_from(0).nth(idx - 1).unwrap_or(2);
-    sieve
-        .primes_from(pn)
-        .take_while(|&p| p <= 5 * pn)
-        .map(|p| p as u32)
-        .collect()
+    to_u32(&rolf_primes(n))
+}
+
+/// `T(m, f)` generator list `[m, f+1, …, f+m]`.
+#[wasm_bindgen]
+#[must_use]
+pub fn js_tmf(m: usize, f: usize) -> Vec<u32> {
+    to_u32(&tmf_generators(m, f))
+}
+
+/// `A(m, d, n)` generator list `[m, m+d, …, m+nd]`.
+#[wasm_bindgen]
+#[must_use]
+pub fn js_arith(m: usize, d: usize, n: usize) -> Vec<u32> {
+    to_u32(&arith_generators(m, d, n))
+}
+
+/// Eight uniformly random integers in `[10, 100]` — the seed for the Rnd button.
+#[wasm_bindgen]
+#[must_use]
+pub fn js_random_generators() -> Vec<u32> {
+    to_u32(&random_generators())
+}
+
+/// Random generators with the `[k·m, …, k·m + k·m]` block appended; pushes
+/// the resulting Frobenius number near `k·m`.
+#[wasm_bindgen]
+#[must_use]
+pub fn js_random_with_multiplier(k: usize) -> Vec<u32> {
+    to_u32(&random_with_multiplier_generators(k))
+}
+
+/// Generators of a randomly drawn symmetric semigroup, or an empty vec
+/// if no symmetric sample was found within the retry budget.
+#[wasm_bindgen]
+#[must_use]
+pub fn js_random_symmetric() -> Vec<u32> {
+    random_symmetric_generators().map_or_else(Vec::new, |g| to_u32(&g))
+}
+
+/// Generators of a randomly drawn pseudo-symmetric semigroup (`r = 1`),
+/// or an empty vec on retry exhaustion.
+#[wasm_bindgen]
+#[must_use]
+pub fn js_random_pseudo_symmetric() -> Vec<u32> {
+    random_pseudo_symmetric_generators().map_or_else(Vec::new, |g| to_u32(&g))
+}
+
+/// Generators of a randomly drawn proper almost-symmetric semigroup
+/// (`r ≥ 2`, `f + t = 2g`), or an empty vec on retry exhaustion.
+#[wasm_bindgen]
+#[must_use]
+pub fn js_random_almost_symmetric() -> Vec<u32> {
+    random_almost_symmetric_generators().map_or_else(Vec::new, |g| to_u32(&g))
+}
+
+/// 4 to 8 randomly chosen primes from the fixed list, sorted ascending.
+#[wasm_bindgen]
+#[must_use]
+pub fn js_random_primes() -> Vec<u32> {
+    to_u32(&random_primes_subset())
 }
 
 /// Return the GAP assertion block for a single semigroup, numbered `idx`.

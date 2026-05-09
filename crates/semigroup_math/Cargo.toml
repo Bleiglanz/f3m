@@ -12,6 +12,13 @@ readme.workspace = true
 
 [dependencies]
 num-traits.workspace = true
+primal.workspace = true
+rand.workspace = true
+
+# `getrandom` underlies `rand::thread_rng()` on wasm32-unknown-unknown; the
+# `js` feature wires it through `crypto.getRandomValues` in the browser.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = { workspace = true, features = ["js"] }
 
 [dev-dependencies]
 proptest.workspace = true

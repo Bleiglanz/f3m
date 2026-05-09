@@ -335,8 +335,25 @@ then create a new modifier button in our index.html
 as the first one in the "Manipulator" section called "Descent"
 (button works analogous to toggle or the others)
 
+59) [DONE] in semigroup.rs there is a new creator fast_descent
+check it, is it mathematically sound, will it create a new semigroup
+for every given one, it does all the steps in descent in one
+add tests to our testsuite:
+if a semigroup has f>2m, the semigroup fast_descent() must
+have the same mu (i.e. it must have fast_descent().f= original f-m
+then create a new modifier button in our index.html
+as the first one in the "Manipulator" section called "FastDescent"
 
-
+60) [DONE] major refactoring: create to new files
+semigroup_manipulators.rs
+semigroup_createtors.rs
+and move the implementation code for all our
+creatros (Rnd, Sym, ... everything ()->Semigroup)
+to the creators.rs
+and all the manipulations
+(descent, add f,... everthing (&self) -> Semigroup)
+to the new files
+we need to de-clutter the codebase
 
 
 

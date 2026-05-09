@@ -4,8 +4,14 @@
 #![allow(clippy::too_many_lines, clippy::cognitive_complexity)]
 
 use semigroup_math::math::{
-    compute, gcd,
+    compute,
+    creators::{arith, arith_generators, rolf_primes, tmf, tmf_generators},
+    gcd,
     matrix::{c_red, d_matrix, u_matrix, zd_vector},
+    random_creators::{
+        random, random_almost_symmetric, random_generators, random_primes_subset,
+        random_pseudo_symmetric, random_symmetric, random_with_multiplier,
+    },
 };
 
 #[test]
@@ -2513,6 +2519,153 @@ fn test_is_descent() {
     let sg = compute(&[3, 4, 5]);
     assert!(!sg.is_descent());
     check(&sg);
+}
+
+#[test]
+fn test_fast_descent_drops_f_by_m_and_preserves_mu() {
+    // Specification: whenever f ≥ 2m the result of fast_descent has μ unchanged
+    // and Frobenius number exactly old f − m.
+
+    // 1. Hand-checked !is_descent example: <10,11,13> has f=38, m=10, μ=8 and
+    //    apéry=[0,11,22,13,24,35,26,37,48,39] — a_9 = 39 ∈ (f, f+m), so
+    //    is_descent is false and naïvely adding only f would land at f=29, μ=9.
+    let s = compute(&[10, 11, 13]);
+    assert!(!s.is_descent());
+    assert_eq!((s.f, s.m, s.mu), (38, 10, 8));
+    let t = s.fast_descent();
+    assert_eq!(t.f, s.f - s.m);
+    assert_eq!(t.mu, s.mu);
+
+    // 2. is_descent example for completeness: <5,7> has f=23, m=5, μ=3 and
+    //    apéry=[0,21,7,28,14], so the only Apéry element ≥ f is 28 = f+m.
+    let s = compute(&[5, 7]);
+    assert!(s.is_descent());
+    assert_eq!((s.f, s.m, s.mu), (23, 5, 3));
+    let t = s.fast_descent();
+    assert_eq!(t.f, s.f - s.m);
+    assert_eq!(t.mu, s.mu);
+
+    // 3. Sweep over a range of generator pairs/triples and assert the property
+    //    on every semigroup with f ≥ 2m. This would catch the previous bug,
+    //    which adds the Apéry elements themselves (no-ops) instead of x−m.
+    let mut sweep_count = 0;
+    for a in 3..=12 {
+        for b in (a + 1)..=20 {
+            if gcd(a, b) != 1 {
+                continue;
+            }
+            for c in (b + 1)..=25 {
+                if gcd(gcd(a, b), c) != 1 {
+                    continue;
+                }
+                let s = compute(&[a, b, c]);
+                if s.f < 2 * s.m {
+                    continue;
+                }
+                let t = s.fast_descent();
+                assert_eq!(
+                    t.f,
+                    s.f - s.m,
+                    "fast_descent f for gens={:?}: expected {}, got {}",
+                    s.gen_set,
+                    s.f - s.m,
+                    t.f,
+                );
+                assert_eq!(
+                    t.mu, s.mu,
+                    "fast_descent mu for gens={:?}: expected {}, got {}",
+                    s.gen_set, s.mu, t.mu,
+                );
+                sweep_count += 1;
+            }
+        }
+    }
+    assert!(sweep_count > 0, "sweep must exercise at least one case");
+}
+
+#[test]
+fn test_fast_descent_returns_self_when_f_lt_2m() {
+    // S = ℕ: m=1, f=0. fast_descent must not touch the generator set.
+    let s = compute(&[1]);
+    assert_eq!(s.fast_descent().gen_set, s.gen_set);
+
+    // Terminal range m < f < 2m: <3,4> has m=3, f=5, so 5 < 6 = 2m.
+    let s = compute(&[3, 4]);
+    assert!(s.f < 2 * s.m);
+    assert_eq!(s.fast_descent().gen_set, s.gen_set);
+}
+
+#[test]
+fn test_creators_tmf() {
+    // The generator-list helper preserves the raw input.
+    assert_eq!(tmf_generators(3, 6), vec![3, 7, 8, 9]);
+
+    // T(m, f) has Frobenius exactly f when gcd(f, m) makes f a gap. For
+    // T(4, 7) the gens are ⟨4, 8, 9, 10, 11⟩; 8 reduces to 4+4 so minimal
+    // gens are ⟨4, 9, 10, 11⟩, Apéry [0, 9, 10, 11], f = 11 − 4 = 7.
+    let s = tmf(4, 7);
+    assert_eq!(s.m, 4);
+    assert_eq!(s.f, 7);
+    assert_eq!(s.apery_set, vec![0, 9, 10, 11]);
+}
+
+#[test]
+fn test_creators_arith() {
+    assert_eq!(arith_generators(3, 2, 3), vec![3, 5, 7, 9]);
+    // ⟨3, 5, 7, 9⟩ — 9 = 3+3+3 is reducible so minimal gens are ⟨3, 5, 7⟩.
+    let s = arith(3, 2, 3);
+    assert_eq!(s.gen_set, vec![3, 5, 7]);
+    assert_eq!(s.m, 3);
+
+    // Single generator m,d=1,n=0 → ⟨m⟩ which compute() rescales to ⟨1⟩ = ℕ.
+    let s = arith(5, 0, 0);
+    assert_eq!(s.m, 1);
+}
+
+#[test]
+fn test_creators_rolf_primes() {
+    // p_1 = 2; primes 2 ≤ p ≤ 10 are 2, 3, 5, 7.
+    assert_eq!(rolf_primes(1), vec![2, 3, 5, 7]);
+    // p_3 = 5; primes 5 ≤ p ≤ 25 are 5, 7, 11, 13, 17, 19, 23.
+    assert_eq!(rolf_primes(3), vec![5, 7, 11, 13, 17, 19, 23]);
+    // n=0 clamps to n=1.
+    assert_eq!(rolf_primes(0), rolf_primes(1));
+}
+
+#[test]
+fn test_random_creators_basic_shape() {
+    // Eight integers, all in [10, 100], compute() succeeds.
+    let nums = random_generators();
+    assert_eq!(nums.len(), 8);
+    assert!(nums.iter().all(|&x| (10..=100).contains(&x)));
+    let _ = random();
+
+    // multiplier-extended list at least covers the [k·m, k·m+k·m] block.
+    let s = random_with_multiplier(2);
+    // The construction always yields a valid semigroup; the only post-condition
+    // we can assert without locking randomness is that compute() succeeded.
+    assert!(s.m >= 1);
+
+    // 4..=8 distinct primes from the fixed list.
+    let primes = random_primes_subset();
+    assert!((4..=8).contains(&primes.len()));
+    assert!(primes.windows(2).all(|w| w[0] < w[1]));
+}
+
+#[test]
+fn test_random_creators_predicate_postconditions() {
+    // Each find-by-predicate helper returns Some within the retry budget for
+    // these well-populated families, and the returned semigroup satisfies
+    // the predicate it was searching for.
+    let s = random_symmetric().expect("random_symmetric should succeed");
+    assert!(s.is_symmetric);
+
+    let s = random_pseudo_symmetric().expect("random_pseudo_symmetric should succeed");
+    assert_eq!(s.r, 1);
+
+    let s = random_almost_symmetric().expect("random_almost_symmetric should succeed");
+    assert!(s.is_almost_symmetric);
+    assert!(s.r >= 2);
 }
 
 #[test]

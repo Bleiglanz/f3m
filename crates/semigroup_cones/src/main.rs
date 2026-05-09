@@ -47,7 +47,8 @@ use semigroup_cones::{
     ExecMode, SEQ_FLAG, ensure_normaliz_available, join_row, parse_out_file, run_normaliz,
 };
 use semigroup_math::math::matrix::u_pair_relations;
-use semigroup_math::math::{Semigroup, compute};
+use semigroup_math::math::{Semigroup, binom, compute};
+use std::collections::BTreeMap;
 use std::fmt::Write as _;
 use std::fs;
 use std::path::Path;
@@ -823,9 +824,80 @@ fn build_genus_count_table(g: usize, data: &GenusData) -> String {
 fn build_summary_body(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
     let mut h = String::new();
     h.push_str(&build_grand_summary(gmax, all_data));
+    h.push_str(&build_level_mu_section(&accumulate_level_mu(all_data)));
     for (g, data) in all_data {
         h.push_str(&build_genus_count_table(*g, data));
     }
+    h
+}
+
+/// Accumulates `(g, level, m, μ) → count` across every enumerated semigroup.
+/// `μ = f mod m ∈ {1, …, m−1}` and `level = ⌊f / m⌋`.
+fn accumulate_level_mu(
+    all_data: &[(usize, GenusData)],
+) -> BTreeMap<(usize, usize, usize, usize), usize> {
+    let mut counts: BTreeMap<(usize, usize, usize, usize), usize> = BTreeMap::new();
+    for (g, data) in all_data {
+        for (m, _, _, lats) in data {
+            for (_, sg) in lats {
+                *counts.entry((*g, sg.level, *m, sg.mu)).or_insert(0) += 1;
+            }
+        }
+    }
+    counts
+}
+
+/// Renders the long-form `N(g, l, m, μ)` table. Each non-zero `(g, l, m, μ)`
+/// gets one row; the row also shows `N(g, l, m) = Σ_μ N(g, l, m, μ)` and, for
+/// `l = 1`, the closed-form prediction `C(μ−1, m+μ−1−g)` plus a tick/cross.
+fn build_level_mu_section(
+    counts: &BTreeMap<(usize, usize, usize, usize), usize>,
+) -> String {
+    let mut by_glm: BTreeMap<(usize, usize, usize), usize> = BTreeMap::new();
+    for (&(g, l, m, _), &n) in counts {
+        *by_glm.entry((g, l, m)).or_insert(0) += n;
+    }
+
+    let mut h = String::new();
+    h.push_str(
+        "<h2>N(g, l, m, \u{03bc}) \u{2014} count by genus, level, multiplicity, residue \u{03bc}</h2>\n\
+         <p class=\"note\">Level <code>l = \u{230a}f/m\u{230b}</code>; \
+         <code>\u{03bc} = f mod m \u{2208} {1,\u{2026},m\u{2212}1}</code>. \
+         The column <b>N(g,l,m)</b> sums over \u{03bc}. \
+         For <b>l = 1</b> we also show the closed form \
+         <code>C(\u{03bc}\u{2212}1,\u{a0}m+\u{03bc}\u{2212}1\u{2212}g)</code>; \
+         the tick column flags any deviation between observed and predicted.</p>\n",
+    );
+    h.push_str(
+        "<table><thead><tr>\
+         <th class=\"lbl\">g</th><th>l</th><th>m</th><th>\u{03bc}</th>\
+         <th>N(g,l,m,\u{03bc})</th><th>N(g,l,m)</th>\
+         <th>predicted (l=1)</th><th>\u{2713}</th>\
+         </tr></thead><tbody>\n",
+    );
+    for (&(g, l, m, mu), &n) in counts {
+        let row_total = by_glm.get(&(g, l, m)).copied().unwrap_or(0);
+        let (predicted_cell, tick_cell) = if l == 1 {
+            // l = 1 ⇒ m < f < 2m ⇒ f = m+μ, so g ranges in [m, m+μ−1].
+            let predicted = if g >= m && g < m + mu {
+                let k = m + mu - 1 - g;
+                binom(mu - 1, k).unwrap_or(0)
+            } else {
+                0
+            };
+            let tick = if predicted == n { "\u{2713}" } else { "\u{2717}" };
+            (format!("{predicted}"), tick.to_string())
+        } else {
+            (String::new(), String::new())
+        };
+        let _ = writeln!(
+            h,
+            "<tr><td class=\"lbl\">{g}</td><td>{l}</td><td>{m}</td><td>{mu}</td>\
+             <td class=\"pos\">{n}</td><td class=\"sum\">{row_total}</td>\
+             <td>{predicted_cell}</td><td>{tick_cell}</td></tr>",
+        );
+    }
+    h.push_str("</tbody></table>\n");
     h
 }
 
@@ -1005,6 +1077,8 @@ fn build_list_json(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
     }
     rows.sort_unstable_by(|a, b| (a.0, a.1, a.2, a.3).cmp(&(b.0, b.1, b.2, b.3)));
 
+    let level_mu = accumulate_level_mu(all_data);
+
     let mut out = String::new();
     let _ = writeln!(out, "{{\"gmax\":{gmax},\"semigroups\":[");
     let total = rows.len();
@@ -1047,6 +1121,18 @@ fn build_list_json(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
             c1_arr = json_array(c1),
         );
         if idx + 1 < total {
+            out.push(',');
+        }
+        out.push('\n');
+    }
+    out.push_str("],\n\"level_mu_counts\":[\n");
+    let lm_total = level_mu.len();
+    for (idx, ((g, l, m, mu), n)) in level_mu.iter().enumerate() {
+        let _ = write!(
+            out,
+            "{{\"g\":{g},\"l\":{l},\"m\":{m},\"mu\":{mu},\"n\":{n}}}",
+        );
+        if idx + 1 < lm_total {
             out.push(',');
         }
         out.push('\n');

@@ -84,6 +84,85 @@ fn test_binom_overflow() {
     assert_eq!(binom(20, 10), Some(184_756));
 }
 
+/// Brute-force enumeration of every level-1 numerical semigroup with given
+/// multiplicity `m` (i.e. m < f < 2m). For each μ ∈ {1, …, m−1} and each
+/// subset of {1, …, μ−1} (telling us which `m+r` are in S), build the
+/// candidate Apéry set, run `compute`, and yield the result. Every candidate
+/// gives a valid numerical semigroup (the Kunz constraints are automatic at
+/// level 1, since w_r + w_s ≥ 2m + r + s dominates every right-hand side).
+fn level_1_semigroups_for_m(m: usize) -> Vec<(usize, semigroup_math::math::Semigroup)> {
+    let mut out = Vec::new();
+    for mu in 1..m {
+        // Free choices: r ∈ {1, …, μ−1}. For r > μ, w_r = m+r is forced.
+        let free = mu - 1;
+        for mask in 0..(1u32 << free) {
+            let mut gens = vec![m];
+            for r in 1..m {
+                let w = if r == mu {
+                    2 * m + mu
+                } else if r > mu || (mask >> (r - 1)) & 1 == 1 {
+                    // r > mu: forced m+r; r < mu and bit set: m+r ∈ S.
+                    m + r
+                } else {
+                    2 * m + r
+                };
+                gens.push(w);
+            }
+            out.push((mu, compute(&gens)));
+        }
+    }
+    out
+}
+
+#[test]
+fn test_level_1_count_formula() {
+    // N(g, l=1, m, μ) = C(μ−1, m + μ − 1 − g) for g ∈ {m, …, m+μ−1};
+    // zero outside that range. Verified by brute force.
+    for m in 2..=8 {
+        let mut actual: std::collections::HashMap<(usize, usize), usize> =
+            std::collections::HashMap::new();
+        for (mu, s) in level_1_semigroups_for_m(m) {
+            assert_eq!(s.m, m, "m mismatch (m={m}, μ={mu})");
+            assert_eq!(s.level, 1, "level mismatch (m={m}, μ={mu})");
+            assert_eq!(s.mu, mu, "μ mismatch (m={m})");
+            *actual.entry((s.count_gap, mu)).or_insert(0) += 1;
+        }
+        // Compare against the closed form for every (g, μ) we observed.
+        for ((g, mu), &n) in &actual {
+            let k = m + mu - 1 - g;
+            let predicted = if k < *mu {
+                binom(mu - 1, k).expect("small inputs cannot overflow")
+            } else {
+                0
+            };
+            assert_eq!(
+                n, predicted,
+                "N(g={g}, l=1, m={m}, μ={mu}): predicted {predicted}, actual {n}",
+            );
+        }
+        // And verify the sum: N(g, l=1, m) = Σ_μ N(g, l=1, m, μ).
+        let mut by_g: std::collections::HashMap<usize, usize> = std::collections::HashMap::new();
+        for ((g, _), n) in &actual {
+            *by_g.entry(*g).or_insert(0) += n;
+        }
+        for (&g, &actual_total) in &by_g {
+            let predicted_total: usize = (1..m)
+                .map(|mu| {
+                    if g >= m && g < m + mu {
+                        binom(mu - 1, m + mu - 1 - g).expect("small")
+                    } else {
+                        0
+                    }
+                })
+                .sum();
+            assert_eq!(
+                actual_total, predicted_total,
+                "N(g={g}, l=1, m={m}): predicted {predicted_total}, actual {actual_total}",
+            );
+        }
+    }
+}
+
 /// Compute the semigroup from `gens` and assert every GAP-verified property.
 ///
 /// Parameters match the GAP assertions in gap/test.g:

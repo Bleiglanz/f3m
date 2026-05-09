@@ -440,16 +440,21 @@ should of course return zero if b>a
  factors. Note: usize is 32-bit under wasm32, so even C(34,17)
  overflows in the browser build.)
 
-69) in our waldicone statistics section: i want two special counts
+69) [DONE] in our waldicone statistics section: i want two special counts
 N(g,l,m,mu) = number of semigroups with g gaps, level l < f < (l+1)f and residue mu= f mod m (in 1...m-1)
 N(g,l,m) = sum of N(g,l,m,mu) over all mu, mu=1...m-1
-then check the obvious formula in the case l==2
+then check the obvious formula in the case l==1 (was written l==2 in TODO,
+clarified to l=1)
 only the mu-1 numbers in m+1,...,m+mu-1 are available for beeing in S (m+mu=f is a gap)
 pick k of then to be in S, if we want g gaps we must have
 (mu-1)-k + m-1 = g that means k=mu-1+m-1-g=mu+m-g
 N(g,l=2,m,mu)=binom(mu-1,mu+m-g) or something, check mu+m-g>=0 before computing
 can you run the tests?
 then also test the the sum
+(corrected formula: N(g, l=1, m, μ) = C(μ−1, m+μ−1−g) for g ∈ [m, m+μ−1].
+ The TODO's "k = mu+m-g" missed the f=m+μ gap; correct k = m+μ−1−g.
+ Verified by brute-force integration test for m ≤ 8 and by waldicone
+ enumeration for gmax ≤ 14 — all 252 level-1 cells match in gmax=14.)
 
 
 

@@ -2,7 +2,7 @@ TODO
 
 (items 1–73 archived in history/todo_1_73.txt)
 
-TODO 74)
+TODO 74) [DONE]
 add a new checkbox "Strata" (next to S,Kunz,Gaps,Class)
 it is not checked at the beginning
 theory of strata (with left={1,...\mu-1} and right={mu+1,..m-1}
@@ -23,5 +23,29 @@ i=1 only left, bottom, top border
 1<i<mu-1 only top and bottom border
 mu-1 only right and top and bottom
 and then the same for i in mu+1...m-1
+
+TODO 75) [DONE]
+I have not given up on the idea of counting semigroups
+before going back to todo 73-72-71 let's study the general case
+create a second wasm-html file strata.html
+reuse as much code as possible, css, js etc.
+Name should be "strata exporerer"
+here we abstract from the left-right as in todo 74, lets go general:
+
+input is a usize N and a lmax:usize
+
+a strata sequence for l=0...l_max is a sequence of subsets
+M_0 = emptyset contained in M_1 contained in M_2 .... contained in M_lmax contained in {1,...,N}
+the only condition is that they go up,
+
+should be in a html table like in index html
+columns are 1,...,N
+rows are l=0,...,lmax (lmax on top, next one down is lmax - 1, down to 0)
+
+One Button Rnd1 : it creates a random subset at level 1 (one above the bottom of the table)
+and fills the sequence by random numbers
+at each step add something or do nothing - sets can only get bigger
+
+the <th> from 1...N is repeated at the bottom
 
 

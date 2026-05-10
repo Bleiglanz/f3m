@@ -486,6 +486,49 @@ span[data-remove-gen]     { cursor: pointer; }
 .tilt-grid span[data-n] { display: inline; padding: 0.15rem; }
 
 
+/* ─── Strata Explorer (strata.html) ─────────────────────────────── */
+.strata-grid {
+  border-collapse: collapse;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  width: auto;
+  margin: 0;
+}
+
+.strata-grid th, .strata-grid td {
+  border: 1px solid var(--border);
+  text-align: center;
+  width: 2em;
+  height: 2em;
+  padding: 0;
+}
+
+.strata-grid thead th, .strata-grid tr.strata-foot th {
+  background: var(--th-bg);
+  color: var(--th-fg);
+  font-weight: 600;
+}
+
+.strata-grid tbody th {
+  background: var(--surface-2);
+  color: var(--label);
+  font-weight: 600;
+}
+
+.strata-grid td.strata-in  { background: var(--sg-gen-bg);   color: var(--sg-gen-fg); cursor: pointer; font-weight: 600; }
+.strata-grid td.strata-out { background: var(--sg-out-bg);   color: var(--sg-out-fg); cursor: pointer; }
+.strata-grid td.strata-in:hover  { filter: brightness(0.92); }
+.strata-grid td.strata-out:hover { background: var(--row-hover); }
+
+a.strata-back {
+  align-self: center;
+  margin-left: auto;
+  font-size: 0.85rem;
+  color: var(--muted);
+  text-decoration: none;
+}
+a.strata-back:hover { color: var(--text); }
+
 /* ─── Tooltips ──────────────────────────────────────────────────── */
 .has-tip {
   position: relative;

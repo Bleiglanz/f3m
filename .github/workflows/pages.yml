@@ -29,7 +29,7 @@ jobs:
       - name: Stage site
         run: |
           mkdir -p _site/normaliz
-          cp index.html style.css _site/
+          cp index.html strata.html style.css _site/
           cp -r jsmodules pkg _site/
           # Per-semigroup JSON exports consumed by the in-browser Pivot tab.
           # Other normaliz/ artefacts (Normaliz binaries, .in/.out files, etc.)

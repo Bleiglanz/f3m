@@ -33,3 +33,4 @@
 
 pub mod eva;
 pub mod math;
+pub mod strata;

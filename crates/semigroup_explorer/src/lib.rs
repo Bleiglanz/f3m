@@ -43,6 +43,7 @@ use semigroup_math::math::{
         random_with_multiplier_generators,
     },
 };
+use semigroup_math::strata::{decode_chain, encode_chain, random_strata};
 use std::cmp::Ordering;
 use wasm_bindgen::prelude::*;
 
@@ -418,6 +419,62 @@ pub fn gap_header() -> String {
 #[must_use]
 pub fn gap_footer() -> String {
     semigroup_math::math::GAP_FOOTER.to_string()
+}
+
+// ── Strata-explorer exports ──────────────────────────────────────────────────
+
+/// Empty strata chain of length `lmax + 1` encoded as `;`-separated rows.
+#[wasm_bindgen]
+#[must_use]
+pub fn js_strata_empty(lmax: usize) -> String {
+    let chain: Vec<Vec<usize>> = vec![Vec::new(); lmax + 1];
+    encode_chain(&chain)
+}
+
+/// Random monotonic strata chain `M_0 ⊆ … ⊆ M_lmax ⊆ {1,…,N}`, encoded.
+#[wasm_bindgen]
+#[must_use]
+pub fn js_strata_random(n: usize, lmax: usize) -> String {
+    encode_chain(&random_strata(n, lmax))
+}
+
+/// Render a strata chain as an HTML table with `n` columns.
+#[wasm_bindgen]
+#[must_use]
+pub fn js_strata_table(chain_str: &str, n: usize) -> String {
+    html_helpers::strata_table(&decode_chain(chain_str), n)
+}
+
+/// Toggle membership of `v` at level `l`, propagating to keep the chain monotone.
+///
+/// Adding `v` cascades up to all higher levels; removing `v` cascades down to
+/// all lower levels (excluding `M_0`, which stays empty by convention). Toggles
+/// at level `0` and out-of-range coordinates are no-ops.
+#[wasm_bindgen]
+#[must_use]
+pub fn js_strata_toggle(chain_str: &str, l: usize, v: usize) -> String {
+    let mut chain = decode_chain(chain_str);
+    if l == 0 || l >= chain.len() || v == 0 {
+        return encode_chain(&chain);
+    }
+    let currently_in = chain[l].binary_search(&v).is_ok();
+    if currently_in {
+        // Remove from level l and every level below (M_0 stays empty regardless).
+        for row in &mut chain[1..=l] {
+            if let Ok(pos) = row.binary_search(&v) {
+                row.remove(pos);
+            }
+        }
+    } else {
+        // Add to level l and every level above.
+        let last = chain.len() - 1;
+        for row in &mut chain[l..=last] {
+            if let Err(pos) = row.binary_search(&v) {
+                row.insert(pos, v);
+            }
+        }
+    }
+    encode_chain(&chain)
 }
 
 /// Parse a comma-separated generator list and compute its semigroup.

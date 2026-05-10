@@ -258,7 +258,10 @@ fn test_level_2_missing_stratification() {
 
             // Sum totals: level-1 = 2^(μ−1), level-2 missing = 3^⌊(μ−1)/2⌋.
             assert_eq!(l1_by_k.iter().sum::<usize>(), 1usize << (mu - 1));
-            assert_eq!(l2_missing_by_k.iter().sum::<usize>(), 3usize.pow(half as u32));
+            assert_eq!(
+                l2_missing_by_k.iter().sum::<usize>(),
+                3usize.pow(half as u32)
+            );
         }
     }
 }

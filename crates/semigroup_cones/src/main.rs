@@ -857,9 +857,7 @@ fn accumulate_level_mu(
 /// Renders the long-form `N(g, l, m, μ)` table. Each non-zero `(g, l, m, μ)`
 /// gets one row; the row also shows `N(g, l, m) = Σ_μ N(g, l, m, μ)` and, for
 /// `l = 1`, the closed-form prediction `C(μ−1, m+μ−1−g)` plus a tick/cross.
-fn build_level_mu_section(
-    counts: &BTreeMap<(usize, usize, usize, usize), usize>,
-) -> String {
+fn build_level_mu_section(counts: &BTreeMap<(usize, usize, usize, usize), usize>) -> String {
     let mut by_glm: BTreeMap<(usize, usize, usize), usize> = BTreeMap::new();
     for (&(g, l, m, _), &n) in counts {
         *by_glm.entry((g, l, m)).or_insert(0) += n;
@@ -892,7 +890,11 @@ fn build_level_mu_section(
             } else {
                 0
             };
-            let tick = if predicted == n { "\u{2713}" } else { "\u{2717}" };
+            let tick = if predicted == n {
+                "\u{2713}"
+            } else {
+                "\u{2717}"
+            };
             (format!("{predicted}"), tick.to_string())
         } else {
             (String::new(), String::new())

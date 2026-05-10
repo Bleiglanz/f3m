@@ -5,7 +5,7 @@ use wasm_bindgen::prelude::*;
 
 /// Global page state owned by the WASM module.
 /// Uses `thread_local! + RefCell` — safe and zero-cost on the single WASM thread.
-// ALLOW: the four bools are independent UI display toggles with no meaningful enum grouping.
+// ALLOW: independent UI display toggles with no meaningful enum grouping.
 #[allow(clippy::struct_excessive_bools)]
 #[derive(Debug)]
 pub struct PageState {
@@ -17,6 +17,7 @@ pub struct PageState {
     show_s: bool,
     show_kunz: bool,
     show_classification: bool,
+    show_strata: bool,
 }
 
 impl Default for PageState {
@@ -30,6 +31,7 @@ impl Default for PageState {
             show_s: true,
             show_kunz: true,
             show_classification: true,
+            show_strata: false,
         }
     }
 }
@@ -178,6 +180,18 @@ pub fn state_set_show_classification(v: bool) {
     with_state_mut(|s| s.show_classification = v);
 }
 
+/// Get the `show_strata` display toggle.
+#[wasm_bindgen]
+#[must_use]
+pub fn state_get_show_strata() -> bool {
+    with_state(|s| s.show_strata)
+}
+/// Set the `show_strata` display toggle.
+#[wasm_bindgen]
+pub fn state_set_show_strata(v: bool) {
+    with_state_mut(|s| s.show_strata = v);
+}
+
 /// Containment-comparison HTML symbol between `history[a]` and `history[b]`.
 ///
 /// Returns `"?"` for any out-of-range index instead of panicking.
@@ -222,7 +236,7 @@ pub fn state_comp_html() -> String {
                  <div class=\"comp-grid table-wrap\">{}</div>\
                  </div>",
                 html_helpers::shortprop(sg),
-                html_helpers::combined_table(sg, 0, 0, state.show_kunz),
+                html_helpers::combined_table(sg, 0, 0, state.show_kunz, state.show_strata),
             )
         };
         format!(

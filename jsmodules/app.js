@@ -9,6 +9,7 @@ import init, {
   state_get_eva_expr, state_set_eva_expr, state_gap_output, state_cmp,
   state_get_show_kunz, state_set_show_kunz,
   state_set_show_classification,
+  state_get_show_strata, state_set_show_strata,
   state_comp_html,
 } from '../pkg/semigroup_explorer.js';
 import { render3d } from './view3d.js';
@@ -212,7 +213,7 @@ function render(s, toggle = null, label = '⏎') {
 
   const slider = document.getElementById('sg-offset');
   const renderGrid = () => {
-    document.getElementById('sg-grid-container').innerHTML = combined_table(s, parseInt(slider.value, 10), 0, state_get_show_kunz());
+    document.getElementById('sg-grid-container').innerHTML = combined_table(s, parseInt(slider.value, 10), 0, state_get_show_kunz(), state_get_show_strata());
   };
   renderGrid();
   slider.addEventListener('input', () => {
@@ -578,7 +579,15 @@ document.getElementById('show-kunz').addEventListener('change', function () {
   state_set_show_kunz(this.checked);
   const slider = document.getElementById('sg-offset');
   if (currentS && slider) {
-    document.getElementById('sg-grid-container').innerHTML = combined_table(currentS, parseInt(slider.value, 10), 0, this.checked);
+    document.getElementById('sg-grid-container').innerHTML = combined_table(currentS, parseInt(slider.value, 10), 0, this.checked, state_get_show_strata());
+  }
+});
+
+document.getElementById('show-strata').addEventListener('change', function () {
+  state_set_show_strata(this.checked);
+  const slider = document.getElementById('sg-offset');
+  if (currentS && slider) {
+    document.getElementById('sg-grid-container').innerHTML = combined_table(currentS, parseInt(slider.value, 10), 0, state_get_show_kunz(), this.checked);
   }
 });
 

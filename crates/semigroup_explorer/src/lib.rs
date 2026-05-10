@@ -271,8 +271,14 @@ impl JsSemigroup {
 /// Combined structure-grid + Apéry row + Kunz matrix HTML table.
 #[wasm_bindgen]
 #[must_use]
-pub fn combined_table(s: &JsSemigroup, offset: usize, tilt: i32, show_kunz: bool) -> String {
-    html_helpers::combined_table(&s.0, offset, tilt, show_kunz)
+pub fn combined_table(
+    s: &JsSemigroup,
+    offset: usize,
+    tilt: i32,
+    show_kunz: bool,
+    show_strata: bool,
+) -> String {
+    html_helpers::combined_table(&s.0, offset, tilt, show_kunz, show_strata)
 }
 
 /// Compact summary row for the properties table.

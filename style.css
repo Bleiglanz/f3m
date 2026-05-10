@@ -466,6 +466,21 @@ span[data-remove-gen]     { cursor: pointer; }
 .sg-grid .sg-large   { background: var(--sg-large-bg); color: var(--sg-large-fg); }
 .sg-grid .sg-empty   { background: var(--sg-empty-bg); }
 .sg-grid td.sg-selected { outline: 2px solid var(--orange); outline-offset: -2px; }
+
+/* Strata: thick borders around M_l = {lm+i : 1 ≤ i < μ} and N_l = {lm+i : μ < i < m}.
+   The strata-on table uses border-collapse: separate so that border-spacing
+   creates a visible gap between rows (levels) and between the {|lm|, M_l,
+   |μ+lm|, N_l} segments. Each cell keeps its own 1px gridline; cells inside
+   a strata block additionally get a thick black border on the sides where
+   the visual neighbour belongs to a different rectangle. */
+.sg-grid-strata {
+  border-collapse: separate;
+  border-spacing: 2px;
+}
+.sg-grid td.strata-t { border-top:    3px solid var(--text); }
+.sg-grid td.strata-b { border-bottom: 3px solid var(--text); }
+.sg-grid td.strata-l { border-left:   3px solid var(--text); }
+.sg-grid td.strata-r { border-right:  3px solid var(--text); }
 .tilt-grid .tilt-axis { background-color: #fffde7; }
 .tilt-grid td, .tilt-grid th { width: 2.5em; min-width: 2.5em; max-width: 2.5em; height: 2.5em; padding: 0; text-align: center; }
 .tilt-grid span[data-n] { display: inline; padding: 0.15rem; }

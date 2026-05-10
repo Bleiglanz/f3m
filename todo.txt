@@ -2,3 +2,26 @@ TODO
 
 (items 1–73 archived in history/todo_1_73.txt)
 
+TODO 74)
+add a new checkbox "Strata" (next to S,Kunz,Gaps,Class)
+it is not checked at the beginning
+theory of strata (with left={1,...\mu-1} and right={mu+1,..m-1}
+for l = 0...level(S) - we have defined level as floor(f/m)
+define M_l := lm + i for i in left
+define N_l := lm + i for i in right
+then M_l - lm is a subset of left
+and  N_l - lm is a subset of right
+the idea would be that if strata is checked we see
+a thick black border around the sets M_l and N_l, i.e. on every level we
+would see
+   |------------|        |------------|
+lm |            | mu+lm  |            |
+   |------------|        |------------|
+so for every element in the strata we need to check
+which borders to draw, something linke
+i=1 only left, bottom, top border
+1<i<mu-1 only top and bottom border
+mu-1 only right and top and bottom
+and then the same for i in mu+1...m-1
+
+

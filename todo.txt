@@ -465,7 +465,7 @@ then also test the the sum
  the unique level-0 semigroup for m ∈ {2,…,12} and checks its
  invariants.)
 
-71) [PARTIAL] now onto l=2
+71) [DONE] now onto l=2
 evaluate N(g,l=2,m,mu)
 I want to compute the part that comes from l=1 by ascent
 and identify the remaining ones
@@ -479,11 +479,9 @@ C(mu-1,3) have three generators m <...<...f, can lift in C(3,1)+C(3,2)+C(3,3) wa
 in general do we create
 sum C(mu-1,i)*(2^i-1) semigroups in level 2?
 if so, can you find the missing ones?
-(missing pile fully described — see item 72. Lifted pile still
- open: the conjectured count 3^(μ−1) − 2^(μ−1) is the candidate
- count without Kunz filtering; actual lifted count is strictly
- smaller for μ ≥ 3 because each r ∈ T \ {μ} adds a Kunz
- inequality M+M ⊅ {r}.)
+(missing pile fully described — see item 72. Lifted pile fully
+ analyzed in 73: it does not factorize as Strata×Flips, the
+ left-flip count depends on the specific M via |M̃(M)|.)
 
 72) [DONE] full picture of the map S(g, l=1, m, μ) → S(g+1, l=2, m, μ, missing)
 
@@ -536,7 +534,84 @@ level-2 missing, and the per-stratum closed forms match. The
 test also confirms that non-sum-avoiding M's collapse to level 1
 under the lift.
 
-TODO 73 - continueation of the partial 71
+73) [DONE] continuation of 71 — the full level-2 count and why
+    the "Strata × Flips" factorization breaks.
+
+ANALYSIS — what the count actually looks like.
+
+Encode a level-2 semigroup with multiplicity m and Frobenius
+residue μ by the Apéry exponents k_r ∈ {0, …, l} where
+w_r = (k_r + 1)·m + r and f = w_μ − m. At level 2:
+  r ∈ {1,…,μ−1}:    k_r ∈ {0, 1, 2}        ("left", 3 choices)
+  r = μ:            k_μ = 2                forced
+  r ∈ {μ+1,…,m−1}:  k_r ∈ {0, 1}           ("right", 2 choices)
+
+Three counters classify a level-2 semigroup:
+  M = {r ∈ {1,…,μ−1} : k_r = 0},   k = |M|
+  p = #{r ∈ {1,…,μ−1}\M : k_r = 2}      (left flips)
+  q = #{r ∈ {μ+1,…,m−1} : k_r = 1}      (right flips)
+
+GENUS IDENTITY (clean):
+  g = m + μ − k + p + q.
+
+KUNZ AT LEVEL 2 — only one constraint binds.
+The general Kunz inequality is
+  no carry (a+b < m):   k_{a+b}     ≤ k_a + k_b + 1
+  carry  (a+b ≥ m):     k_{a+b−m}   ≤ k_a + k_b + 2
+With k_r ≤ 2 the carry case is automatic. The no-carry case
+binds only when k_a = k_b = 0, giving k_{a+b} ≤ 1. Two
+consequences:
+  (a) ∀ a, b ∈ M with a+b = μ: forces k_μ ≤ 1, contradicts
+      k_μ = 2. ⇒ M must be sum-avoiding for μ.
+  (b) For r = a+b ∈ {1,…,μ−1}\M with r ≠ μ: k_r is forced to
+      1 (cannot be 2).
+Define M̃(M) := (M+M) ∩ ({1,…,μ−1}\M) \ {μ}.
+Then |M̃| left positions lose their k_r = 2 option.
+
+WHY THE FACTORIZATION FAILS — and exactly where.
+The naive ChoicesLeft = C(μ−1−k, p) ignores M̃. The correct
+count is C(μ−1−k−|M̃(M)|, p), and |M̃(M)| depends on the
+*specific* M, not just |M|. So the count cannot factor as
+Strata(k) · Flips(p, q).
+
+FIRST FAILURE CASE (g = 7).
+At m = 4, μ = 3: M = {1} ⇒ 1+1 = 2 ∈ {1,2}\M, so |M̃| = 1
+and p = 1 is forbidden. M = {2} ⇒ 2+2 = 4 (carries to 0),
+|M̃| = 0, p = 1 fine. The naive formula counts p = 1 for
+both, overcounting by exactly 1 — the +1 diff at g = 7. The
+growing diffs at g = 8..14 are all M̃-misses summed across
+(m, μ).
+
+THE THREE-INDEX COUNT (correct closed expression).
+Refine the sum-avoiding count to a bigrade
+  S(μ, k, j) := #{ M ⊆ {1,…,μ−1} sum-avoiding for μ
+                   with |M| = k and |M̃(M)| = j }.
+Then
+  N(g, l=2, m, μ) = Σ_{k,j,p,q : k−p−q = m+μ−g}
+                    S(μ, k, j) · C(μ−1−k−j, p) · C(m−1−μ, q).
+Item 72 verified the j = p = q = 0 slice: S(μ, k, 0) is the
+"missing" pile, equal to C(⌊(μ−1)/2⌋, k) · 2^k. The total
+above is just convolution against the right binomial
+C(m−1−μ, q) and the left binomial C(μ−1−k−j, p).
+
+WHAT WOULD BE NEEDED.
+To get an explicit N(g, l=2, m, μ): iterate over all 2^(μ−1)
+subsets of {1,…,μ−1}, keep the sum-avoiding ones, tabulate by
+(|M|, |M̃|) to obtain the table S(μ, k, j), then convolve
+with C(m−1−μ, q) for each m and with C(μ−1−k−j, p).
+Computationally fine (O(μ · 2^μ) per μ); good for verifying
+the truth sequence {0,1,1,3,7,12,23,44,79,143,254,447,785}
+for g = 2..14.
+
+OUTLOOK.
+A clean closed form for S(μ, k, j) likely does not exist:
+|M̃(M)| is a restricted sumset count, an additive-combinatorics
+problem with no obvious nice generating function beyond the
+j = 0 orbit formula. We don't even have a clean lower bound
+for the total N(g, l=2). Good for now — leave the bigrade
+enumeration as a future implementation if/when needed.
+
+ORIGINAL OBSERVATION (kept for reference):
 
 the situation is more subtle, because the strata depend on the descent data:
 I tried to implement this in a mathematica notebook

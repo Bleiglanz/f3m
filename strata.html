@@ -16,6 +16,7 @@
       <div class="input-row">
         <label>N <input type="number" id="strata-n" min="1" max="40" value="10" inputmode="numeric"></label>
         <label>lmax <input type="number" id="strata-lmax" min="0" max="20" value="5" inputmode="numeric"></label>
+        <label>m <input type="number" id="strata-m" min="1" max="999" value="11" inputmode="numeric" title="Row stride: cell (l, i) shows the value lm + i"></label>
         <button id="strata-compute" title="Build an empty chain of the given size" aria-label="Compute">&#x23CE;</button>
         <button id="strata-rnd1" title="Random monotonic chain (M₁ a random subset, then random additions per step)">Rnd1</button>
         <a href="index.html" class="strata-back" title="Back to the semigroup calculator">&larr; semigroup</a>

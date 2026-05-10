@@ -438,11 +438,11 @@ pub fn js_strata_random(n: usize, lmax: usize) -> String {
     encode_chain(&random_strata(n, lmax))
 }
 
-/// Render a strata chain as an HTML table with `n` columns.
+/// Render a strata chain as an HTML table with `n` columns and stride `m`.
 #[wasm_bindgen]
 #[must_use]
-pub fn js_strata_table(chain_str: &str, n: usize) -> String {
-    html_helpers::strata_table(&decode_chain(chain_str), n)
+pub fn js_strata_table(chain_str: &str, n: usize, m: usize) -> String {
+    html_helpers::strata_table(&decode_chain(chain_str), n, m)
 }
 
 /// Toggle membership of `v` at level `l`, propagating to keep the chain monotone.

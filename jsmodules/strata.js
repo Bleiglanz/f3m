@@ -6,13 +6,14 @@ await init();
 
 const nInput = document.getElementById('strata-n');
 const lmaxInput = document.getElementById('strata-lmax');
-const mInput = document.getElementById('strata-m');
 const out = document.getElementById('strata-out');
 const errEl = document.getElementById('error');
 
 let chain = '';
 let n = readN();
-let m = readM();
+// m is fixed at N + 1 (the semigroup convention where columns 1..N enumerate
+// the non-zero residues mod m). It's not a user input.
+let m = n + 1;
 
 function readN() {
   const v = parseInt(nInput.value, 10);
@@ -22,11 +23,6 @@ function readN() {
 function readLmax() {
   const v = parseInt(lmaxInput.value, 10);
   return Number.isFinite(v) && v >= 0 ? v : 0;
-}
-
-function readM() {
-  const v = parseInt(mInput.value, 10);
-  return Number.isFinite(v) && v > 0 ? v : 1;
 }
 
 function showError(msg) {
@@ -44,7 +40,7 @@ function render() {
 function compute() {
   showError('');
   n = readN();
-  m = readM();
+  m = n + 1;
   chain = js_strata_empty(readLmax());
   render();
 }
@@ -52,18 +48,15 @@ function compute() {
 function randomise() {
   showError('');
   n = readN();
-  m = readM();
+  m = n + 1;
   chain = js_strata_random(n, readLmax());
   render();
 }
 
 document.getElementById('strata-compute').addEventListener('click', compute);
 document.getElementById('strata-rnd1').addEventListener('click', randomise);
-[nInput, lmaxInput, mInput].forEach(el =>
+[nInput, lmaxInput].forEach(el =>
   el.addEventListener('keydown', e => { if (e.key === 'Enter') { compute(); } }));
-
-// Re-render when m changes — m only affects labels, not the chain.
-mInput.addEventListener('change', () => { m = readM(); render(); });
 
 // Click-to-toggle: monotonicity is enforced server-side.
 out.addEventListener('click', e => {

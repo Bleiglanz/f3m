@@ -47,8 +47,8 @@ window.addEventListener('unhandledrejection', e => showError(`Unhandled promise 
 // Build generators for the side-by-side semigroup view:
 // • m (the multiplicity itself)
 // • every defined w_i = (min l with i ∈ M_l) * m + i
-// • a tail of m consecutive integers starting at lmax+N+1, which guarantees
-//   the resulting semigroup has finite complement.
+// • a tail of m consecutive integers starting at lmax*N + N + 1, which
+//   guarantees the resulting semigroup has finite complement.
 //
 // Returns null when no w_i is defined yet — caller falls back to ⟨2,3⟩ so
 // the empty chain shows a simple proxy instead of a confusing generic one.
@@ -67,8 +67,9 @@ function buildGeneratorString(currentChain, lmax) {
   }
   if (wValues.length === 0) { return null; }
   const gens = [m, ...wValues];
+  const tailStart = lmax * n + n + 1;
   for (let k = 0; k < m; k++) {
-    gens.push(lmax + n + 1 + k);
+    gens.push(tailStart + k);
   }
   return gens.join(',');
 }

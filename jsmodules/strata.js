@@ -1,19 +1,20 @@
 import init, {
   js_strata_empty, js_strata_random, js_strata_table, js_strata_toggle,
+  js_compute, combined_table,
 } from '../pkg/semigroup_explorer.js';
 
 await init();
 
 const nInput = document.getElementById('strata-n');
 const lmaxInput = document.getElementById('strata-lmax');
+const mInput = document.getElementById('strata-m');
 const out = document.getElementById('strata-out');
+const sgOut = document.getElementById('strata-sg-out');
 const errEl = document.getElementById('error');
 
 let chain = '';
 let n = readN();
-// m is fixed at N + 1 (the semigroup convention where columns 1..N enumerate
-// the non-zero residues mod m). It's not a user input.
-let m = n + 1;
+let m = readM();
 
 function readN() {
   const v = parseInt(nInput.value, 10);
@@ -25,6 +26,16 @@ function readLmax() {
   return Number.isFinite(v) && v >= 0 ? v : 0;
 }
 
+// Enforce m > N. If the user typed something smaller, silently clamp the
+// input to N+1 so what they see is what's used.
+function readM() {
+  const v = parseInt(mInput.value, 10);
+  const minM = readN() + 1;
+  const clamped = Number.isFinite(v) && v >= minM ? v : minM;
+  if (clamped !== v) { mInput.value = clamped; }
+  return clamped;
+}
+
 function showError(msg) {
   errEl.textContent = msg;
   errEl.style.display = msg ? 'block' : 'none';
@@ -33,14 +44,48 @@ function showError(msg) {
 window.addEventListener('error', e => showError(`JS error: ${e.message}`));
 window.addEventListener('unhandledrejection', e => showError(`Unhandled promise rejection: ${e.reason}`));
 
+// Build generators for the side-by-side semigroup view:
+// • m (the multiplicity itself)
+// • every defined w_i = (min l with i ∈ M_l) * m + i
+// • a tail of m consecutive integers starting at lmax+N+1, which guarantees
+//   the resulting semigroup has finite complement.
+function buildGeneratorString(currentChain, lmax) {
+  const gens = [m];
+  const rows = currentChain
+    .split(';')
+    .map(r => (r ? r.split(',').map(s => parseInt(s, 10)).filter(Number.isFinite) : []));
+  for (let i = 1; i <= n; i++) {
+    for (let l = 0; l < rows.length; l++) {
+      if (rows[l].includes(i)) {
+        gens.push(l * m + i);
+        break;
+      }
+    }
+  }
+  for (let k = 0; k < m; k++) {
+    gens.push(lmax + n + 1 + k);
+  }
+  return gens.join(',');
+}
+
+function renderSemigroup() {
+  const sg = js_compute(buildGeneratorString(chain, readLmax()));
+  if (!sg) {
+    sgOut.innerHTML = '<em>(no valid semigroup for these inputs)</em>';
+    return;
+  }
+  sgOut.innerHTML = combined_table(sg, 0, 0, false, false);
+}
+
 function render() {
   out.innerHTML = js_strata_table(chain, n, m);
+  renderSemigroup();
 }
 
 function compute() {
   showError('');
   n = readN();
-  m = n + 1;
+  m = readM();
   chain = js_strata_empty(readLmax());
   render();
 }
@@ -48,15 +93,18 @@ function compute() {
 function randomise() {
   showError('');
   n = readN();
-  m = n + 1;
+  m = readM();
   chain = js_strata_random(n, readLmax());
   render();
 }
 
 document.getElementById('strata-compute').addEventListener('click', compute);
 document.getElementById('strata-rnd1').addEventListener('click', randomise);
-[nInput, lmaxInput].forEach(el =>
+[nInput, lmaxInput, mInput].forEach(el =>
   el.addEventListener('keydown', e => { if (e.key === 'Enter') { compute(); } }));
+
+// Changing m alone re-renders without resetting the chain.
+mInput.addEventListener('change', () => { m = readM(); render(); });
 
 // Click-to-toggle: monotonicity is enforced server-side.
 out.addEventListener('click', e => {

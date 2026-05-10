@@ -543,6 +543,23 @@ a.strata-back {
 }
 a.strata-back:hover { color: var(--text); }
 
+/* Side-by-side layout: strata grid (left) and the semigroup ⟨m, w_j, lmax+N+1, …⟩
+   structure grid (right). On narrow screens both panes wrap to their own row. */
+.strata-pane {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+.strata-pane > .table-wrap,
+.strata-pane > .strata-sg-side { flex: 0 0 auto; min-width: 0; }
+.strata-sg-caption {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-bottom: 0.4rem;
+  font-family: var(--mono);
+}
+
 /* ─── Tooltips ──────────────────────────────────────────────────── */
 .has-tip {
   position: relative;

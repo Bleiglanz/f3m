@@ -49,19 +49,24 @@ window.addEventListener('unhandledrejection', e => showError(`Unhandled promise 
 // • every defined w_i = (min l with i ∈ M_l) * m + i
 // • a tail of m consecutive integers starting at lmax+N+1, which guarantees
 //   the resulting semigroup has finite complement.
+//
+// Returns null when no w_i is defined yet — caller falls back to ⟨2,3⟩ so
+// the empty chain shows a simple proxy instead of a confusing generic one.
 function buildGeneratorString(currentChain, lmax) {
-  const gens = [m];
   const rows = currentChain
     .split(';')
     .map(r => (r ? r.split(',').map(s => parseInt(s, 10)).filter(Number.isFinite) : []));
+  const wValues = [];
   for (let i = 1; i <= n; i++) {
     for (let l = 0; l < rows.length; l++) {
       if (rows[l].includes(i)) {
-        gens.push(l * m + i);
+        wValues.push(l * m + i);
         break;
       }
     }
   }
+  if (wValues.length === 0) { return null; }
+  const gens = [m, ...wValues];
   for (let k = 0; k < m; k++) {
     gens.push(lmax + n + 1 + k);
   }
@@ -69,7 +74,8 @@ function buildGeneratorString(currentChain, lmax) {
 }
 
 function renderSemigroup() {
-  const sg = js_compute(buildGeneratorString(chain, readLmax()));
+  const input = buildGeneratorString(chain, readLmax()) ?? '2,3';
+  const sg = js_compute(input);
   if (!sg) {
     sgOut.innerHTML = '<em>(no valid semigroup for these inputs)</em>';
     return;
@@ -103,6 +109,9 @@ document.getElementById('strata-rnd1').addEventListener('click', randomise);
 [nInput, lmaxInput, mInput].forEach(el =>
   el.addEventListener('keydown', e => { if (e.key === 'Enter') { compute(); } }));
 
+// N and lmax changes resize the table → reset the chain and re-render.
+nInput.addEventListener('change', compute);
+lmaxInput.addEventListener('change', compute);
 // Changing m alone re-renders without resetting the chain.
 mInput.addEventListener('change', () => { m = readM(); render(); });
 

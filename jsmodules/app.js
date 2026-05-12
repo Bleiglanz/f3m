@@ -369,6 +369,45 @@ function driveCreator(genFn, label, emptyMsg) {
   compute();
 }
 
+// Random-creator entry point that respects the "constraint = 0" textbox.
+// Chunked yields keep the busy banner repainting and let guardBusy() block
+// concurrent clicks during the search.
+const CONSTRAINT_TIMEOUT_MS = 10000;
+const CONSTRAINT_CHUNK = 500;
+const HTML_ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+const escHtml = s => String(s).replace(/[&<>"']/g, c => HTML_ESCAPES[c]);
+
+async function driveRandomCreator(genFn, label, emptyMsg) {
+  const constraint = document.getElementById('constraint-input').value.trim();
+  if (!constraint) { driveCreator(genFn, label, emptyMsg); return; }
+  setBusy(true);
+  const deadline = performance.now() + CONSTRAINT_TIMEOUT_MS;
+  let attempts = 0;
+  try {
+    while (performance.now() < deadline) {
+      for (let i = 0; i < CONSTRAINT_CHUNK; i++) {
+        attempts++;
+        const gens = Array.from(genFn());
+        if (gens.length === 0) { continue; } // genFn gave up (e.g. Sym ran its own retry budget)
+        const sg = js_compute(gens.join(','));
+        if (!sg) { continue; }
+        if (eval_expr(constraint, sg) === 0) {
+          gensInput.value = gens.join(', ');
+          // Constraint is user-controlled text rendered into innerHTML via the # column — escape.
+          _computeLabel = `${label}|${escHtml(constraint)}=0`;
+          setBusy(false);
+          compute();
+          return;
+        }
+      }
+      await new Promise(r => setTimeout(r, 0));
+    }
+    showError(`No semigroup satisfying "${constraint} = 0" after ${CONSTRAINT_TIMEOUT_MS / 1000}s (${attempts} tries).`);
+  } finally {
+    setBusy(false);
+  }
+}
+
 function renderDiagonals(s) {
   document.getElementById('diagonals-container').innerHTML = js_diagonals_table(s);
 }
@@ -746,32 +785,32 @@ document.getElementById('result').addEventListener('click', e => {
 const guardedCompute = guarded(compute);
 
 document.getElementById('random-btn').addEventListener('click', guarded(() => {
-  driveCreator(js_random_generators, 'Rnd');
+  driveRandomCreator(js_random_generators, 'Rnd');
 }));
 
 document.getElementById('random3f-btn').addEventListener('click', guarded(() => {
-  driveCreator(() => js_random_with_multiplier(3), 'Rnd3m');
+  driveRandomCreator(() => js_random_with_multiplier(3), 'Rnd3m');
 }));
 document.getElementById('random2f-btn').addEventListener('click', guarded(() => {
-  driveCreator(() => js_random_with_multiplier(2), 'Rnd2m');
+  driveRandomCreator(() => js_random_with_multiplier(2), 'Rnd2m');
 }));
 
 document.getElementById('random-symmetric-btn').addEventListener('click', guarded(() => {
-  driveCreator(js_random_symmetric, 'Sym',
+  driveRandomCreator(js_random_symmetric, 'Sym',
     'Could not find a symmetric semigroup after 10000 attempts.');
 }));
 document.getElementById('random-r1-btn').addEventListener('click', guarded(() => {
-  driveCreator(js_random_pseudo_symmetric, 'PSym',
+  driveRandomCreator(js_random_pseudo_symmetric, 'PSym',
     'Could not find a pseudo-symmetric semigroup (r = 1) after 10000 attempts.');
 }));
 document.getElementById('random-asym-btn').addEventListener('click', guarded(() => {
-  driveCreator(js_random_almost_symmetric, 'ASym',
+  driveRandomCreator(js_random_almost_symmetric, 'ASym',
     'Could not find a proper almost-symmetric semigroup (r = t − 1 with r ≥ 2) after 10000 attempts.');
 }));
 
 // "Prime": pick a random subset of 4–8 primes from the fixed list.
 document.getElementById('random-primes-btn').addEventListener('click', guarded(() => {
-  driveCreator(js_random_primes, 'P');
+  driveRandomCreator(js_random_primes, 'P');
 }));
 
 // "T(m,f)": generate semigroup <m, f+1, f+2, ..., f+m>; default f=2m when only m given.
@@ -872,28 +911,6 @@ let _running3d = null;
 const RUN_LOOP_DWELL_MS = 1000;
 const RUN_LOOP_MAX_STEPS = 500;
 
-function update3dButtonState() {
-  const descBtn = document.getElementById('run-descent-btn');
-  const ascBtn = document.getElementById('run-ascent-btn');
-  if (!descBtn || !ascBtn) { return; }
-  if (_running3d === 'descent') {
-    descBtn.textContent = 'stop descent';
-    descBtn.disabled = false;
-    ascBtn.textContent = 'run ascent';
-    ascBtn.disabled = true;
-  } else if (_running3d === 'ascent') {
-    descBtn.textContent = 'run descent';
-    descBtn.disabled = true;
-    ascBtn.textContent = 'stop ascent';
-    ascBtn.disabled = false;
-  } else {
-    descBtn.textContent = 'run descent';
-    descBtn.disabled = !currentS || currentS.f < currentS.m;
-    ascBtn.textContent = 'run ascent';
-    ascBtn.disabled = !currentS || !currentS.is_descent_image;
-  }
-}
-
 // Smallest Apéry element above f — the value Rust's `descent` will reduce by m.
 // Always exists because a_μ = f + m > f. Returns null if S is N (f < m).
 function descentTarget(s) {
@@ -908,37 +925,59 @@ function descentTarget(s) {
 // The min-gen that Rust's `ascent` will toggle past f: largest one in (f−m, f),
 // or f+m if no such gen exists. Returns null when neither clause fires.
 function ascentTarget(s) {
+  const gens = Array.from(s.gen_set); // one FFI hop, used twice
   let best = -1;
-  for (const g of s.gen_set) {
+  for (const g of gens) {
     if (g > s.m && g < s.f && g + s.m > s.f && g > best) { best = g; }
   }
   if (best !== -1) { return best; }
   const fm = s.f + s.m;
-  return Array.from(s.gen_set).includes(fm) ? fm : null;
+  return gens.includes(fm) ? fm : null;
+}
+
+const DIRS = {
+  descent: { target: descentTarget, animate: animate3dDescent, op: s => s.descent(), label: 'Descent' },
+  ascent:  { target: ascentTarget,  animate: animate3dAscent,  op: s => s.ascent(),  label: 'Ascent'  },
+};
+
+function update3dButtonState() {
+  const descBtn = document.getElementById('run-descent-btn');
+  const ascBtn = document.getElementById('run-ascent-btn');
+  if (!descBtn || !ascBtn) { return; }
+  if (_running3d) {
+    const other = _running3d === 'descent' ? ascBtn : descBtn;
+    const self = _running3d === 'descent' ? descBtn : ascBtn;
+    self.textContent = `stop ${_running3d}`;
+    self.disabled = false;
+    other.textContent = `run ${_running3d === 'descent' ? 'ascent' : 'descent'}`;
+    other.disabled = true;
+  } else {
+    descBtn.textContent = 'run descent';
+    descBtn.disabled = !currentS || currentS.f < currentS.m;
+    ascBtn.textContent = 'run ascent';
+    ascBtn.disabled = !currentS || !currentS.is_descent_image;
+  }
 }
 
 const delay = ms => new Promise(r => setTimeout(r, ms));
 
 async function run3dLoop(direction) {
+  const cfg = DIRS[direction];
   _running3d = direction;
   update3dButtonState();
   try {
     for (let i = 0; i < RUN_LOOP_MAX_STEPS; i++) {
       if (_running3d !== direction || !currentS) { break; }
-      const target = direction === 'descent' ? descentTarget(currentS) : ascentTarget(currentS);
+      const target = cfg.target(currentS);
       if (target === null) { break; }
       const sBefore = currentS;
       const prevGens = currentGenSet.join(',');
-      if (direction === 'descent') {
-        await animate3dDescent(target);
-      } else {
-        await animate3dAscent(target);
-      }
+      await cfg.animate(target);
       if (_running3d !== direction) { break; }
-      const newGens = Array.from(direction === 'descent' ? sBefore.descent() : sBefore.ascent());
+      const newGens = Array.from(cfg.op(sBefore));
       if (newGens.length === 0 || newGens.join(',') === prevGens) { break; }
       gensInput.value = newGens.join(', ');
-      _computeLabel = direction === 'descent' ? 'Descent' : 'Ascent';
+      _computeLabel = cfg.label;
       compute();
       await delay(RUN_LOOP_DWELL_MS);
     }
@@ -948,16 +987,15 @@ async function run3dLoop(direction) {
   }
 }
 
-document.getElementById('run-descent-btn').addEventListener('click', () => {
-  if (_running3d === 'descent') { _running3d = null; update3dButtonState(); return; }
-  if (_running3d || !currentS) { return; }
-  run3dLoop('descent');
-});
-document.getElementById('run-ascent-btn').addEventListener('click', () => {
-  if (_running3d === 'ascent') { _running3d = null; update3dButtonState(); return; }
-  if (_running3d || !currentS) { return; }
-  run3dLoop('ascent');
-});
+function wireRunBtn(id, dir) {
+  document.getElementById(id).addEventListener('click', () => {
+    if (_running3d === dir) { _running3d = null; update3dButtonState(); return; }
+    if (_running3d || !currentS) { return; }
+    run3dLoop(dir);
+  });
+}
+wireRunBtn('run-descent-btn', 'descent');
+wireRunBtn('run-ascent-btn', 'ascent');
 
 document.getElementById('compute-btn').addEventListener('click', guardedCompute);
 document.getElementById('reset-btn').addEventListener('click', guarded(() => {

@@ -94,6 +94,24 @@ ascent of a minimal generator f+m
 --replace
 
 
+TODO 81) [DONE]
+directly below the random button show a small text
+constraint = 0
+and a textbox below (same width as the buttons)
+in the box the user can enter a expr
+exactly the same capabilites as our expr parser allows
+if there is anything in this box:
+if the user clicks on random, the constraint is given
+to the create random as a string
+random goes into its loop
+creates a random semigroup
+computes the value of the constraint expr with e,m,t,r,... etc
+(if the expr throws an error - ignore)
+if value of the expr == 0 then return the semigroup
+otherwise iterate
+(ignroe the problem that the expr==0 might be impossible - too hard to adapt the random parameters we use now)
+
+
 
 
 

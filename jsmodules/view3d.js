@@ -568,38 +568,52 @@ export function render3d(s, onToggle) {
       }
     }
 
-    // Descent / ascent animation step
+    // Descent / ascent animation step. Both run the same two-phase loop:
+    //   phase 1: tile slides one z toward the new Apéry slot; descent's gap
+    //     cube explodes; descent's below-cubes follow the tile down.
+    //   phase 2: every survivor lerps to its precomputed `finalPos`, the exact
+    //     slot the new render3d will draw — so the swap is a colour flip.
+    // Direction-specific bits live in the column entries and labelDir.
     if (_3dPendingAnim) {
       const a = _3dPendingAnim;
       a.t = Math.min(1, a.t + dt / a.duration);
-      // Smooth ease-out so the explosion finishes fast and the descend lands
-      // before the wait-1s pause.
-      const t = 1 - (1 - a.t) * (1 - a.t);
-      if (a.type === 'descent') {
+      const PHASE1 = 0.6;
+      if (a.t <= PHASE1) {
+        const t1 = a.t / PHASE1;
+        const e1 = 1 - (1 - t1) * (1 - t1);
+        for (const e of a.column) {
+          if (e.category === 'gap') {
+            e.mesh.scale.setScalar(1 + e1 * 1.8);
+            e.mesh.material.opacity = (1 - e1) * 0.85;
+          } else if (e.movesPhase1) {
+            e.mesh.position.lerpVectors(e.start, e.p1End, e1);
+          }
+        }
         if (a.tileMesh) {
-          a.tileMesh.position.lerpVectors(a.tileFrom, a.tileTo, t);
-          // Tick the displayed number down: x → x−1 → … → x−m across the move.
-          // Carve [0,1] into a.step+1 equal segments; cap at a.step so t=1 lands on x−m.
-          const dec = Math.min(a.step, Math.floor(t * (a.step + 1)));
-          const want = a.startVal - dec;
+          // Tick the label toward val ± m in m+1 equal segments.
+          const step = Math.min(a.labelStep, Math.floor(e1 * (a.labelStep + 1)));
+          const want = a.startVal + a.labelDir * step;
           if (want !== a.shownVal) {
             a.shownVal = want;
             paintTileCanvas(a.tileCanvas, String(want), a.tileMesh.userData.cls);
             a.tileMesh.material.map.needsUpdate = true;
           }
         }
-        if (a.gapMesh) {
-          a.gapMesh.scale.setScalar(1 + t * 1.8);
-          a.gapMesh.material.opacity = (1 - t) * 0.85;
+      } else {
+        const t2 = (a.t - PHASE1) / (1 - PHASE1);
+        const e2 = 1 - (1 - t2) * (1 - t2);
+        for (const e of a.column) {
+          if (e.category === 'gap') { continue; }
+          e.mesh.position.lerpVectors(e.p1End, e.finalPos, e2);
         }
-      } else if (a.type === 'ascent' && a.tileMesh) {
-        a.tileMesh.scale.setScalar(1 + t * 1.8);
-        a.tileMesh.material.opacity = 1 - t;
       }
       if (a.t >= 1) {
+        // Descent's gap cube has a cloned MeshLambertMaterial — dispose it so
+        // we don't leak GPU programs across the loop's ≤500 steps.
+        if (a.gapMesh) { a.gapMesh.material.dispose(); }
         const done = a.onDone;
         _3dPendingAnim = null;
-        if (done) { done(); }
+        done();
       }
     }
 
@@ -618,28 +632,72 @@ function findMeshByVal(val) {
 // the first render3d call, or the 3D scene was never built).
 function loopIsLive() { return _3dAnimId !== null; }
 
-// Animate a descent step on the value `val`: slide its Apéry tile down toward
-// the gap cube at val − m (z = −1) while that gap cube scales up and fades.
-// Resolves when the animation completes; resolves immediately when no mesh
-// exists for `val` or no rAF loop is running.
+// Common column-builder for both directions. `dir` is +1 (descent) or -1
+// (ascent); positions are computed so every survivor's finalPos is the exact
+// slot the new render3d will draw, regardless of the phase-1 motion. The new
+// Apéry's y sits at start.y - dir.
+//
+// Categories:
+//   'tile'   — the moving Apéry tile (val=target); relabel ticks toward
+//              val±m so it lands as the new Apéry.
+//   'gap'    — descent only: the cube at val-m that explodes (no ascent
+//              analog, since val+m > f always for ascent targets).
+//   'below'  — cubes at val-m (ascent), val-2m, val-3m, … (gaps under tile).
+//   'above'  — sporadic S-cubes (val+m, …); for both directions val±m > f,
+//              so this is never hit on real inputs — kept defensively.
+//
+// `start` is cloned because lerpVectors(start, …) is called with this===mesh.position
+// in phase 1; the clone keeps the source point fixed across frames.
+function buildColumn(val, m, dir) {
+  const residue = val % m;
+  const column = [];
+  for (const mesh of _3dClickable) {
+    const v = mesh.userData.val;
+    if (v == null) { continue; }
+    if (v % m !== residue) { continue; }
+    const p = mesh.position;
+    const start = p.clone();
+    let category, p1End, finalPos, movesPhase1 = false;
+    if (v === val) {
+      category = 'tile';
+      p1End = new THREE.Vector3(p.x, p.y, p.z - dir);
+      finalPos = new THREE.Vector3(p.x, p.y - dir, p.z);
+      movesPhase1 = true;
+    } else if (dir === 1 && v === val - m) {
+      category = 'gap';
+      p1End = start;
+      finalPos = start;
+    } else if (v < val && dir === 1) {
+      category = 'below';
+      p1End = new THREE.Vector3(p.x, p.y, p.z - 1); // descent: follow tile down
+      finalPos = new THREE.Vector3(p.x, p.y - 1, p.z + 1);
+      movesPhase1 = true;
+    } else {
+      // Ascent's below cubes (v < val) or descent's defensive above (v > val):
+      // no phase-1 motion; phase 2 carries them onto the new grid.
+      category = v < val ? 'below' : 'above';
+      p1End = start;
+      finalPos = new THREE.Vector3(p.x, p.y - dir, p.z + dir);
+    }
+    column.push({ mesh, category, start, p1End, finalPos, movesPhase1 });
+  }
+  return column;
+}
+
 export function animate3dDescent(val) {
   return new Promise(resolve => {
     if (!loopIsLive()) { resolve(); return; }
+    const m = _3dCurrentM;
     const tileMesh = findMeshByVal(val);
-    const gapMesh = findMeshByVal(val - _3dCurrentM);
+    const gapMesh = findMeshByVal(val - m);
     if (!tileMesh && !gapMesh) { resolve(); return; }
+    const column = buildColumn(val, m, 1);
     if (gapMesh) {
       // Cube materials are shared via matCache — clone so we don't fade every
       // cube of the same class.
       gapMesh.material = gapMesh.material.clone();
       gapMesh.material.transparent = true;
     }
-    const tileFrom = tileMesh ? tileMesh.position.clone() : null;
-    const tileTo = tileMesh
-      ? (gapMesh ? gapMesh.position.clone() : tileMesh.position.clone().setZ(-1))
-      : null;
-    // Tile texture is backed by a CanvasTexture whose `image` is the source
-    // canvas — repainting it and flagging needsUpdate is enough to retext.
     const tileCanvas = tileMesh ? tileMesh.material.map.image : null;
     _3dPendingAnim = {
       type: 'descent',
@@ -647,33 +705,40 @@ export function animate3dDescent(val) {
       duration: STEP_DURATION,
       tileMesh,
       gapMesh,
-      tileFrom,
-      tileTo,
       tileCanvas,
       startVal: val,
-      step: _3dCurrentM,
+      labelStep: m,
+      labelDir: -1,
       shownVal: val,
+      column,
       onDone: resolve,
     };
   });
 }
 
-// Animate an ascent step on the value `val`: scale up and fade out its tile/
-// cube (the min-gen being toggled past f, or f+m being removed).
+// Animate an ascent step on the min-gen `val`: lift its tile by Δz=+1 with
+// the label ticking val → val+m so it lands as the new Apéry one Kunz row up.
+// Phase 2 shifts every survivor (Δy=+1, Δz=-1) onto the new grid. No cube
+// explodes — val+m > f, so the position above the tile is empty in the old view.
 export function animate3dAscent(val) {
   return new Promise(resolve => {
     if (!loopIsLive()) { resolve(); return; }
+    const m = _3dCurrentM;
     const tileMesh = findMeshByVal(val);
     if (!tileMesh) { resolve(); return; }
-    // Tile materials are per-mesh (each has its own canvas texture) but cube
-    // materials are shared via matCache — clone defensively in both cases.
-    tileMesh.material = tileMesh.material.clone();
-    tileMesh.material.transparent = true;
+    const column = buildColumn(val, m, -1);
+    const tileCanvas = tileMesh.material.map.image;
     _3dPendingAnim = {
       type: 'ascent',
       t: 0,
       duration: STEP_DURATION,
       tileMesh,
+      tileCanvas,
+      startVal: val,
+      labelStep: m,
+      labelDir: +1,
+      shownVal: val,
+      column,
       onDone: resolve,
     };
   });

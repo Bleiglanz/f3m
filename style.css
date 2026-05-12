@@ -129,6 +129,19 @@ body {
 .body > aside .aside-section { display: flex; flex-direction: column; gap: 0.3rem; }
 .body > aside .aside-section button { width: 100%; padding: 0.3rem 0.35rem; font-size: 0.75rem; }
 .body > aside hr.aside-sep { border: none; border-top: 1px solid var(--border); margin: 0.7rem 0; }
+.body > aside .aside-constraint-label {
+  margin-top: 0.3rem;
+  font-size: 0.7rem;
+  text-align: center;
+  color: var(--muted, #666);
+}
+.body > aside .aside-constraint-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.25rem 0.35rem;
+  font-family: monospace;
+  font-size: 0.75rem;
+}
 .body > aside .aside-heading {
   margin: 0 0 0.4rem 0;
   font-size: 0.78rem;

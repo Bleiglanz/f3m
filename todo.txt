@@ -64,3 +64,60 @@ TODO 79) [DONE] show missing - call the value val(l,i)=lm+i
 the cell l,i represents the number ml+i
 if i hover a empty cell: highlight the gaps (= empty cells)
 that have the val(l,i)+w_j for all j
+
+TODO 80) [DONE] in the 3d view only in the tab
+add two buttons "run descent" and "run ascent"
+clicking on them will toggle the description to "stop descent" resp. "stop ascent"
+if one is running, user cannot click on the other one
+"run ascent" is only available if is_descent is true, i.e. we can ascent at all
+once running, it does at most 500 iterations of
+compute the new semigroup descent or ascent of the current one (but don't change the view)
+do an animation
+update the 3dview with the new semigroup, but keep all viewport settings as the user has it
+wait for 1second
+the animation is this
+
+descent of an apery w such that f < w < f+m
+--animates the movement of the cube w to the w-m position
+--lets the gap-cube w-m directly below it explode
+--lower the cube to the w-m position one level down
+--replace the semigroup with the new one
+descent of f+m
+--let f explode
+--lower the f+m cube to the f position
+--replace the semigroup with the new one
+ascent of a minimal generator a with f-m<a<f
+--let the a cube explode
+--replace the view with the new semigroup (colors could change)
+ascent of a minimal generator f+m
+--let the f+m cube explode
+--replace
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -11,6 +11,15 @@ let _3dSMeshes = [];    // cube meshes classified as semigroup elements (for sho
 let _3dFlatState = 'kunz';
 let _3dFlatT = 0;           // progress 0→1
 const FLAT_DURATION = 1.2;  // seconds
+
+// ── Descent/Ascent animation state ───────────────────────────────────────────
+// Module-level handles so animate3dDescent/Ascent can find meshes built inside
+// render3d() and queue a one-shot animation onto the existing rAF loop.
+let _3dClickable = [];
+let _3dCurrentM = 1;
+let _3dPendingAnim = null;       // { type, t, duration, … }
+const STEP_DURATION = 0.7;       // seconds — single descent/ascent animation
+
 // Persisted camera state so toggles/recomputes don't reset the viewpoint.
 let _3dCameraState = null; // { position, target, zoom }
 const _3dHoverLineMat = new THREE.LineBasicMaterial({ color: 0xff8888, linewidth: 2, depthTest: false });
@@ -102,13 +111,11 @@ function isGapClass(cls) {
   return cls === 'sg-out' || cls === 'sg-frob' || cls === 'sg-pf' || cls === 'sg-pf-blob' || cls === 'sg-blob';
 }
 
-// Create a flat 1×1 tile with class-colored background and number label,
-// lying in the z=0 plane with its lower-left corner at (x, y, 0).
-function aperyTile(text, x, y, cls) {
+// Paint a tile canvas (128×128) with the given background, foreground, and
+// centered label. Shared by aperyTile() and the descent animation, which
+// repaints the moving tile each time its displayed integer changes.
+function paintTileCanvas(canvas, text, cls) {
   const c = COLORS_FOR(cls);
-  const canvas = document.createElement('canvas');
-  canvas.width = 128;
-  canvas.height = 128;
   const ctx = canvas.getContext('2d');
   ctx.fillStyle = c.bg;
   ctx.fillRect(0, 0, 128, 128);
@@ -120,6 +127,15 @@ function aperyTile(text, x, y, cls) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(text, 64, 64);
+}
+
+// Create a flat 1×1 tile with class-colored background and number label,
+// lying in the z=0 plane with its lower-left corner at (x, y, 0).
+function aperyTile(text, x, y, cls) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 128;
+  canvas.height = 128;
+  paintTileCanvas(canvas, text, cls);
   const texture = new THREE.CanvasTexture(canvas);
   const geo = new THREE.PlaneGeometry(1, 1);
   const mat = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide });
@@ -519,6 +535,12 @@ export function render3d(s, onToggle) {
   // Reset flatten state on each render3d call
   _3dFlatState = 'kunz';
   _3dFlatT = 0;
+  // Expose for descent/ascent animations queued from app.js.
+  _3dClickable = clickable;
+  _3dCurrentM = m;
+  // Drop any pending animation tied to the previous scene (its meshes are gone).
+  if (_3dPendingAnim?.onDone) { _3dPendingAnim.onDone(); }
+  _3dPendingAnim = null;
   let lastTime = performance.now();
 
   function animate(now) {
@@ -546,10 +568,115 @@ export function render3d(s, onToggle) {
       }
     }
 
+    // Descent / ascent animation step
+    if (_3dPendingAnim) {
+      const a = _3dPendingAnim;
+      a.t = Math.min(1, a.t + dt / a.duration);
+      // Smooth ease-out so the explosion finishes fast and the descend lands
+      // before the wait-1s pause.
+      const t = 1 - (1 - a.t) * (1 - a.t);
+      if (a.type === 'descent') {
+        if (a.tileMesh) {
+          a.tileMesh.position.lerpVectors(a.tileFrom, a.tileTo, t);
+          // Tick the displayed number down: x → x−1 → … → x−m across the move.
+          // Carve [0,1] into a.step+1 equal segments; cap at a.step so t=1 lands on x−m.
+          const dec = Math.min(a.step, Math.floor(t * (a.step + 1)));
+          const want = a.startVal - dec;
+          if (want !== a.shownVal) {
+            a.shownVal = want;
+            paintTileCanvas(a.tileCanvas, String(want), a.tileMesh.userData.cls);
+            a.tileMesh.material.map.needsUpdate = true;
+          }
+        }
+        if (a.gapMesh) {
+          a.gapMesh.scale.setScalar(1 + t * 1.8);
+          a.gapMesh.material.opacity = (1 - t) * 0.85;
+        }
+      } else if (a.type === 'ascent' && a.tileMesh) {
+        a.tileMesh.scale.setScalar(1 + t * 1.8);
+        a.tileMesh.material.opacity = 1 - t;
+      }
+      if (a.t >= 1) {
+        const done = a.onDone;
+        _3dPendingAnim = null;
+        if (done) { done(); }
+      }
+    }
+
     controls.update();
     renderer.render(scene, camera);
   }
   animate(performance.now());
+}
+
+// Look up a mesh in the current scene by its numeric value.
+function findMeshByVal(val) {
+  return _3dClickable.find(mesh => mesh.userData.val === val) || null;
+}
+
+// Resolve immediately when no rAF loop is processing animations (e.g. before
+// the first render3d call, or the 3D scene was never built).
+function loopIsLive() { return _3dAnimId !== null; }
+
+// Animate a descent step on the value `val`: slide its Apéry tile down toward
+// the gap cube at val − m (z = −1) while that gap cube scales up and fades.
+// Resolves when the animation completes; resolves immediately when no mesh
+// exists for `val` or no rAF loop is running.
+export function animate3dDescent(val) {
+  return new Promise(resolve => {
+    if (!loopIsLive()) { resolve(); return; }
+    const tileMesh = findMeshByVal(val);
+    const gapMesh = findMeshByVal(val - _3dCurrentM);
+    if (!tileMesh && !gapMesh) { resolve(); return; }
+    if (gapMesh) {
+      // Cube materials are shared via matCache — clone so we don't fade every
+      // cube of the same class.
+      gapMesh.material = gapMesh.material.clone();
+      gapMesh.material.transparent = true;
+    }
+    const tileFrom = tileMesh ? tileMesh.position.clone() : null;
+    const tileTo = tileMesh
+      ? (gapMesh ? gapMesh.position.clone() : tileMesh.position.clone().setZ(-1))
+      : null;
+    // Tile texture is backed by a CanvasTexture whose `image` is the source
+    // canvas — repainting it and flagging needsUpdate is enough to retext.
+    const tileCanvas = tileMesh ? tileMesh.material.map.image : null;
+    _3dPendingAnim = {
+      type: 'descent',
+      t: 0,
+      duration: STEP_DURATION,
+      tileMesh,
+      gapMesh,
+      tileFrom,
+      tileTo,
+      tileCanvas,
+      startVal: val,
+      step: _3dCurrentM,
+      shownVal: val,
+      onDone: resolve,
+    };
+  });
+}
+
+// Animate an ascent step on the value `val`: scale up and fade out its tile/
+// cube (the min-gen being toggled past f, or f+m being removed).
+export function animate3dAscent(val) {
+  return new Promise(resolve => {
+    if (!loopIsLive()) { resolve(); return; }
+    const tileMesh = findMeshByVal(val);
+    if (!tileMesh) { resolve(); return; }
+    // Tile materials are per-mesh (each has its own canvas texture) but cube
+    // materials are shared via matCache — clone defensively in both cases.
+    tileMesh.material = tileMesh.material.clone();
+    tileMesh.material.transparent = true;
+    _3dPendingAnim = {
+      type: 'ascent',
+      t: 0,
+      duration: STEP_DURATION,
+      tileMesh,
+      onDone: resolve,
+    };
+  });
 }
 
 // Keep the 3D canvas square and resize the renderer when the wrapper is dragged.

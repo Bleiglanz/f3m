@@ -12,7 +12,7 @@ import init, {
   state_get_show_strata, state_set_show_strata,
   state_comp_html,
 } from '../pkg/semigroup_explorer.js';
-import { render3d } from './view3d.js';
+import { render3d, animate3dDescent, animate3dAscent } from './view3d.js';
 import { rebuildGraph, setupGraphUpto, setupShowGaps, setupGraphToggle } from './graph.js';
 
 const PROP_THEAD_TR = '<tr><th title="Index and operation label">#</th><th title="Generator added (+) or removed (\u2212)">toggle</th><th title="Multiplicity: smallest positive element">m</th><th title="Frobenius number: largest gap">f</th><th title="Embedding dimension: number of minimal generators (hover the cell to list them)">e</th><th title="Genus: number of gaps">g</th><th title="Sporadic elements: elements of S below the conductor f+1">\u03C3</th><th title="Reflected gaps: gaps n where f\u2212n is also a gap">r</th><th title="Reflected Ap\u00E9ry: Ap\u00E9ry elements w where w\u2212m is a reflected gap">ra</th><th title="Fundamental gaps: gaps not expressible as sum of two smaller gaps">fg</th><th title="Type: number of pseudo-Frobenius numbers (hover the cell to list them)">t</th><th title="Symmetric: t=1 and g=(f+1)/2">Sym</th><th title="Descent image: \u2203 T with T.descent()=S; equivalently a min-gen lies in (f\u2212m, f) or at f+m">di</th><th title="Wilf quotient: \u03C3/(f+1) \u2265 1/e (conjecture)">Wilf</th><th title="Wilf conjecture lower bound: 1/e">1/e</th><th title="Expression evaluated for this semigroup">expr</th><th title="Result of the expression">value</th><th title="Set-containment relation with previous entry">&#8838;?</th></tr>';
@@ -300,6 +300,7 @@ function render(s, toggle = null, label = '⏎') {
   if (document.getElementById('tab-csv').classList.contains('active')) { buildCsv(); }
   if (document.getElementById('tab-latex').classList.contains('active')) { buildLatex(s); }
   if (document.getElementById('tab-comp').classList.contains('active')) { renderComp(); }
+  update3dButtonState();
 }
 
 // Toggle a generator or gap: clicking a labelled number in the result panel.
@@ -862,6 +863,101 @@ document.getElementById('add-fhalf-btn').addEventListener('click', guarded(() =>
   if (!currentS || currentS.f === 0 || currentS.f % 2 !== 0) { return; }
   doToggle(currentS.f / 2);
 }));
+
+// ── 3D-view run loop (descent/ascent) ──────────────────────────────────────
+// _running3d is null when idle, or 'descent'/'ascent' while the loop is alive.
+// Clicking the active direction's button again sets it to null, which the loop
+// sees on its next iteration and exits gracefully.
+let _running3d = null;
+const RUN_LOOP_DWELL_MS = 1000;
+const RUN_LOOP_MAX_STEPS = 500;
+
+function update3dButtonState() {
+  const descBtn = document.getElementById('run-descent-btn');
+  const ascBtn = document.getElementById('run-ascent-btn');
+  if (!descBtn || !ascBtn) { return; }
+  if (_running3d === 'descent') {
+    descBtn.textContent = 'stop descent';
+    descBtn.disabled = false;
+    ascBtn.textContent = 'run ascent';
+    ascBtn.disabled = true;
+  } else if (_running3d === 'ascent') {
+    descBtn.textContent = 'run descent';
+    descBtn.disabled = true;
+    ascBtn.textContent = 'stop ascent';
+    ascBtn.disabled = false;
+  } else {
+    descBtn.textContent = 'run descent';
+    descBtn.disabled = !currentS || currentS.f < currentS.m;
+    ascBtn.textContent = 'run ascent';
+    ascBtn.disabled = !currentS || !currentS.is_descent_image;
+  }
+}
+
+// Smallest Apéry element above f — the value Rust's `descent` will reduce by m.
+// Always exists because a_μ = f + m > f. Returns null if S is N (f < m).
+function descentTarget(s) {
+  if (s.f < s.m) { return null; }
+  let best = -1;
+  for (const a of s.apery_set) {
+    if (a > s.f && (best === -1 || a < best)) { best = a; }
+  }
+  return best === -1 ? null : best;
+}
+
+// The min-gen that Rust's `ascent` will toggle past f: largest one in (f−m, f),
+// or f+m if no such gen exists. Returns null when neither clause fires.
+function ascentTarget(s) {
+  let best = -1;
+  for (const g of s.gen_set) {
+    if (g > s.m && g < s.f && g + s.m > s.f && g > best) { best = g; }
+  }
+  if (best !== -1) { return best; }
+  const fm = s.f + s.m;
+  return Array.from(s.gen_set).includes(fm) ? fm : null;
+}
+
+const delay = ms => new Promise(r => setTimeout(r, ms));
+
+async function run3dLoop(direction) {
+  _running3d = direction;
+  update3dButtonState();
+  try {
+    for (let i = 0; i < RUN_LOOP_MAX_STEPS; i++) {
+      if (_running3d !== direction || !currentS) { break; }
+      const target = direction === 'descent' ? descentTarget(currentS) : ascentTarget(currentS);
+      if (target === null) { break; }
+      const sBefore = currentS;
+      const prevGens = currentGenSet.join(',');
+      if (direction === 'descent') {
+        await animate3dDescent(target);
+      } else {
+        await animate3dAscent(target);
+      }
+      if (_running3d !== direction) { break; }
+      const newGens = Array.from(direction === 'descent' ? sBefore.descent() : sBefore.ascent());
+      if (newGens.length === 0 || newGens.join(',') === prevGens) { break; }
+      gensInput.value = newGens.join(', ');
+      _computeLabel = direction === 'descent' ? 'Descent' : 'Ascent';
+      compute();
+      await delay(RUN_LOOP_DWELL_MS);
+    }
+  } finally {
+    _running3d = null;
+    update3dButtonState();
+  }
+}
+
+document.getElementById('run-descent-btn').addEventListener('click', () => {
+  if (_running3d === 'descent') { _running3d = null; update3dButtonState(); return; }
+  if (_running3d || !currentS) { return; }
+  run3dLoop('descent');
+});
+document.getElementById('run-ascent-btn').addEventListener('click', () => {
+  if (_running3d === 'ascent') { _running3d = null; update3dButtonState(); return; }
+  if (_running3d || !currentS) { return; }
+  run3dLoop('ascent');
+});
 
 document.getElementById('compute-btn').addEventListener('click', guardedCompute);
 document.getElementById('reset-btn').addEventListener('click', guarded(() => {

@@ -1,6 +1,6 @@
 {"gmax":2,"semigroups":[
-{"g":2,"m":2,"q1":2,"f":3,"e":2,"sigma":2,"r":0,"ra":0,"fg":0,"type":1,"sym":true,"asym":true,"level":1,"wilf":0.500000,"inv_e":0.500000,"max_gen":5,"min_ri":0,"max_ri":0,"any_ri_eq_2":false,"deep":true,"descent":true,"di":true,"gen":[2,5],"pf":[3],"apery":[0,5],"c1":[5]},
-{"g":2,"m":3,"q1":1,"f":2,"e":3,"sigma":1,"r":1,"ra":1,"fg":0,"type":2,"sym":false,"asym":true,"level":0,"wilf":0.333333,"inv_e":0.333333,"max_gen":5,"min_ri":1,"max_ri":1,"any_ri_eq_2":false,"deep":false,"descent":false,"di":true,"gen":[3,4,5],"pf":[1,2],"apery":[0,4,5],"c1":[1,3]}
+{"g":2,"m":2,"q1":2,"f":3,"es":0,"e":2,"sigma":2,"rl":0,"r":0,"ra":0,"fg":0,"type":1,"sym":true,"asym":true,"level":1,"wilf":0.500000,"inv_e":0.500000,"max_gen":5,"min_ri":0,"max_ri":0,"any_ri_eq_2":false,"deep":true,"descent":true,"di":true,"gen":[2,5],"pf":[3],"apery":[0,5],"c1":[5]},
+{"g":2,"m":3,"q1":1,"f":2,"es":0,"e":3,"sigma":1,"rl":1,"r":1,"ra":1,"fg":0,"type":2,"sym":false,"asym":true,"level":0,"wilf":0.333333,"inv_e":0.333333,"max_gen":5,"min_ri":1,"max_ri":1,"any_ri_eq_2":false,"deep":false,"descent":false,"di":true,"gen":[3,4,5],"pf":[1,2],"apery":[0,4,5],"c1":[1,3]}
 ],
 "level_mu_counts":[
 {"g":2,"l":0,"m":3,"mu":2,"n":1},

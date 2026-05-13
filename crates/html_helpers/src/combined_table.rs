@@ -93,6 +93,41 @@ pub const fn kunz_cls(n: usize) -> &'static str {
     if n == 0 { "kunz-zero" } else { "" }
 }
 
+/// Cell content for the descent/ascent arrow row in [`combined_table`].
+///
+/// Per residue class `i ∈ 0..m`:
+/// - `i == 0`: always a `↓` arrow that toggles `m` (the residue-0 min-gen).
+/// - `i ≠ 0` and `w_i > f`: `↓` arrow that toggles `w_i` (descent target).
+/// - `i ≠ 0` and `f − m < w_i < f`: `↑` arrow that toggles `w_i` (ascent target).
+/// - otherwise: empty cell.
+///
+/// The arrow spans carry `data-n` so they piggy-back on the existing
+/// `.sg-grid span[data-n]` click handler.
+fn arrow_cell(sg: &Semigroup, residue: usize) -> String {
+    if residue == 0 {
+        return format!(
+            "<td class=\"sg-arrow-cell\"><span class=\"sg-arrow sg-arrow-down\" \
+             data-n=\"{m}\" title=\"toggle m={m} (descent)\">↓</span></td>",
+            m = sg.m
+        );
+    }
+    let w = sg.apery_set[residue];
+    if w > sg.f {
+        return format!(
+            "<td class=\"sg-arrow-cell\"><span class=\"sg-arrow sg-arrow-down\" \
+             data-n=\"{w}\" title=\"toggle w_{residue}={w} (descent)\">↓</span></td>"
+        );
+    }
+    // w + m > f avoids underflow vs the equivalent w > f - m.
+    if w < sg.f && w + sg.m > sg.f {
+        return format!(
+            "<td class=\"sg-arrow-cell\"><span class=\"sg-arrow sg-arrow-up\" \
+             data-n=\"{w}\" title=\"toggle w_{residue}={w} (ascent)\">↑</span></td>"
+        );
+    }
+    "<td class=\"sg-arrow-cell\"></td>".to_string()
+}
+
 /// CSS class for a natural number cell, classified by its role in the semigroup.
 #[must_use]
 pub fn cell_cls(n: usize, sg: &Semigroup, sets: &ClassSets) -> &'static str {
@@ -118,7 +153,8 @@ pub fn cell_cls(n: usize, sg: &Semigroup, sets: &ClassSets) -> &'static str {
     }
 }
 
-/// Build the full combined table: structure grid, repeated header, Apéry row, Kunz matrix.
+/// Build the full combined table: descent/ascent arrow row, structure grid,
+/// repeated header, Apéry row, Kunz matrix.
 ///
 /// When `tilt == 0` columns span `[0, m)`; when `tilt != 0` they span `[-2m, 2m)`
 /// so the wider neighbourhood is visible for a tilted view.
@@ -172,6 +208,13 @@ pub fn combined_table(
     let mut html = format!("<table class=\"{table_cls}\"><thead>");
     html.push_str(&header_row);
     html.push_str("</thead><tbody>");
+
+    // Descent/ascent arrow row (todo 83): one cell per residue column.
+    html.push_str("<tr class=\"sg-arrow-row\">");
+    for &res in &residues {
+        html.push_str(&arrow_cell(sg, res));
+    }
+    html.push_str("</tr>");
 
     #[allow(clippy::cast_possible_wrap)]
     let start_row: isize = if (m <= 15 && tilt != 0) || offset != 0 {

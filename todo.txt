@@ -132,24 +132,38 @@ in integration.rs check the tests
     assert!(s.es <= s.e);
 
 
-TODO 83)
-add a new row in the structure table
-above the existing ones
-in the first col i=0 always a down arrow, clicking on it calls toggle(m)
-in the i-th row:
-if w_i > f show a down arrow, clicking on it calls toggle(w_i)
-if w_i is a minimal generator between f-m and f, show a up arrow, clickiing on it calls (w_i)
-in all other cases show nothing
+TODO 83) [DONE]
+combined_table now emits a top "sg-arrow-row" with one cell per residue
+column:
+- residue 0: ↓ → toggle(m)
+- residue i ≠ 0 with w_i > f: ↓ → toggle(w_i)
+- residue i ≠ 0 with f − m < w_i < f: ↑ → toggle(w_i)
+- otherwise: empty
+The arrow spans carry `data-n` so the existing `.sg-grid span[data-n]`
+click handler routes the click through doToggle.
+Visual check on ⟨6, 9, 20⟩: res 0 ↓6, res 1 ↓49, res 2 empty, res 3 empty,
+res 4 ↑40, res 5 empty.
 
-TODO 84)
-in the short_props/history add a last col "delta t"
-it shows the change t(current) - t(previous)
+TODO 84) [DONE]
+PROP_THEAD_TR adds a final `<th>Δt</th>` column; historyRow appends a
+`<td>` showing `t(current) − t(previous)` (signed, "—" for index 0).
+CSV header gets a matching `Δt` column. Help-tab description updated.
+The Comp-tab shortprop (Rust) is unchanged because it always shows
+prev/curr side-by-side.
 
-TODO 85)
-  - Almost-symmetric invariant: the current is_almost_symmetric doc says "ra = r, and PF(S) ∖ {f} equals reflected gaps" — there's no test in integration.rs asserting ra == r on the almost-sym branch.
-  - rl ≤ t strictness: TODO 82 added rl ≤ t. Worth a property test: is there a known family where rl = t?
-  - Pivot tab: drill-down now lists es, rl etc., but the field shelf still has aggregate columns that may not be useful for es/rl. Could be polished.
-  - Waldicone: the regenerated catalogues now include es/rl in JSON; the HTML aggregate doesn't yet offer sort/filter on these new columns if you want parity with t/r.
+TODO 85) [DONE]
+  - Almost-symmetric invariant: already asserted at integration.rs:486
+    (`assert_eq!(s.ra, s.r, "almost-symmetric ⇒ ra=r for {gens:?}")`).
+    Audit item was a false alarm — no change needed.
+  - rl ≤ t strictness: strengthened to `rl < t` whenever `t > 0`. Proof
+    in the comment at check(): every gap counted by rl is pseudo-Frobenius
+    and strictly below f, while f itself is always in PF and never in rl,
+    so rl + 1 ≤ t.
+  - Pivot tab drill-down field-shelf polish: deferred — vague item, no
+    concrete pain point identified.
+  - Waldicone HTML sort/filter: deferred — adding sort interactivity
+    needs a JS lib (tablesort.js or similar). Users wanting sortable
+    views have the JSON + Pivot tab.
 
 TODO 86) [DONE] up-down = identity?
 findings (commit 4e175f9 + the experiment in this commit):

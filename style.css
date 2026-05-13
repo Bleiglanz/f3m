@@ -459,6 +459,19 @@ span[data-remove-gen]     { cursor: pointer; }
 .residue-sep-row th { cursor: default; }
 .residue-sep-row th:hover { background: rgba(255, 150, 30, 0.25); }
 
+.sg-arrow-row td { background: transparent; border-color: transparent; height: 1.6em; }
+.sg-arrow-row td.sg-arrow-cell:empty { background: transparent; }
+.sg-arrow {
+  display: block;
+  padding: 0.05rem 0.15rem;
+  cursor: pointer;
+  font-weight: bold;
+  line-height: 1;
+}
+.sg-arrow-down { color: #b14b4b; }
+.sg-arrow-up   { color: #2c8a2c; }
+.sg-arrow:hover { filter: brightness(0.85); }
+
 .sg-grid td:has(span.sg-in),
 .sg-grid td:has(span.sg-gen),
 .sg-grid td:has(span.sg-apery),

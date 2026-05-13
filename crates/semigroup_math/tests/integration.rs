@@ -374,8 +374,15 @@ fn check(
     );
     let aps: usize = s.apery_set.iter().sum();
     assert_eq!(aps, s.apery_sum);
-    // todo 82
-    assert!(s.rl <= s.t);
+    // todo 82 / 85
+    // rl < t whenever t > 0: every gap counted by rl is pseudo-Frobenius and
+    // strictly below f, while f itself is always pseudo-Frobenius and never
+    // counted by rl. So PF ⊇ {rl-counted gaps} ⊔ {f}, hence rl + 1 ≤ t.
+    if s.t > 0 {
+        assert!(s.rl < s.t, "rl = {}, t = {} for {gens:?}", s.rl, s.t);
+    } else {
+        assert_eq!(s.rl, 0);
+    }
     assert!(s.t <= s.r + 1);
     assert!(s.es <= s.e);
     // todo 86: descent(ascent(S)) == S iff ascent enters its "f+m branch":

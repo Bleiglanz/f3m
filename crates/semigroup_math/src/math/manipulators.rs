@@ -45,6 +45,20 @@ impl Semigroup {
     /// `ascent` is non-trivial whenever `is_descent_image()` is true.
     ///
     /// Returns `self` unchanged when neither clause applies.
+    ///
+    /// # Duality with [`Self::descent`]
+    ///
+    /// Only branch (2) is a clean inverse of [`Self::descent`]. Concretely,
+    /// `descent(ascent(S)) == S` holds **iff ascent enters branch (2)**, i.e.
+    /// iff `f + m ∈ gen_set` *and* no minimal generator lies in `(f − m, f)`.
+    ///
+    /// In branch (1) the choices made by `ascent` (largest min-gen in
+    /// `(f − m, f)`) and by `descent` (smallest Apéry above `f`) are not
+    /// dual: removing a min-gen `g*` lifts the Frobenius from `f` to some
+    /// `f' ≥ f`, after which `descent` picks the smallest Apéry above the
+    /// *new* `f'`, which is generally not `g* + m`. Counterexample:
+    /// `S = ⟨4, 5, 7⟩` → `ascent` removes `5` → `⟨4, 7, 9, 10⟩` (`f' = 6`)
+    /// → `descent` adds `7 − 4 = 3` → `⟨3, 4⟩ ≠ ⟨4, 5, 7⟩`.
     #[must_use]
     pub fn ascent(&self) -> Self {
         // (m, f) window, underflow-free: g + m > f ⇔ g > f − m.
@@ -84,6 +98,13 @@ impl Semigroup {
     /// [`Self::is_descent`], otherwise add `x − m` for some `x ∈ (f, f+m)`)
     /// is the same rule: when `is_descent` holds the only Apéry element
     /// above `f` is `a_μ = f+m`, and `(f+m) − m = f`.
+    ///
+    /// # Duality with [`Self::ascent`]
+    ///
+    /// `descent` is a left inverse of `ascent` **only** on the subset of
+    /// semigroups where `ascent` enters its branch (2): `f + m ∈ gen_set`
+    /// and no minimal generator lies in `(f − m, f)`. See [`Self::ascent`]
+    /// for the proof sketch and a counterexample.
     #[must_use]
     pub fn descent(&self) -> Self {
         if self.f < self.m {

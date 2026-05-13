@@ -378,13 +378,18 @@ fn check(
     assert!(s.rl <= s.t);
     assert!(s.t <= s.r + 1);
     assert!(s.es <= s.e);
-    // up-down
-    // if s.es < s.e {
-    //     let up = s.ascent();
-    //     let down = up.descent();
-    //     assert_eq!(s, down);
-    // }
-
+    // todo 86: descent(ascent(S)) == S iff ascent enters its "f+m branch":
+    // f+m is a min-gen AND no min-gen lies in (m, f) ∩ (f-m, f). The window
+    // matches Semigroup::ascent's own filter (which excludes g = m so that
+    // the trivial branch is not taken).
+    let no_large_mingen = !s
+        .gen_set
+        .iter()
+        .any(|&g| g > s.m && g < s.f && g + s.m > s.f);
+    let fpm_is_mingen = s.gen_set.contains(&(s.f + s.m));
+    if no_large_mingen && fpm_is_mingen {
+        assert_eq!(s, s.ascent().descent(), "up-down identity for {gens:?}");
+    }
 
     // Selmer identity: one·U(m)·c₁ = m·g + m·(m−1)/2
     let dim = m - 1;
@@ -3215,4 +3220,47 @@ fn test_apery_shift_first_when_kunz_move_is_blocked() {
         Some(std::cmp::Ordering::Equal),
         "blocked Kunz move should collapse to the original semigroup",
     );
+}
+
+#[test]
+fn test_up_down_identity_fpm_branch() {
+    // descent(ascent(S)) == S whenever ascent enters its f+m branch:
+    // f+m is a min-gen and no min-gen lies in (m, f) with g + m > f.
+    // The fixed cases are picked to span a few multiplicities.
+    for gens in [
+        &[5_usize, 7, 23][..], // m=5, f=18, f+m=23 is the only min-gen in (m,f+m]
+        &[2, 5][..],           // m=2, f=3,  f+m=5 is a min-gen, (m,f) is empty
+        &[3, 7, 8][..],        // m=3, f=5,  f+m=8 is a min-gen, no g in (3,5)
+        &[4, 6, 7, 9][..],     // m=4, f=5,  f+m=9 is a min-gen, no g in (4,5)
+    ] {
+        let s = compute(gens);
+        let no_large_mingen = !s
+            .gen_set
+            .iter()
+            .any(|&g| g > s.m && g < s.f && g + s.m > s.f);
+        let fpm_is_mingen = s.gen_set.contains(&(s.f + s.m));
+        assert!(
+            no_large_mingen,
+            "precondition mismatch for {gens:?}: large min-gen present"
+        );
+        assert!(
+            fpm_is_mingen,
+            "precondition mismatch for {gens:?}: f+m not a min-gen"
+        );
+        assert_eq!(s, s.ascent().descent(), "up-down identity for {gens:?}");
+    }
+}
+
+#[test]
+fn test_up_down_identity_fails_in_large_gen_branch() {
+    // Canonical counterexample: S = ⟨4, 5, 7⟩. Ascent picks the largest min-gen
+    // in (f-m, f) = (2, 6), namely 5. Removing 5 yields ⟨4, 7, 9, 10⟩ with
+    // f'=6. Its smallest Apéry above 6 is 7, so descent adds 7−4=3, giving
+    // ⟨3, 4⟩ ≠ ⟨4, 5, 7⟩.
+    let s = compute(&[4, 5, 7]);
+    assert_eq!(s.f, 6);
+    assert_eq!(s.m, 4);
+    let down = s.ascent().descent();
+    assert_ne!(s, down, "large-gen branch is not invertible by descent");
+    assert_eq!(down.gen_set, vec![3, 4]);
 }

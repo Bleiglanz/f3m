@@ -151,29 +151,18 @@ TODO 85)
   - Pivot tab: drill-down now lists es, rl etc., but the field shelf still has aggregate columns that may not be useful for es/rl. Could be polished.
   - Waldicone: the regenerated catalogues now include es/rl in JSON; the HTML aggregate doesn't yet offer sort/filter on these new columns if you want parity with t/r.
 
-TODO 86) up-down = identity?
-investigate whether descent(ascent(S)) == S, see commit 4e175f9 and the
-commented-out block in crates/semigroup_math/tests/integration.rs:
-    // if s.es < s.e {
-    //     let up = s.ascent();
-    //     let down = up.descent();
-    //     assert_eq!(s, down);
-    // }
-the naive form fails. open questions:
-- find a concrete S where descent(ascent(S)) != S and record it as a
-  counterexample test
-- the predicate `es < e` lumps two cases together:
-  (a) some min-gen g with f-m < g < f      ("large min-gen" branch of ascent)
-  (b) f+m is a min-gen                     ("f+m" branch of ascent)
-  state the right precondition that isolates the branch where the
-  identity holds (likely only (a)), e.g.
-      gen_set.iter().any(|&g| g + m > f && g < f)
-- ascent currently picks the largest such min-gen while descent picks
-  the smallest apery above f — pin down which pairing (if any) is
-  actually inverse to which, and document the duality in the doc
-  comments of manipulators::descent / manipulators::ascent
-- once the correct restricted identity is known, uncomment the
-  assertion (with the right precondition) and keep it in integration.rs
+TODO 86) [DONE] up-down = identity?
+findings (commit 4e175f9 + the experiment in this commit):
+- descent(ascent(S)) == S holds iff ascent enters its branch (2):
+      f+m is a min-gen AND no min-gen g satisfies m < g < f and g+m > f
+  the "large min-gen" branch (1) is NOT invertible by descent in general.
+  proof sketch in the manipulators::ascent doc comment.
+- counterexample: ⟨4, 5, 7⟩ -> ⟨4,7,9,10⟩ -> ⟨3, 4⟩ (test
+  test_up_down_identity_fails_in_large_gen_branch in integration.rs).
+- the gated identity is asserted in the main check() loop and as a
+  dedicated test test_up_down_identity_fpm_branch in integration.rs.
+- duality between Semigroup::ascent and Semigroup::descent is documented
+  in their doc comments in manipulators.rs.
 
 
 

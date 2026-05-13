@@ -97,6 +97,17 @@ pub fn state_len() -> usize {
     with_state(|state| state.history.len())
 }
 
+/// Wipe the history, the GAP-script accumulator, and the current-index pointer.
+/// Display toggles and the evaluator expression are preserved.
+#[wasm_bindgen]
+pub fn state_clear() {
+    with_state_mut(|state| {
+        state.history.clear();
+        state.gap_blocks.clear();
+        state.current_idx = None;
+    });
+}
+
 /// Current history index, or -1 if history is empty.
 #[wasm_bindgen]
 #[must_use]

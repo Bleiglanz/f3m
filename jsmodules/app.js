@@ -5,7 +5,7 @@ import init, {
   js_random_generators, js_random_with_multiplier,
   js_random_symmetric, js_random_pseudo_symmetric, js_random_almost_symmetric,
   js_random_primes,
-  state_push, state_get, state_len, state_current_idx, state_set_current_idx,
+  state_push, state_get, state_len, state_clear, state_current_idx, state_set_current_idx,
   state_get_eva_expr, state_set_eva_expr, state_gap_output, state_cmp,
   state_get_show_kunz, state_set_show_kunz,
   state_set_show_classification,
@@ -1005,6 +1005,18 @@ wireRunBtn('run-ascent-btn', 'ascent');
 document.getElementById('compute-btn').addEventListener('click', guardedCompute);
 document.getElementById('reset-btn').addEventListener('click', guarded(() => {
   gensInput.value = '';
+}));
+document.getElementById('reset-history-btn').addEventListener('click', guarded(() => {
+  state_clear();
+  document.getElementById('history-tbody').innerHTML = '';
+  document.getElementById('history-gap').textContent = '';
+  document.getElementById('csv-output').value = '';
+  gensInput.value = '6, 9, 20';
+  // Suppress compute()'s pushState so we replace the current entry instead of stacking.
+  navigating = true;
+  compute();
+  navigating = false;
+  history.replaceState({ gens: gensInput.value, idx: state_current_idx() }, '', `?g=${encodeURIComponent(gensInput.value)}`);
 }));
 gensInput.addEventListener('keydown', e => { if (e.key === 'Enter') { guardedCompute(); } });
 

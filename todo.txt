@@ -132,9 +132,48 @@ in integration.rs check the tests
     assert!(s.es <= s.e);
 
 
+TODO 83)
+add a new row in the structure table
+above the existing ones
+in the first col i=0 always a down arrow, clicking on it calls toggle(m)
+in the i-th row:
+if w_i > f show a down arrow, clicking on it calls toggle(w_i)
+if w_i is a minimal generator between f-m and f, show a up arrow, clickiing on it calls (w_i)
+in all other cases show nothing
 
+TODO 84)
+in the short_props/history add a last col "delta t"
+it shows the change t(current) - t(previous)
 
+TODO 85)
+  - Almost-symmetric invariant: the current is_almost_symmetric doc says "ra = r, and PF(S) ∖ {f} equals reflected gaps" — there's no test in integration.rs asserting ra == r on the almost-sym branch.
+  - rl ≤ t strictness: TODO 82 added rl ≤ t. Worth a property test: is there a known family where rl = t?
+  - Pivot tab: drill-down now lists es, rl etc., but the field shelf still has aggregate columns that may not be useful for es/rl. Could be polished.
+  - Waldicone: the regenerated catalogues now include es/rl in JSON; the HTML aggregate doesn't yet offer sort/filter on these new columns if you want parity with t/r.
 
+TODO 86) up-down = identity?
+investigate whether descent(ascent(S)) == S, see commit 4e175f9 and the
+commented-out block in crates/semigroup_math/tests/integration.rs:
+    // if s.es < s.e {
+    //     let up = s.ascent();
+    //     let down = up.descent();
+    //     assert_eq!(s, down);
+    // }
+the naive form fails. open questions:
+- find a concrete S where descent(ascent(S)) != S and record it as a
+  counterexample test
+- the predicate `es < e` lumps two cases together:
+  (a) some min-gen g with f-m < g < f      ("large min-gen" branch of ascent)
+  (b) f+m is a min-gen                     ("f+m" branch of ascent)
+  state the right precondition that isolates the branch where the
+  identity holds (likely only (a)), e.g.
+      gen_set.iter().any(|&g| g + m > f && g < f)
+- ascent currently picks the largest such min-gen while descent picks
+  the smallest apery above f — pin down which pairing (if any) is
+  actually inverse to which, and document the duality in the doc
+  comments of manipulators::descent / manipulators::ascent
+- once the correct restricted identity is known, uncomment the
+  assertion (with the right precondition) and keep it in integration.rs
 
 
 

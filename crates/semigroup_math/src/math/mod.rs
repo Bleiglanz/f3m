@@ -193,12 +193,28 @@ pub fn compute(input: &[usize]) -> Semigroup {
 
     let deep = aperyset[1..].iter().all(|&w| w > 2 * m);
 
+    // es: minimal generators g with g + 2m < max_apery, i.e. g < f − m.
+    let small_minimal_generators = genset.iter().filter(|&&x| x + 2 * m < max_apery).count();
+
+    // rl: gaps L with f − m < L < f. For any such L, f − L ∈ (0, m), which is
+    // always a gap, so reflectedness is automatic. The special cases avoid
+    // underflow when max_apery < 2m (only reachable for f = m − 1).
+    let large_reflected_gaps: usize = match m {
+        1 => 0,
+        _ if max_apery < 2 * m => m - 2,
+        _ => ((max_apery + 1 - 2 * m)..(max_apery - m))
+            .filter(|&x| !element(x))
+            .count(),
+    };
+
     Semigroup {
         e: minimal_generators,
         f: max_apery - m,
         m,
         t: type_count,
         r: reflected_gap_count,
+        rl: large_reflected_gaps,
+        es: small_minimal_generators,
         ae: max_atom,
         ra,
         fg,

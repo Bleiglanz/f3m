@@ -271,8 +271,10 @@ fn synthetic_lattice(g: usize, m: usize) -> Option<(usize, Lattice)> {
     }
 }
 
-/// Renders the shortprops-style data cells for one semigroup: f, e, σ, r, ra,
-/// fg, t, Sym, gen (textbox), PF (textbox), Wilf, 1/e.
+/// Renders the shortprops-style data cells for one semigroup: f, es, e, σ, g,
+/// rl, t, r, ra, fg, Sym, `ASym`, level, gen (textbox), PF (textbox), Wilf, 1/e,
+/// `min r_i`, `max r_i`, `∃ r_i = 2`, deep, di. The caller emits the leading
+/// `<td>{m}</td>`.
 #[allow(clippy::cast_precision_loss)]
 fn props_cells(sg: &Semigroup) -> String {
     let pf_str = sg
@@ -294,19 +296,23 @@ fn props_cells(sg: &Semigroup) -> String {
     let deep = html_helpers::glyph(sg.deep);
     let di = html_helpers::glyph(sg.is_descent_image());
     format!(
-        "<td>{f}</td><td>{e}</td><td>{cg}</td><td>{r}</td><td>{ra}</td>\
-         <td>{fg}</td><td>{t}</td><td>{sym}</td><td>{asym}</td><td>{level}</td>\
+        "<td>{f}</td><td>{es}</td><td>{e}</td><td>{cg}</td><td>{g}</td>\
+         <td>{rl}</td><td>{t}</td><td>{r}</td><td>{ra}</td><td>{fg}</td>\
+         <td>{sym}</td><td>{asym}</td><td>{level}</td>\
          <td><input class=\"gens\" type=\"text\" readonly value=\"{gens_str}\"></td>\
          <td><input class=\"pfs\" type=\"text\" readonly value=\"{pf_str}\"></td>\
          <td>{wilf:.4}</td><td>{inv_e:.4}</td>\
          <td>{min_ri}</td><td>{max_ri}</td><td>{any2}</td><td>{deep}</td><td>{di}</td>",
         f = sg.f,
+        es = sg.es,
         e = sg.e,
         cg = sg.count_set,
+        g = sg.count_gap,
+        rl = sg.rl,
+        t = sg.t,
         r = sg.r,
         ra = sg.ra,
         fg = sg.fg,
-        t = sg.t,
         level = sg.level,
         wilf = sg.wilf(),
         inv_e = 1.0 / sg.e as f64,
@@ -951,12 +957,17 @@ fn build_list_html(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
          <th>g</th>\
          <th title=\"Multiplicity (smallest positive element)\">m</th>\
          <th title=\"Frobenius number\">f</th>\
+         <th title=\"Small minimal generators: count of minimal generators g with g &lt; f\u{2212}m\">\
+         es</th>\
          <th title=\"Embedding dimension\">e</th>\
          <th title=\"Sporadic elements (count of S below f+1)\">\u{03c3}</th>\
+         <th title=\"Genus (number of gaps)\">g</th>\
+         <th title=\"Large reflected gaps: gaps L with f\u{2212}m &lt; L &lt; f \
+         (automatically reflected)\">rl</th>\
+         <th title=\"Type (|PF|)\">t</th>\
          <th title=\"Reflected gaps\">r</th>\
          <th title=\"Reflected Ap\u{e9}ry\">ra</th>\
          <th title=\"Fundamental gaps\">fg</th>\
-         <th title=\"Type (|PF|)\">t</th>\
          <th title=\"Symmetric? (t=1, equivalently f+1=2g)\">Sym</th>\
          <th title=\"Almost-symmetric? (f+t=2g, equivalently ra=r and PF\u{2216}{f}=reflected gaps)\">\
          ASym</th>\
@@ -1097,8 +1108,8 @@ fn build_list_json(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
         let _ = write!(
             out,
             "{{\"g\":{g},\"m\":{m},\"q1\":{q1},\
-             \"f\":{f},\"e\":{e},\"sigma\":{sigma},\
-             \"r\":{r},\"ra\":{ra},\"fg\":{fg},\"type\":{type_t},\
+             \"f\":{f},\"es\":{es},\"e\":{e},\"sigma\":{sigma},\
+             \"rl\":{rl},\"r\":{r},\"ra\":{ra},\"fg\":{fg},\"type\":{type_t},\
              \"sym\":{sym},\"asym\":{asym},\"level\":{level},\
              \"wilf\":{wilf:.6},\"inv_e\":{inv_e:.6},\
              \"max_gen\":{max_gen},\
@@ -1107,8 +1118,10 @@ fn build_list_json(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
              \"gen\":{gen},\"pf\":{pf},\"apery\":{apery},\
              \"c1\":{c1_arr}}}",
             f = sg.f,
+            es = sg.es,
             e = sg.e,
             sigma = sg.count_set,
+            rl = sg.rl,
             r = sg.r,
             ra = sg.ra,
             fg = sg.fg,

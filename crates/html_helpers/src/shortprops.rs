@@ -14,7 +14,7 @@ fn popup_cell(count: usize, content: &str) -> String {
 
 /// Render the data `<td>` cells shared by the compact summary row and history table rows.
 ///
-/// Columns: m, f, e, g, σ, r, ra, fg, t, Sym, di, Wilf, 1/e — in that order.
+/// Columns: m, f, es, e, σ, g, rl, t, r, ra, fg, Sym, di, Wilf, 1/e — in that order.
 /// `e` shows the count with a hover popup listing the minimal generators;
 /// `t` shows the count with a hover popup listing the pseudo-Frobenius numbers.
 #[allow(clippy::cast_precision_loss)]
@@ -30,13 +30,15 @@ pub fn shortprop_cells(sg: &Semigroup) -> String {
     let e_td = popup_cell(sg.e, &fmt_spans(&sg.gen_set, "sg-gen"));
     let t_td = popup_cell(sg.t, &fmt_spans(&sg.pf_set, "sg-pf"));
     format!(
-        "<td>{m}</td><td>{f}</td>{e_td}<td>{g}</td><td>{cg}</td>\
-         <td>{r}</td><td>{ra}</td><td>{fg}</td>{t_td}<td>{sym}</td><td>{di}</td>\
-         <td>{wilf:.4}</td><td>{inv_e:.4}</td>",
+        "<td>{m}</td><td>{f}</td><td>{es}</td>{e_td}<td>{cg}</td><td>{g}</td>\
+         <td>{rl}</td>{t_td}<td>{r}</td><td>{ra}</td><td>{fg}</td>\
+         <td>{sym}</td><td>{di}</td><td>{wilf:.4}</td><td>{inv_e:.4}</td>",
         m = sg.m,
         f = fmt_spans(&[sg.f], "sg-frob"),
-        g = sg.count_gap,
+        es = sg.es,
         cg = sg.count_set,
+        g = sg.count_gap,
+        rl = sg.rl,
         r = sg.r,
         ra = sg.ra,
         fg = sg.fg,
@@ -54,13 +56,15 @@ pub fn shortprop(sg: &Semigroup) -> String {
         "<table class=\"shortprop-table\"><thead><tr>\
          <th title=\"Multiplicity: smallest positive element\">m</th>\
          <th title=\"Frobenius number: largest gap\">f</th>\
+         <th title=\"Small minimal generators: count of minimal generators g with g &lt; f\u{2212}m\">es</th>\
          <th title=\"Embedding dimension: number of minimal generators (hover the cell to list them)\">e</th>\
-         <th title=\"Genus: number of gaps\">g</th>\
          <th title=\"Sporadic elements: elements of S below the conductor f+1\">\u{03C3}</th>\
+         <th title=\"Genus: number of gaps\">g</th>\
+         <th title=\"Large reflected gaps: gaps L with f\u{2212}m &lt; L &lt; f (automatically reflected)\">rl</th>\
+         <th title=\"Type: number of pseudo-Frobenius numbers (hover the cell to list them)\">t</th>\
          <th title=\"Reflected gaps: gaps n where f\u{2212}n is also a gap\">r</th>\
          <th title=\"Reflected Ap\u{00E9}ry: Ap\u{00E9}ry elements w where w\u{2212}m is a reflected gap\">ra</th>\
          <th title=\"Fundamental gaps: gaps not expressible as sum of two smaller gaps\">fg</th>\
-         <th title=\"Type: number of pseudo-Frobenius numbers (hover the cell to list them)\">t</th>\
          <th title=\"Symmetric: t=1 and g=(f+1)/2\">Sym</th>\
          <th title=\"Descent image: \u{2203} T with T.descent()=S; equivalently a min-gen lies in (f\u{2212}m, f) or at f+m\">di</th>\
          <th title=\"Wilf quotient: \u{03C3}/(f+1) \u{2265} 1/e (conjecture)\">Wilf</th>\

@@ -374,6 +374,10 @@ fn check(
     );
     let aps: usize = s.apery_set.iter().sum();
     assert_eq!(aps, s.apery_sum);
+    // todo 82
+    assert!(s.rl <= s.t);
+    assert!(s.t <= s.r + 1);
+    assert!(s.es <= s.e);
 
     // Selmer identity: one·U(m)·c₁ = m·g + m·(m−1)/2
     let dim = m - 1;

@@ -111,7 +111,25 @@ if value of the expr == 0 then return the semigroup
 otherwise iterate
 (ignroe the problem that the expr==0 might be impossible - too hard to adapt the random parameters we use now)
 
+TODO 82) [DONE]
+added new props in semigroup.rs
+    /// es = number of small minimal generators, the ones <f-m
+    pub es: usize,
 
+    /// rl = large reflected gaps, gaps L such that f-m < L < f (automatically reflected)
+    pub rl: usize,
+
+add them to the history, short_props, waldicone summary+json, Pivot
+also reorder the history, shortprops
+instead of
+m	f	e	g	σ	r	ra	fg	t
+use
+m   f  es   e   σ   g  rl   t  r   ra  fg
+in integration.rs check the tests
+    // todo 82
+    assert!(s.rl <= s.t);
+    assert!(s.t <= s.r +1);
+    assert!(s.es <= s.e);
 
 
 

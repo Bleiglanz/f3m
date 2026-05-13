@@ -17,7 +17,11 @@ pub struct Semigroup {
     pub t: usize,
     /// r the number of reflected gaps, r=#RG(S) the number of gaps L such that f-L is a gap
     pub r: usize,
-    /// ae = the largest minimal generator, max of `gen_set`
+    /// es = number of small minimal generators, the ones < f − m
+    pub es: usize,
+    /// rl = large reflected gaps, gaps L with f − m < L < f (automatically reflected)
+    pub rl: usize,
+    /// ae = the largest minimal generator, `max(gen_set)`
     pub ae: usize,
     /// ra = number of apery-elements w such that w-m is a reflected gap
     pub ra: usize,

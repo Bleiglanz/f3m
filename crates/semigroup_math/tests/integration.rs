@@ -378,6 +378,13 @@ fn check(
     assert!(s.rl <= s.t);
     assert!(s.t <= s.r + 1);
     assert!(s.es <= s.e);
+    // up-down
+    // if s.es < s.e {
+    //     let up = s.ascent();
+    //     let down = up.descent();
+    //     assert_eq!(s, down);
+    // }
+
 
     // Selmer identity: one·U(m)·c₁ = m·g + m·(m−1)/2
     let dim = m - 1;

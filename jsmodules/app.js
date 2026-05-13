@@ -15,7 +15,7 @@ import init, {
 import { render3d, animate3dDescent, animate3dAscent } from './view3d.js';
 import { rebuildGraph, setupGraphUpto, setupShowGaps, setupGraphToggle } from './graph.js';
 
-const PROP_THEAD_TR = '<tr><th title="Index and operation label">#</th><th title="Generator added (+) or removed (\u2212)">toggle</th><th title="Multiplicity: smallest positive element">m</th><th title="Frobenius number: largest gap">f</th><th title="Small minimal generators: count of minimal generators g with g &lt; f\u2212m">es</th><th title="Embedding dimension: number of minimal generators (hover the cell to list them)">e</th><th title="Sporadic elements: elements of S below the conductor f+1">\u03C3</th><th title="Genus: number of gaps">g</th><th title="Large reflected gaps: gaps L with f\u2212m &lt; L &lt; f (automatically reflected)">rl</th><th title="Type: number of pseudo-Frobenius numbers (hover the cell to list them)">t</th><th title="Reflected gaps: gaps n where f\u2212n is also a gap">r</th><th title="Reflected Ap\u00E9ry: Ap\u00E9ry elements w where w\u2212m is a reflected gap">ra</th><th title="Fundamental gaps: gaps not expressible as sum of two smaller gaps">fg</th><th title="Symmetric: t=1 and g=(f+1)/2">Sym</th><th title="Descent image: \u2203 T with T.descent()=S; equivalently a min-gen lies in (f\u2212m, f) or at f+m">di</th><th title="Wilf quotient: \u03C3/(f+1) \u2265 1/e (conjecture)">Wilf</th><th title="Wilf conjecture lower bound: 1/e">1/e</th><th title="Expression evaluated for this semigroup">expr</th><th title="Result of the expression">value</th><th title="Set-containment relation with previous entry">&#8838;?</th></tr>';
+const PROP_THEAD_TR = '<tr><th title="Index and operation label">#</th><th title="Generator added (+) or removed (\u2212)">toggle</th><th title="Multiplicity: smallest positive element">m</th><th title="Frobenius number: largest gap">f</th><th title="Small minimal generators: count of minimal generators g with g &lt; f\u2212m">es</th><th title="Embedding dimension: number of minimal generators (hover the cell to list them)">e</th><th title="Sporadic elements: elements of S below the conductor f+1">\u03C3</th><th title="Genus: number of gaps">g</th><th title="Large reflected gaps: gaps L with f\u2212m &lt; L &lt; f (automatically reflected)">rl</th><th title="Type: number of pseudo-Frobenius numbers (hover the cell to list them)">t</th><th title="Reflected gaps: gaps n where f\u2212n is also a gap">r</th><th title="Reflected Ap\u00E9ry: Ap\u00E9ry elements w where w\u2212m is a reflected gap">ra</th><th title="Fundamental gaps: gaps n with every multiple kn (k≥2) in S">fg</th><th title="Symmetric: t=1 and g=(f+1)/2">Sym</th><th title="Descent image: \u2203 T with T.descent()=S; equivalently a min-gen lies in (f\u2212m, f) or at f+m">di</th><th title="Wilf quotient: \u03C3/(f+1) \u2265 1/e (conjecture)">Wilf</th><th title="Wilf conjecture lower bound: 1/e">1/e</th><th title="Expression evaluated for this semigroup">expr</th><th title="Result of the expression">value</th><th title="Set-containment relation with previous entry">&#8838;?</th></tr>';
 
 // ── UI-only state (Rust owns the data) ────────────────────────────────────────
 let currentGenSet = null;
@@ -429,17 +429,20 @@ async function fetchPivotData(gmax) {
   if (!resp.ok) { throw new Error(`HTTP ${resp.status} fetching ${url}`); }
   const json = await resp.json();
   // Project the rows into flat objects PivotTable.js can pivot on.
-  // gen and pf are list fields kept in the JSON but excluded from the pivot.
-  // gen is kept raw in __genArr for the drill-down "Open" handler.
+  // gen / pf / apery / c1 are joined to strings so the drill-down table can
+  // render them as cells; they are hidden from the pivot field shelf below.
+  // __genArr keeps the raw array for the "Open" handler.
   const rows = json.semigroups.map(s => ({
     g: s.g, m: s.m, mu: s.f % s.m, es: s.es, e: s.e, type: s.type, q1: s.q1,
-    f: s.f, rl: s.rl, r: s.r, ra: s.ra, fg: s.fg,
+    f: s.f, sigma: s.sigma, rl: s.rl, r: s.r, ra: s.ra, fg: s.fg,
     sym: s.sym, asym: s.asym, level: s.level, max_gen: s.max_gen,
     min_ri: s.min_ri, max_ri: s.max_ri, any_ri_eq_2: s.any_ri_eq_2,
     deep: s.deep,
     descent: s.descent,
     di: s.di,
     'ae=f+m': s.max_gen === s.f + s.m,
+    gen: s.gen.join(', '),
+    pf: s.pf.length ? s.pf.join(', ') : '—',
     apery: s.apery.join(', '),
     c1: s.c1.join(', '),
     __genArr: s.gen,
@@ -504,7 +507,9 @@ async function renderPivot() {
       },
     },
     // Hide internal/array-flattened fields from the field shelf to keep it tidy.
-    hiddenAttributes: ['__genArr', 'apery', 'c1'],
+    // gen / pf are kept available for the drill-down table but hidden from the
+    // shelf because every row has a unique value, which would explode the pivot.
+    hiddenAttributes: ['__genArr', 'apery', 'c1', 'gen', 'pf'],
   });
   // Clear stale drill-down when the data set changes.
   document.getElementById('pivot-detail').innerHTML = '';

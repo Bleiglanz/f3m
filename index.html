@@ -235,11 +235,16 @@
           <tr><td>Semigroup</td><td>Structure grid, Kunz matrix, classification table, expression evaluator.</td></tr>
           <tr><td>History</td><td>All computed semigroups in a sortable summary table. Click a row number to restore that entry.<br>
             Columns: <b>#</b>&nbsp;index:label, <b>toggle</b>&nbsp;set operation,
-            <b>m</b>&nbsp;multiplicity, <b>f</b>&nbsp;Frobenius, <b>e</b>&nbsp;embedding dimension (hover the cell to list the minimal generators), <b>g</b>&nbsp;genus,
-            <b>&sigma;</b>&nbsp;semigroup elements below the conductor, <b>r</b>&nbsp;reflected gaps,
+            <b>m</b>&nbsp;multiplicity, <b>f</b>&nbsp;Frobenius,
+            <b>es</b>&nbsp;small minimal generators (count of minimal generators g with g&nbsp;&lt;&nbsp;f&minus;m),
+            <b>e</b>&nbsp;embedding dimension (hover the cell to list the minimal generators),
+            <b>&sigma;</b>&nbsp;semigroup elements below the conductor, <b>g</b>&nbsp;genus,
+            <b>rl</b>&nbsp;large reflected gaps (gaps L with f&minus;m&nbsp;&lt;&nbsp;L&nbsp;&lt;&nbsp;f; automatically reflected since f&minus;L&nbsp;&isin;&nbsp;(0,&nbsp;m) is always a gap),
+            <b>t</b>&nbsp;type (hover the cell to list the pseudo-Frobenius numbers),
+            <b>r</b>&nbsp;reflected gaps,
             <b>ra</b>&nbsp;Ap&eacute;ry elements w where w&minus;m is a reflected gap,
-            <b>fg</b>&nbsp;fundamental gaps (gaps not expressible as a sum of two gaps),
-            <b>t</b>&nbsp;type (hover the cell to list the pseudo-Frobenius numbers), <b>Sym</b>&nbsp;symmetric?, <b>di</b>&nbsp;descent image (some T with T.descent()=S exists),
+            <b>fg</b>&nbsp;fundamental gaps (gaps n with every multiple kn,&nbsp;k&nbsp;&ge;&nbsp;2, in S),
+            <b>Sym</b>&nbsp;symmetric?, <b>di</b>&nbsp;descent image (some T with T.descent()=S exists),
             <b>Wilf</b>&nbsp;Wilf quotient &sigma;/(f+1),
             <b>1/e</b>&nbsp;Wilf conjecture lower bound, <b>expr</b>&nbsp;expression, <b>value</b>&nbsp;result,
             <b>&sube;?</b>&nbsp;set-containment relation.</td></tr>
@@ -250,7 +255,7 @@
           <tr><td>.csv</td><td>History table in CSV format, ready to copy. Includes a final <em>generators</em> column with the minimal generating set.</td></tr>
           <tr><td>LaTeX</td><td>Editable LaTeX source with live KaTeX preview of semigroup properties.</td></tr>
           <tr><td>Help</td><td>This reference page, plus a dynamic summary of the current semigroup.</td></tr>
-          <tr><td>Pivot</td><td>Cross-tabulation of the precomputed semigroup catalogue using <a href="https://pivottable.js.org/" target="_blank">PivotTable.js</a>. Pick a <code>gmax</code> from the dropdown to load <code>normaliz/semigroup_g_from2to{gmax}_list.json</code>, then drag fields (g, m, e, t, sym, asym, level, min_r&#x1d62;, max_r&#x1d62;, deep, descent, di, &hellip;) into rows / columns / values to count or aggregate. Click <em>Open</em> on a leaf row to load that semigroup into the calculator.</td></tr>
+          <tr><td>Pivot</td><td>Cross-tabulation of the precomputed semigroup catalogue using <a href="https://pivottable.js.org/" target="_blank">PivotTable.js</a>. Pick a <code>gmax</code> from the dropdown to load <code>normaliz/semigroup_g_from2to{gmax}_list.json</code>, then drag fields (g, m, e, es, f, t, &sigma;, rl, r, ra, fg, sym, asym, level, min_r&#x1d62;, max_r&#x1d62;, deep, descent, di, &hellip;) into rows / columns / values to count or aggregate. Click a cell to drill down to the matching semigroups; click <em>Open</em> on a row to load that semigroup into the calculator.</td></tr>
           <tr><td>Comp</td><td>Side-by-side comparison of the current semigroup and the immediately previous history entry &mdash; both rendered as the structure grid plus shortprops table. Shown only when the history has at least two entries.</td></tr>
           <tr><td>Diagonals</td><td>
             Five matrices around the Kunz cone, all (m&minus;1)&times;(m&minus;1) unless noted.<br>
@@ -337,14 +342,23 @@
         <dt><strong>Multiplicity m</strong></dt><dd>The smallest positive element of S.</dd>
         <dt><strong>Frobenius number f</strong></dt><dd>The largest integer <em>not</em> in S (the &ldquo;coin problem&rdquo; answer). Always f &lt; m&#xB2;.</dd>
         <dt><strong>Embedding dimension e</strong></dt><dd>The number of minimal generators. Always e &le; m.</dd>
+        <dt><strong>Small minimal generators es</strong></dt><dd>Count of minimal generators g with g&nbsp;&lt;&nbsp;f&minus;m. Always es&nbsp;&le;&nbsp;e; the remaining e&minus;es generators lie in (f&minus;m,&nbsp;f+m].</dd>
         <dt><strong>Gaps g</strong></dt><dd>The cardinality of &#x2115; &setminus; S. Always g &le; (f+1)/2 &le; f.</dd>
-        <dt><strong>Conductor c</strong></dt><dd>c = f+1; every integer &ge; c is in S. c&minus;g = the number of semigroup elements below c.</dd>
-        <dt><strong>Type t</strong></dt><dd>The number of pseudo-Frobenius numbers (gaps x with x+s&isin;S for all s&isin;S\{0}).</dd>
+        <dt><strong>Conductor c</strong></dt><dd>c = f+1; every integer &ge; c is in S.</dd>
+        <dt><strong>Sporadic elements &sigma;</strong></dt><dd>The number of semigroup elements strictly below the conductor, i.e. &sigma;&nbsp;=&nbsp;c&minus;g.</dd>
+        <dt><strong>&mu; = f mod m</strong></dt><dd>The residue class of f mod m; equivalently the index of the largest Ap&eacute;ry element (a<sub>&mu;</sub>&nbsp;=&nbsp;f+m). Used as a privileged residue throughout. <strong>Level</strong> = &lfloor;f/m&rfloor; counts how many m-blocks fit below f.</dd>
+        <dt><strong>Type t</strong></dt><dd>The number of pseudo-Frobenius numbers (gaps x with x+s&isin;S for all s&isin;S\{0}). f itself is always pseudo-Frobenius, so t&nbsp;&ge;&nbsp;1.</dd>
+        <dt><strong>Reflected gaps r</strong></dt><dd>Gaps n where f&minus;n is also a gap (and n&nbsp;&ne;&nbsp;f). Always t&nbsp;&le;&nbsp;r+1.</dd>
+        <dt><strong>Large reflected gaps rl</strong></dt><dd>Gaps L with f&minus;m&nbsp;&lt;&nbsp;L&nbsp;&lt;&nbsp;f. Reflectedness is automatic: f&minus;L&nbsp;&isin;&nbsp;(0,&nbsp;m) is always a gap since m is the smallest positive element of S. Always rl&nbsp;&le;&nbsp;t.</dd>
+        <dt><strong>Reflected Ap&eacute;ry ra</strong></dt><dd>Number of Ap&eacute;ry elements w with w&minus;m a reflected gap. Always ra&nbsp;&le;&nbsp;r; equality is the &ldquo;almost-symmetric&rdquo; condition.</dd>
+        <dt><strong>Fundamental gaps fg</strong></dt><dd>Gaps n such that no integer multiple kn&nbsp;(k&nbsp;&ge;&nbsp;2) is also a gap &mdash; i.e. gaps that are not properly contained in another gap's multiples chain.</dd>
         <dt><strong>Symmetric</strong></dt><dd>S is symmetric iff t = 1, equivalently g = (f+1)/2.</dd>
+        <dt><strong>Almost-symmetric (ASym)</strong></dt><dd>f&nbsp;+&nbsp;t&nbsp;=&nbsp;2g, equivalently ra&nbsp;=&nbsp;r and PF(S)\{f} equals the set of reflected gaps. Symmetric semigroups are trivially almost-symmetric.</dd>
+        <dt><strong>Deep</strong></dt><dd>Every Ap&eacute;ry element w<sub>i</sub>&nbsp;&gt;&nbsp;2m, equivalently every Kunz quotient q<sub>i</sub>&nbsp;&ge;&nbsp;2, equivalently every element in (m,&nbsp;2m) is a gap.</dd>
         <dt><strong>Descent image (di)</strong></dt><dd>S is in the descent image iff there exists a numerical semigroup T with T.<code>descent()</code>&nbsp;=&nbsp;S &mdash; i.e. some T can &ldquo;step down&rdquo; onto S. Equivalently, S has a minimal generator in (f&minus;m,&nbsp;f) or at f+m. Exactly the cases where the <code>Ascent</code> button is enabled. The complementary regime (no such generator) is <code>is_descent</code>: every Ap&eacute;ry element is either f+m or strictly less than f, so adding f to S is &ldquo;clean&rdquo;.</dd>
         <dt><strong>Wilf conjecture</strong></dt><dd>(c&minus;g) / (f+1) &ge; 1/e; open in general, verified here for each entry.</dd>
         <dt><strong>Ap&eacute;ry set</strong></dt><dd>Ap(S,m) = {min(S &cap; (k+m&#x2124;)) : 0&le;k&lt;m} &mdash; one representative per residue class mod m.</dd>
-        <dt><strong>Kunz coefficients c&#x1D62;&#x2C7C;</strong></dt><dd>c&#x1D62;&#x2C7C; = (w&#x1D62; + w&#x2C7C; &minus; w&#x208A;&#x2C7C; &#x230A;mod m&#x230B;) / m where w&#x1D62; = Ap&eacute;ry[i]. All c&#x1D62;&#x2C7C; &ge; 0; highlighted zeros constrain the semigroup.</dd>
+        <dt><strong>Kunz coefficients c&#x1D62;&#x2C7C;</strong></dt><dd>c&#x1D62;&#x2C7C; = (w&#x1D62; + w&#x2C7C; &minus; w&#x208A;&#x2C7C; &#x230A;mod m&#x230B;) / m where w&#x1D62; = Ap&eacute;ry[i]. All c&#x1D62;&#x2C7C; &ge; 0; highlighted zeros constrain the semigroup. The cone-derived statistics <strong>r<sub>i</sub></strong>, <strong>min&nbsp;r<sub>i</sub></strong>, <strong>max&nbsp;r<sub>i</sub></strong> count reflected gaps per residue class.</dd>
         <dt><strong>Waldi Polytope</strong></dt><dd>The polytope cut out in the c<sub>i,1</sub> coordinates (first column of the reduced Kunz matrix), used by the <code>normaliz</code> CLI to enumerate semigroups by genus. It is an <em>affine transformation</em> of the standard <strong>Kunz Polytope</strong> from the literature (which uses the coordinates q<sub>i</sub>&nbsp;=&nbsp;(w<sub>i</sub>&minus;i)/m and the cone q<sub>i</sub>&nbsp;+&nbsp;q<sub>j</sub>&nbsp;&ge;&nbsp;q<sub>(i+j) mod m</sub>); both enumerate the same semigroups.</dd>
       </dl>
 

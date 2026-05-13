@@ -25,7 +25,7 @@ pub struct Semigroup {
     pub ae: usize,
     /// ra = number of apery-elements w such that w-m is a reflected gap
     pub ra: usize,
-    /// fg = number of fundamental gaps
+    /// fg = number of fundamental gaps: gaps `n` with every multiple `kn` (k ≥ 2) in S.
     pub fg: usize,
     /// Number of elements of S in the range (0, f] — the "sporadic" elements (= f+1 - genus).
     pub count_set: usize,

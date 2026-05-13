@@ -967,7 +967,7 @@ fn build_list_html(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
          <th title=\"Type (|PF|)\">t</th>\
          <th title=\"Reflected gaps\">r</th>\
          <th title=\"Reflected Ap\u{e9}ry\">ra</th>\
-         <th title=\"Fundamental gaps\">fg</th>\
+         <th title=\"Fundamental gaps: gaps n with every multiple kn (k\u{2265}2) in S\">fg</th>\
          <th title=\"Symmetric? (t=1, equivalently f+1=2g)\">Sym</th>\
          <th title=\"Almost-symmetric? (f+t=2g, equivalently ra=r and PF\u{2216}{f}=reflected gaps)\">\
          ASym</th>\

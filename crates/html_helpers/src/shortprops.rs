@@ -64,7 +64,7 @@ pub fn shortprop(sg: &Semigroup) -> String {
          <th title=\"Type: number of pseudo-Frobenius numbers (hover the cell to list them)\">t</th>\
          <th title=\"Reflected gaps: gaps n where f\u{2212}n is also a gap\">r</th>\
          <th title=\"Reflected Ap\u{00E9}ry: Ap\u{00E9}ry elements w where w\u{2212}m is a reflected gap\">ra</th>\
-         <th title=\"Fundamental gaps: gaps not expressible as sum of two smaller gaps\">fg</th>\
+         <th title=\"Fundamental gaps: gaps n with every multiple kn (k\u{2265}2) in S\">fg</th>\
          <th title=\"Symmetric: t=1 and g=(f+1)/2\">Sym</th>\
          <th title=\"Descent image: \u{2203} T with T.descent()=S; equivalently a min-gen lies in (f\u{2212}m, f) or at f+m\">di</th>\
          <th title=\"Wilf quotient: \u{03C3}/(f+1) \u{2265} 1/e (conjecture)\">Wilf</th>\

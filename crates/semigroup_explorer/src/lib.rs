@@ -199,6 +199,12 @@ impl JsSemigroup {
     pub fn fg(&self) -> usize {
         self.0.fg
     }
+    /// ρ(S): smallest `r_i` over residue classes `i ∈ 1..m, i ≠ μ`.
+    #[wasm_bindgen(getter)]
+    #[must_use]
+    pub fn rho(&self) -> usize {
+        self.0.rho()
+    }
     /// μ = f mod m.
     #[wasm_bindgen(getter)]
     #[must_use]

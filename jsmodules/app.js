@@ -459,10 +459,15 @@ async function driveRandomCreator(genFn, label, emptyMsg, postProcess) {
         if (gens.length === 0) { continue; } // genFn gave up (e.g. Sym ran its own retry budget)
         const sg = js_compute(gens.join(','));
         if (!sg) { continue; }
-        // Constraint is matched against the *base* sg, before postProcess.
-        if (eval_expr(constraint, sg) === 0) {
-          const finalGens = postProcess ? Array.from(postProcess(sg)) : gens;
-          if (finalGens.length === 0) { continue; }
+        // Build the final (possibly post-processed) semigroup *before*
+        // matching, so the constraint sees the same object the expr column
+        // will report. Without this, e.g. Sym+f matched the base Sym while
+        // the displayed columns reflected S ∪ {f}, giving misleading rows.
+        const finalGens = postProcess ? Array.from(postProcess(sg)) : gens;
+        if (finalGens.length === 0) { continue; }
+        const finalSg = postProcess ? js_compute(finalGens.join(',')) : sg;
+        if (!finalSg) { continue; }
+        if (eval_expr(constraint, finalSg) === 0) {
           gensInput.value = finalGens.join(', ');
           // Constraint is user-controlled text rendered into innerHTML via the # column — escape.
           _computeLabel = `${label}|${escHtml(constraint)}=0`;

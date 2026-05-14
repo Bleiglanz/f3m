@@ -258,4 +258,16 @@ impl Semigroup {
             .iter()
             .any(|&g| g == max_apery || (g < self.f && g + self.m > self.f))
     }
+
+    /// True iff the interval `V(S) = {f − m + 1, …, f − 1}` is entirely
+    /// contained in `S`. Returns `false` when `f < m` (interval undefined
+    /// / out-of-range under `usize`).
+    ///
+    /// `V` is the "ceiling row" of the Kunz strip just below `f`; when it
+    /// is full, the descent `S ∪ {f}` collapses many Apéry elements at
+    /// once. Used by the up-down property tests in `tests/integration.rs`.
+    #[must_use]
+    pub fn v_in_s(&self) -> bool {
+        self.f >= self.m && (self.f - self.m + 1..self.f).all(|i| self.element(i))
+    }
 }

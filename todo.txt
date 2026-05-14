@@ -178,6 +178,42 @@ findings (commit 4e175f9 + the experiment in this commit):
 - duality between Semigroup::ascent and Semigroup::descent is documented
   in their doc comments in manipulators.rs.
 
+TODO 87) [DONE]
+test_up_downs(s) reviewed and documented. Each branch is justified in the
+doc comment on the function; the conditions are:
+  - descent: w > f && f > m  (always: count_gap+1; legs gated by
+    v_in_s vs w<f+m)
+  - ascent : w ∈ gen_set && (w<f && w+m>f  OR  w == f+m)
+All assertions hold across the full CSV fixture set + property tests
+(integration suite: clean run, no failures).
+Outer descent guard `f > m` skips f≤m (e.g. ⟨2,3⟩); descent `w == f+m`
+with `!v_in_s()` only asserts `count_gap+1` (other invariants unconstrained
+for that geometry).
+
+TODO 88) [DONE]
+arrow_cell in html_helpers/src/combined_table.rs now mirrors test_up_downs:
+  - residue 0: never an arrow (test loop is 1..m)
+  - ↓ iff `w > f && f > m`, data-n = w − m (the gap that descent adds)
+  - ↑ iff `w ∈ gen_set` and either `f − m < w < f` or `w == f + m`
+CSS: font-size 1.6em, font-weight 900, row height bumped to 2em.
+
+TODO 89) [DONE]
+Three buttons added in index.html under the existing Sym/PSym/ASym row:
+  "Sym (r=0)+f", "PSym (r=1)+f", "ASym (r=t-1)+f".
+driveCreator / driveRandomCreator now accept an optional postProcess(sg);
+the +f buttons pass `addF = sg => sg.toggle(sg.f).gen_set`. Constraint
+matching is applied to the *base* semigroup, before toggle(f). Help-tab
+row updated.
+
+TODO 90) [DONE]
+tests/data/check_fixtures.csv holds 108 semigroup fixtures, format:
+  gens;e;f;m;g;c;sym;apery;pf;t   (inner arrays space-separated).
+One test (test_csv_fixtures) parses each row and calls check(); all
+108 wrapper fns removed from integration.rs (file shrank ~2k lines).
+On failure, the gens-bearing assertion messages in check() still
+identify the offending row.
+
+
 
 
 

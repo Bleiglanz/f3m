@@ -369,11 +369,19 @@ function compute() {
 
 // Drive a creator that returns a generator list from wasm: set the input
 // box and trigger compute. Bails (showing an error) when the list is empty.
-function driveCreator(genFn, label, emptyMsg) {
-  const gens = Array.from(genFn());
+// `postProcess(sg) -> gens` lets callers transform the found semigroup
+// before it is rendered (used by the +f variants).
+function driveCreator(genFn, label, emptyMsg, postProcess) {
+  let gens = Array.from(genFn());
   if (gens.length === 0) {
     if (emptyMsg) { showError(emptyMsg); }
     return;
+  }
+  if (postProcess) {
+    const sg = js_compute(gens.join(','));
+    if (!sg) { return; }
+    gens = Array.from(postProcess(sg));
+    if (gens.length === 0) { return; }
   }
   gensInput.value = gens.join(', ');
   _computeLabel = label;
@@ -388,9 +396,9 @@ const CONSTRAINT_CHUNK = 500;
 const HTML_ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 const escHtml = s => String(s).replace(/[&<>"']/g, c => HTML_ESCAPES[c]);
 
-async function driveRandomCreator(genFn, label, emptyMsg) {
+async function driveRandomCreator(genFn, label, emptyMsg, postProcess) {
   const constraint = document.getElementById('constraint-input').value.trim();
-  if (!constraint) { driveCreator(genFn, label, emptyMsg); return; }
+  if (!constraint) { driveCreator(genFn, label, emptyMsg, postProcess); return; }
   setBusy(true);
   const deadline = performance.now() + CONSTRAINT_TIMEOUT_MS;
   let attempts = 0;
@@ -402,8 +410,11 @@ async function driveRandomCreator(genFn, label, emptyMsg) {
         if (gens.length === 0) { continue; } // genFn gave up (e.g. Sym ran its own retry budget)
         const sg = js_compute(gens.join(','));
         if (!sg) { continue; }
+        // Constraint is matched against the *base* sg, before postProcess.
         if (eval_expr(constraint, sg) === 0) {
-          gensInput.value = gens.join(', ');
+          const finalGens = postProcess ? Array.from(postProcess(sg)) : gens;
+          if (finalGens.length === 0) { continue; }
+          gensInput.value = finalGens.join(', ');
           // Constraint is user-controlled text rendered into innerHTML via the # column — escape.
           _computeLabel = `${label}|${escHtml(constraint)}=0`;
           setBusy(false);
@@ -822,6 +833,21 @@ document.getElementById('random-r1-btn').addEventListener('click', guarded(() =>
 document.getElementById('random-asym-btn').addEventListener('click', guarded(() => {
   driveRandomCreator(js_random_almost_symmetric, 'ASym',
     'Could not find a proper almost-symmetric semigroup (r = t − 1 with r ≥ 2) after 10000 attempts.');
+}));
+
+// "+f" variants: find a base semigroup, then toggle(f) (= add f as a generator).
+const addF = sg => Array.from(sg.toggle(sg.f).gen_set);
+document.getElementById('random-symmetric-plus-f-btn').addEventListener('click', guarded(() => {
+  driveRandomCreator(js_random_symmetric, 'Sym+f',
+    'Could not find a symmetric semigroup after 10000 attempts.', addF);
+}));
+document.getElementById('random-r1-plus-f-btn').addEventListener('click', guarded(() => {
+  driveRandomCreator(js_random_pseudo_symmetric, 'PSym+f',
+    'Could not find a pseudo-symmetric semigroup (r = 1) after 10000 attempts.', addF);
+}));
+document.getElementById('random-asym-plus-f-btn').addEventListener('click', guarded(() => {
+  driveRandomCreator(js_random_almost_symmetric, 'ASym+f',
+    'Could not find a proper almost-symmetric semigroup (r = t − 1 with r ≥ 2) after 10000 attempts.', addF);
 }));
 
 // "Prime": pick a random subset of 4–8 primes from the fixed list.

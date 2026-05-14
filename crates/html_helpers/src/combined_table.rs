@@ -95,37 +95,53 @@ pub const fn kunz_cls(n: usize) -> &'static str {
 
 /// Cell content for the descent/ascent arrow row in [`combined_table`].
 ///
-/// Per residue class `i ∈ 0..m`:
-/// - `i == 0`: always a `↓` arrow that toggles `m` (the residue-0 min-gen).
-/// - `i ≠ 0` and `w_i > f`: `↓` arrow that toggles `w_i` (descent target).
-/// - `i ≠ 0` and `f − m < w_i < f`: `↑` arrow that toggles `w_i` (ascent target).
-/// - otherwise: empty cell.
+/// The conditions mirror the four legs of `test_up_downs` in
+/// `crates/semigroup_math/tests/integration.rs`. An arrow is only emitted
+/// when the corresponding property test fires for that residue:
 ///
-/// The arrow spans carry `data-n` so they piggy-back on the existing
-/// `.sg-grid span[data-n]` click handler.
+/// - **Residue 0**: never an arrow (the test loop runs over `1..m`).
+/// - **Descent leg** (`w_i > f` and `f > m`): `↓` whose click toggles the
+///   gap `w_i − m`, adding it to `S`. This is the "descent target" the
+///   test verifies via `s.toggle(w − m)`.
+/// - **Ascent leg, large min-gen** (`w_i ∈ gen_set`, `f − m < w_i < f`):
+///   `↑` whose click toggles `w_i`, removing it from `S`.
+/// - **Ascent leg, max Apéry** (`w_i ∈ gen_set`, `w_i = f + m`): `↑`
+///   whose click toggles `w_i`, removing the max Apéry from `S`.
+///
+/// Other cases yield an empty cell so the grid alignment is preserved.
 fn arrow_cell(sg: &Semigroup, residue: usize) -> String {
+    let empty = || "<td class=\"sg-arrow-cell\"></td>".to_string();
     if residue == 0 {
-        return format!(
-            "<td class=\"sg-arrow-cell\"><span class=\"sg-arrow sg-arrow-down\" \
-             data-n=\"{m}\" title=\"toggle m={m} (descent)\">↓</span></td>",
-            m = sg.m
-        );
+        return empty();
     }
     let w = sg.apery_set[residue];
-    if w > sg.f {
+
+    if w > sg.f && sg.f > sg.m {
+        let target = w - sg.m;
         return format!(
             "<td class=\"sg-arrow-cell\"><span class=\"sg-arrow sg-arrow-down\" \
-             data-n=\"{w}\" title=\"toggle w_{residue}={w} (descent)\">↓</span></td>"
+             data-n=\"{target}\" title=\"descent: add {target} = w_{residue} − m\">↓</span></td>"
         );
     }
-    // w + m > f avoids underflow vs the equivalent w > f - m.
-    if w < sg.f && w + sg.m > sg.f {
-        return format!(
-            "<td class=\"sg-arrow-cell\"><span class=\"sg-arrow sg-arrow-up\" \
-             data-n=\"{w}\" title=\"toggle w_{residue}={w} (ascent)\">↑</span></td>"
-        );
+
+    if sg.gen_set.contains(&w) {
+        let max_apery = sg.f + sg.m;
+        // w + m > f avoids underflow vs the equivalent w > f − m.
+        if w < sg.f && w + sg.m > sg.f {
+            return format!(
+                "<td class=\"sg-arrow-cell\"><span class=\"sg-arrow sg-arrow-up\" \
+                 data-n=\"{w}\" title=\"ascent: remove min-gen w_{residue}={w}\">↑</span></td>"
+            );
+        }
+        if w == max_apery {
+            return format!(
+                "<td class=\"sg-arrow-cell\"><span class=\"sg-arrow sg-arrow-up\" \
+                 data-n=\"{w}\" title=\"ascent: remove a_μ = f+m = {w}\">↑</span></td>"
+            );
+        }
     }
-    "<td class=\"sg-arrow-cell\"></td>".to_string()
+
+    empty()
 }
 
 /// CSS class for a natural number cell, classified by its role in the semigroup.

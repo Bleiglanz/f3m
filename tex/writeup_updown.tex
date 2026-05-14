@@ -74,17 +74,18 @@ Now define four families of semigroups, for a fixed $m>2$ and
 an $i \in \{1,\dots,m-1\}$, indicating by $'$ the new count in
 $S^\uparrow$ resp.\ $S^\downarrow$:
 \begin{enumerate}
-    \item $\mathcal{D}_{flip}(i,m)$: $i\neq \mu$, $S$ and
+    \item $\mathcal{D}_{flip}(i)$: $i\neq \mu(S)$, $S$ and
     $f<w_i<f+m$.
     \[S^\downarrow:=S\cup\{w_i-m\}\quad g'=g-1\quad \sigma'=\sigma+1\quad r'=r-2\]
-    \item $\mathcal{D}_{total}(i,m)$: $i=\mu$ and
-    $V(S)\subseteq S$ (then $w_\mu = f+m$ automatically).
+   
+    \item $\mathcal{D}_{total}(\mu)$: $V(S)\subseteq S$, $\mu=\mu(S)$
     \[S^\downarrow:=S\cup\{w_\mu-m\}\quad g'=g-1\quad \sigma'=\sigma-(m-1)\quad r'=r+(m-2)\]
-    \item $\mathcal{A}_{flip}(i,m)$: $i\neq \mu$, $S$ and $w_i$ is an
+   
+    \item $\mathcal{A}_{flip}(i)$: $i\neq \mu(S)$, $S$ and $w_i$ is an
     atom, $w_i \in V(S)$.
     \[S^\uparrow:=S\setminus\{w_i\}\quad g'=g+1\quad \sigma'=\sigma-1\quad r'=r+2\]
-    \item $\mathcal{A}_{total}(i,m)$: $i=\mu$, $S$ and $w_\mu$ is an
-    atom; set $\rho=\rho(S)$.
+   
+    \item $\mathcal{A}_{total}(\mu)$: $\mu=\mu(S)$, $w_\mu$ is an atom; define $\rho=\rho(S)$.
     \[S^\uparrow:=S\setminus\{w_\mu\}\quad g'=g+\rho \quad \sigma'=\sigma+\rho(m-1)\quad r'=r-\rho(m-2)\]
 \end{enumerate}
 All these claims can be proven by carefully checking the change in
@@ -93,22 +94,9 @@ verify each $(\Delta g, \Delta \sigma, \Delta r)$ on every fixture in
 \texttt{tests/data/check\_fixtures.csv}.
 
 \section{Correspondence}
-Now for $1\lt m-1$ let $\mathbb{S}_\mu$ be the set of all numerical semigroups
-having $f \equiv \mu \mod m$\\
-
-Define
-\[
-D: \mathcal{D}_{total}(i,m) \rightarrow \mathcal{A}_{total}(i,m)
-\qquad D(S)=S\cup\{f(S)\} = S^\downarrow
-\] and \[
-A: \mathcal{A}_{total}(i,m) \rightarrow \mathcal{D}_{total}(i,m)
-\qquad A(S) = S \setminus \{w_\mu(S)\} = S^\uparrow
-
-\]
-
 If we want a bijection between
 \[
-\mathcal{D}_{total}(i,m) \longleftrightarrow \mathcal{A}_{total}(i,m)
+\mathcal{D}_{total}(i,\mu) \longleftrightarrow \mathcal{A}_{total}(i,\mu)
 \]
 we obviously need $\rho(S)=1$ for the semigroup in
 $\mathcal{A}_{total}(i,m)$; this is a necessary condition. The reason
@@ -125,21 +113,38 @@ g + \rho -1 = g
 \sigma + \rho (m-1) - (m-1) = \sigma
 \qquad r-\rho(m-2)+(m-2)=r
 \]
-It is tempting to define adding $f$ or removing $f+m$ by maps
+It is therefore necessesay to go down more than one step. 
+\vskip1cm
+Let $m>2$ and $\mu \in \{1,\dots,m-1\}$ be fixed.
+Set 
 \[
-D: \mathcal{D}_{total}(i,m) \rightarrow \mathcal{A}_{total}(i,m)
-\qquad D(S)=S\cup\{f(S)\} = S^\downarrow
-\] and \[
-A: \mathcal{A}_{total}(i,m) \rightarrow \mathcal{D}_{total}(i,m)
-\qquad A(S) = S \setminus \{w_\mu(S)\} = S^\uparrow
+\mathbb{S}_\mu := \{ S \subseteq \N \;\mid\; S \text{ numerical Semigroup }, f>m, f \equiv \mu \mod m\}
 \]
-This would be great --- at least for the $r_i$, because in this case
-we would have $r_i(D(S))=r_i(S)+1$ and $r_i(A(S))=r_i(S)-1$, which
-would now require that the semigroup in $\mathcal{D}_{total}(i,m)$ has
-$\rho=0$. That means $w_\mu(S^\uparrow)$ is decomposable and not an
-atom. It is obvious that $V(A(S))\subseteq A(S)$ --- so in order to
-get a well-defined bijection, we need to restrict to semigroups in
-$\mathcal{D}_{total}(i,m)$ where $w_\mu$ is not an atom?
+and define
+\[
+D: \mathcal{D}_{total}(i,m) \rightarrow \mathbb{S}_\mu \qquad D(S):=S \cup \{f\}
+\]
+It is helpful to know that $r_i(D(S))=r_i(S)+1$
+Skipping the proof of $\rho(D(S))=\rho(S)+1$ (and the fact that $\rho(S)>0$ is equivalent with
+$f+m=w_\mu$ beeing an atom) we need to ask 
+whether $V(D(S))\subseteq D(S)$.
+
+\subsection{Bijection}
+The only way is
+\[
+S_{\rho=0} \rightarrow D(S)_{\rho=1}
+\]
+meaning that only if $w_\mu$ is not an atom we can go down and up once
+if we want to get to the same semigroup, and only then $D(S) \in \mathcal{A}_{total}(\mu)$
+\subsection{$f+m$ atom, $\rho(S)>0$}
+As long as $V(S)\subseteq S$ we can go down
+\[
+S_\rho \rightarrow D(S)_{\rho+1} \rightarrow \dots
+\]
+and we will aways get semigroups where $f+m$ is an atom.
+But this sequence will stop once there is a gap in $V(S)$ or $f<m$
+
+
 
 \section{Code}
 \begin{verbatim}

@@ -534,6 +534,7 @@ fn test_up_downs(s: &Semigroup) {
             );
             let down = s.toggle(w - s.m);
             assert_eq!(down.g + 1, s.g);
+            //find failed testcase assert_eq!(down.rho(),s.rho()+1);
             if w == s.f + s.m && s.v_in_s() {
                 assert_eq!(down.r + 2, s.r + s.m, "r change w==f+m for i={i}");
                 assert_eq!(down.sigma + s.m, s.sigma + 1, "sigma");

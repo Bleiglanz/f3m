@@ -258,9 +258,14 @@ crates/
     src/math/creators.rs                 — parameterized creators (T(m,f), A(m,d,n),
                                            Rolf primes, PRIMES_LIST)
     src/math/random_creators.rs          — random creators (Rnd, Sym, PSym, ASym, P)
-    src/math/{glue,matrix,symmetric_partner}.rs
-                                         — gluing, U(m)/V(m)/D(m) matrices, symmetric
-                                           partner construction
+    src/math/{glue,symmetric_partner}.rs — gluing, symmetric partner construction
+    src/math/matrix/                     — dense matrix algebra
+      mod.rs                             — module wiring + re-exports
+      scalar.rs                          — Scalar trait + impls for iN/fN
+      traits.rs                          — Matrix<T> trait
+      dense.rs                           — DenseMatrix<T> struct + impls
+      semigroup_matrices.rs              — U(m), L(m), V(m), Kunz, C_red,
+                                           u_pair_relations, zd_vector, D(m)
     src/eva/mod.rs                       — arithmetic expression evaluator
     tests/integration.rs                 — GAP-cross-checked property tests
   html_helpers/                          — pure-string HTML generators, no wasm-bindgen

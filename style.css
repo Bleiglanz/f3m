@@ -253,6 +253,26 @@ button:active { transform: scale(0.97); }
   width: 100%;
 }
 
+#delta-info {
+  display: none;
+  font-size: 0.88rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  margin-bottom: 1rem;
+  padding: 0.45rem 0.9rem;
+  background: #f4f6fb;
+  border-left: 3px solid #6477b8;
+  border-radius: 0 var(--r) var(--r) 0;
+  max-width: 760px;
+  width: 100%;
+  line-height: 1.55;
+}
+#delta-info .delta-label  { color: #444; margin-right: 0.15rem; }
+#delta-info .delta-plus   { color: #2c8a2c; font-weight: 600; }
+#delta-info .delta-minus  { color: #b14b4b; font-weight: 600; }
+#delta-info .delta-zero   { color: #888; }
+#delta-info .delta-sep    { color: #bbb; margin: 0 0.35rem; }
+#delta-info .delta-prefix { color: #555; margin-right: 0.4rem; }
+
 /* ─── Tab Bar ───────────────────────────────────────────────────── */
 .tab-bar {
   display: flex;

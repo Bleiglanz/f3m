@@ -155,18 +155,60 @@ function buildCsv() {
 // Build a history table row for semigroup `s` at index `idx`.
 const sIdx = n => `S<sub>${n}</sub>`;
 
+// Signed change of two numeric values, using the same convention as Δt.
+// Returns null when either operand is non-finite.
+function signedDelta(cur, pre) {
+  if (!Number.isFinite(cur) || !Number.isFinite(pre)) { return null; }
+  if (cur > pre) { return { sign: '+', mag: cur - pre, cls: 'delta-plus' }; }
+  if (cur < pre) { return { sign: '−', mag: pre - cur, cls: 'delta-minus' }; }
+  return { sign: '', mag: 0, cls: 'delta-zero' };
+}
+
 // Δt cell: signed change in type vs the previous history entry.
 // idx === 0, no previous entry, or non-finite values render as an em dash.
 function deltaTCell(s, idx) {
   if (idx <= 0) { return '<td>—</td>'; }
   const prev = state_get(idx - 1);
   if (!prev) { return '<td>—</td>'; }
-  const cur = Number(s.type_t);
-  const pre = Number(prev.type_t);
-  if (!Number.isFinite(cur) || !Number.isFinite(pre)) { return '<td>—</td>'; }
-  if (cur > pre) { return `<td>+${cur - pre}</td>`; }
-  if (cur < pre) { return `<td>−${pre - cur}</td>`; }
-  return '<td>0</td>';
+  const d = signedDelta(Number(s.type_t), Number(prev.type_t));
+  if (!d) { return '<td>—</td>'; }
+  return d.mag === 0 ? '<td>0</td>' : `<td>${d.sign}${d.mag}</td>`;
+}
+
+// Properties to summarise in the delta-info banner. Order matches the
+// shortprop header row in the History tab.
+const DELTA_PROPS = [
+  { key: 'm',         label: 'm' },
+  { key: 'f',         label: 'f' },
+  { key: 'es',        label: 'es' },
+  { key: 'e',         label: 'e' },
+  { key: 'count_set', label: 'σ' },
+  { key: 'count_gap', label: 'g' },
+  { key: 'rl',        label: 'rl' },
+  { key: 'type_t',    label: 't' },
+  { key: 'r',         label: 'r' },
+  { key: 'ra',        label: 'ra' },
+  { key: 'fg',        label: 'fg' },
+];
+
+// Show or hide the delta-info banner comparing `s` with history entry `prevIdx`.
+function showDeltas(s, idx) {
+  const banner = document.getElementById('delta-info');
+  if (idx <= 0) { banner.style.display = 'none'; banner.innerHTML = ''; return; }
+  const prev = state_get(idx - 1);
+  if (!prev) { banner.style.display = 'none'; banner.innerHTML = ''; return; }
+  const parts = DELTA_PROPS.map(({ key, label }) => {
+    const d = signedDelta(Number(s[key]), Number(prev[key]));
+    if (!d) { return null; }
+    const body = d.mag === 0
+      ? '<span class="delta-zero">0</span>'
+      : `<span class="${d.cls}">${d.sign}${d.mag}</span>`;
+    return `<span class="delta-label">${label}</span>${body}`;
+  }).filter(Boolean);
+  if (parts.length === 0) { banner.style.display = 'none'; banner.innerHTML = ''; return; }
+  const prefix = `<span class="delta-prefix">Δ ${sIdx(idx - 1)}→${sIdx(idx)}:</span>`;
+  banner.innerHTML = `${prefix}${parts.join('<span class="delta-sep">·</span>')}`;
+  banner.style.display = 'block';
 }
 
 function historyRow(s, idx, label, toggle, expr, value, cmp) {
@@ -191,6 +233,7 @@ function render(s, toggle = null, label = '⏎') {
     ? `${sIdx(idx)}&nbsp;${state_cmp(idx, cmpSourceIdx)}&nbsp;${sIdx(cmpSourceIdx)}`
     : '—';
   const rowHtml = historyRow(s, idx, label, toggle, expr, exprVal, cmp);
+  showDeltas(s, idx);
 
   // History tab — skip append when restoring via back/forward
   if (!navigating) {
@@ -342,6 +385,9 @@ function compute() {
   const errEl = document.getElementById('error');
 
   errEl.style.display = 'none';
+  const deltaEl = document.getElementById('delta-info');
+  deltaEl.style.display = 'none';
+  deltaEl.innerHTML = '';
   document.getElementById('result').innerHTML = '';
 
   if (!raw) { return; }

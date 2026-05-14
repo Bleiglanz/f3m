@@ -175,6 +175,36 @@ impl JsSemigroup {
     pub fn r(&self) -> usize {
         self.0.r
     }
+    /// Number of reflected Apéry elements w (w − m is a reflected gap).
+    #[wasm_bindgen(getter)]
+    #[must_use]
+    pub fn ra(&self) -> usize {
+        self.0.ra
+    }
+    /// Number of small minimal generators (g with g < f − m).
+    #[wasm_bindgen(getter)]
+    #[must_use]
+    pub fn es(&self) -> usize {
+        self.0.es
+    }
+    /// Number of large reflected gaps L with f − m < L < f.
+    #[wasm_bindgen(getter)]
+    #[must_use]
+    pub fn rl(&self) -> usize {
+        self.0.rl
+    }
+    /// Number of fundamental gaps.
+    #[wasm_bindgen(getter)]
+    #[must_use]
+    pub fn fg(&self) -> usize {
+        self.0.fg
+    }
+    /// μ = f mod m.
+    #[wasm_bindgen(getter)]
+    #[must_use]
+    pub fn mu(&self) -> usize {
+        self.0.mu
+    }
     /// Wilf quotient σ/(f+1).
     #[wasm_bindgen(getter)]
     #[must_use]

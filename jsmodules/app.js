@@ -23,6 +23,10 @@ let currentS = null;
 let computing = false;
 let navigating = false;
 let _computeLabel = '⏎'; // label shown in # column of history
+// Set true by modifier buttons so the next render() shows the delta-info
+// banner; toggle paths show it unconditionally via the `toggle` arg. Fresh
+// creations (random, manual ⏎, T/A/Rolf/P) leave it false → banner hidden.
+let _pendingShowDelta = false;
 const busyBanner = document.getElementById('busy-banner');
 
 // Display an error message in the error banner.
@@ -233,7 +237,14 @@ function render(s, toggle = null, label = '⏎') {
     ? `${sIdx(idx)}&nbsp;${state_cmp(idx, cmpSourceIdx)}&nbsp;${sIdx(cmpSourceIdx)}`
     : '—';
   const rowHtml = historyRow(s, idx, label, toggle, expr, exprVal, cmp);
-  showDeltas(s, idx);
+  if (toggle || _pendingShowDelta) {
+    showDeltas(s, idx);
+  } else {
+    const banner = document.getElementById('delta-info');
+    banner.style.display = 'none';
+    banner.innerHTML = '';
+  }
+  _pendingShowDelta = false;
 
   // History tab — skip append when restoring via back/forward
   if (!navigating) {
@@ -969,6 +980,7 @@ function wireGenSetBtn(id, method, label, beforeCompute) {
     if (gens.length === 0) { return; }
     gensInput.value = gens.join(', ');
     _computeLabel = label;
+    _pendingShowDelta = true;
     if (beforeCompute) { beforeCompute(); }
     compute();
   }));
@@ -1069,6 +1081,7 @@ async function run3dLoop(direction) {
       if (newGens.length === 0 || newGens.join(',') === prevGens) { break; }
       gensInput.value = newGens.join(', ');
       _computeLabel = cfg.label;
+      _pendingShowDelta = true;
       compute();
       await delay(RUN_LOOP_DWELL_MS);
     }

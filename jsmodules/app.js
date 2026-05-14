@@ -175,20 +175,20 @@ function deltaTCell(s, idx) {
   return d.mag === 0 ? '<td>0</td>' : `<td>${d.sign}${d.mag}</td>`;
 }
 
-// Properties to summarise in the delta-info banner. Order matches the
-// shortprop header row in the History tab.
+// Properties to summarise in the delta-info banner. e/σ/r/t lead; m
+// trails. Remaining shortprop columns sit in between.
 const DELTA_PROPS = [
-  { key: 'm',         label: 'm' },
-  { key: 'f',         label: 'f' },
-  { key: 'es',        label: 'es' },
   { key: 'e',         label: 'e' },
   { key: 'count_set', label: 'σ' },
+  { key: 'r',         label: 'r' },
+  { key: 'type_t',    label: 't' },
+  { key: 'f',         label: 'f' },
+  { key: 'es',        label: 'es' },
   { key: 'count_gap', label: 'g' },
   { key: 'rl',        label: 'rl' },
-  { key: 'type_t',    label: 't' },
-  { key: 'r',         label: 'r' },
   { key: 'ra',        label: 'ra' },
   { key: 'fg',        label: 'fg' },
+  { key: 'm',         label: 'm' },
 ];
 
 // Show or hide the delta-info banner comparing `s` with history entry `prevIdx`.

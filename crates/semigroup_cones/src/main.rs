@@ -273,8 +273,7 @@ fn synthetic_lattice(g: usize, m: usize) -> Option<(usize, Lattice)> {
 
 /// Renders the shortprops-style data cells for one semigroup: f, es, e, σ, g,
 /// rl, t, r, ra, fg, Sym, `ASym`, level, gen (textbox), PF (textbox), Wilf, 1/e,
-/// `min r_i`, `max r_i`, `∃ r_i = 2`, deep, di. The caller emits the leading
-/// `<td>{m}</td>`.
+/// ρ, deep, di. The caller emits the leading `<td>{m}</td>`.
 #[allow(clippy::cast_precision_loss)]
 fn props_cells(sg: &Semigroup) -> String {
     let pf_str = sg
@@ -292,7 +291,6 @@ fn props_cells(sg: &Semigroup) -> String {
 
     let sym = html_helpers::glyph(sg.is_symmetric);
     let asym = html_helpers::glyph(sg.is_almost_symmetric);
-    let any2 = html_helpers::glyph(sg.any_ri_eq_2());
     let deep = html_helpers::glyph(sg.deep);
     let di = html_helpers::glyph(sg.is_descent_image());
     format!(
@@ -302,7 +300,7 @@ fn props_cells(sg: &Semigroup) -> String {
          <td><input class=\"gens\" type=\"text\" readonly value=\"{gens_str}\"></td>\
          <td><input class=\"pfs\" type=\"text\" readonly value=\"{pf_str}\"></td>\
          <td>{wilf:.4}</td><td>{inv_e:.4}</td>\
-         <td>{min_ri}</td><td>{max_ri}</td><td>{any2}</td><td>{deep}</td><td>{di}</td>",
+         <td>{rho}</td><td>{deep}</td><td>{di}</td>",
         f = sg.f,
         es = sg.es,
         e = sg.e,
@@ -316,8 +314,7 @@ fn props_cells(sg: &Semigroup) -> String {
         level = sg.level,
         wilf = sg.wilf(),
         inv_e = 1.0 / sg.e as f64,
-        min_ri = sg.min_ri(),
-        max_ri = sg.max_ri(),
+        rho = sg.rho(),
     )
 }
 
@@ -363,9 +360,6 @@ struct GenusTally {
     /// `[f<m, m<f<2m, 2m<f<3m, 3m<f]`. f never equals km for k ≥ 1
     /// (km ∈ S since m is a generator), so the four buckets partition all rows.
     f_vs_m: [usize; 4],
-    /// Count of semigroups with `any_ri_eq_2() == true`, i.e. some residue class
-    /// has exactly two reflected gaps.
-    count_any_ri_eq_2: usize,
     /// Count of deep semigroups: those where all elements m+1 … 2m−1 are gaps.
     deep: usize,
     /// Count of descent semigroups: every Apéry element is either exactly f+m
@@ -378,10 +372,8 @@ struct GenusTally {
     by_e: Vec<usize>,
     by_t: Vec<usize>,
     by_r: Vec<usize>,
-    /// Distribution by `min_ri` (the smallest `r_i` over residue classes 1..m).
-    by_min_ri: Vec<usize>,
-    /// Distribution by `max_ri` (the largest `r_i` over residue classes 1..m).
-    by_max_ri: Vec<usize>,
+    /// Distribution by ρ (the smallest `r_i` over residue classes `i ∈ 1..m, i ≠ μ`).
+    by_rho: Vec<usize>,
 }
 
 // ALLOW: straight-line accumulation across many independent counters.
@@ -391,10 +383,8 @@ fn tally_genus(g: usize, data: &GenusData, cols: usize) -> GenusTally {
     let mut by_e = vec![0usize; cols];
     let mut by_t = vec![0usize; cols];
     let mut by_r = vec![0usize; cols];
-    let mut by_min_ri = vec![0usize; cols];
-    let mut by_max_ri = vec![0usize; cols];
+    let mut by_rho = vec![0usize; cols];
     let mut f_vs_m = [0usize; 4];
-    let mut count_any_ri_eq_2 = 0usize;
     let mut deep = 0usize;
     let mut descent = 0usize;
     let mut descent_image = 0usize;
@@ -473,16 +463,9 @@ fn tally_genus(g: usize, data: &GenusData, cols: usize) -> GenusTally {
             if sg.r < cols {
                 by_r[sg.r] += 1;
             }
-            let mn = sg.min_ri();
-            if mn < cols {
-                by_min_ri[mn] += 1;
-            }
-            let mx = sg.max_ri();
-            if mx < cols {
-                by_max_ri[mx] += 1;
-            }
-            if sg.any_ri_eq_2() {
-                count_any_ri_eq_2 += 1;
+            let rho_val = sg.rho();
+            if rho_val < cols {
+                by_rho[rho_val] += 1;
             }
             if sg.deep {
                 deep += 1;
@@ -504,7 +487,6 @@ fn tally_genus(g: usize, data: &GenusData, cols: usize) -> GenusTally {
         ae_fm_2g_plus_1,
         ae_fm_2g,
         f_vs_m,
-        count_any_ri_eq_2,
         deep,
         descent,
         descent_image,
@@ -512,8 +494,7 @@ fn tally_genus(g: usize, data: &GenusData, cols: usize) -> GenusTally {
         by_e,
         by_t,
         by_r,
-        by_min_ri,
-        by_max_ri,
+        by_rho,
     }
 }
 
@@ -575,8 +556,6 @@ fn build_scalars_table(cols: usize, all_data: &[(usize, GenusData)]) -> String {
          ae=f+m=2g+1</th>\
          <th title=\"Largest minimal generator equals f+m equals 2g\">\
          ae=f+m=2g</th>\
-         <th class=\"sep\" title=\"Count of semigroups where some residue class i has \
-         exactly two reflected gaps (r_i = 2)\">\u{2203}r<sub>i</sub>=2</th>\
          <th class=\"sep\" title=\"Count of deep semigroups: all elements \
          m+1\u{2026}2m\u{2212}1 are gaps (equivalently every Kunz quotient q_i \u{2265} 2)\">\
          N<sub>deep</sub>(g)</th>\
@@ -589,13 +568,13 @@ fn build_scalars_table(cols: usize, all_data: &[(usize, GenusData)]) -> String {
          </tr></thead><tbody>",
     );
     let sep_at = |i: usize| {
-        if i == 5 || i == 9 || i == 11 || i == 12 || i == 13 || i == 14 {
+        if i == 5 || i == 9 || i == 11 || i == 12 || i == 13 {
             "sum sep"
         } else {
             "sum"
         }
     };
-    let mut totals = [0usize; 15];
+    let mut totals = [0usize; 14];
     for (g, data) in all_data {
         let row = tally_genus(*g, data, cols);
         let cells = [
@@ -610,7 +589,6 @@ fn build_scalars_table(cols: usize, all_data: &[(usize, GenusData)]) -> String {
             row.f_vs_m[3],
             row.ae_fm_2g_plus_1,
             row.ae_fm_2g,
-            row.count_any_ri_eq_2,
             row.deep,
             row.descent,
             row.descent_image,
@@ -653,10 +631,6 @@ fn build_scalars_table(cols: usize, all_data: &[(usize, GenusData)]) -> String {
          generator (a<sub>e</sub>=f+m) and additionally equals 2g+1 or 2g, \
          respectively. Empirically these come paired with r=m\u{2212}2 \
          and r=m\u{2212}1 (asserted at runtime).</dd>\
-         <dt>\u{2203}r<sub>i</sub>=2</dt>\
-         <dd>semigroups where the count of reflected gaps in some residue class \
-         i\u{a0}\u{2208}\u{a0}1..m equals 2 \u{2014} a coarse predicate for \
-         the closure step S\u{a0}\u{21a6}\u{a0}S\u{a0}\u{222a}\u{a0}{f}.</dd>\
          <dt>N<sub>deep</sub>(g)</dt>\
          <dd>deep semigroups: all elements m+1\u{2026}2m\u{2212}1 are gaps, \
          equivalently every Kunz quotient q<sub>i</sub>\u{a0}\u{2265}\u{a0}2 \
@@ -731,18 +705,11 @@ fn build_grand_summary(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
         |t| t.by_r.clone(),
     ));
     h.push_str(&build_distribution_table(
-        "By min r\u{1d62} (smallest reflected-gap count over residue classes)",
-        "min r\u{1d62}",
+        "By \u{03c1} (smallest reflected-gap count over residue classes i\u{2208}1..m, i\u{2260}\u{03bc})",
+        "\u{03c1}",
         cols,
         all_data,
-        |t| t.by_min_ri.clone(),
-    ));
-    h.push_str(&build_distribution_table(
-        "By max r\u{1d62} (largest reflected-gap count over residue classes)",
-        "max r\u{1d62}",
-        cols,
-        all_data,
-        |t| t.by_max_ri.clone(),
+        |t| t.by_rho.clone(),
     ));
     h
 }
@@ -976,10 +943,8 @@ fn build_list_html(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
          <th title=\"Pseudo-Frobenius numbers\">PF</th>\
          <th title=\"Wilf quotient \u{03c3}/(f+1)\">Wilf</th>\
          <th title=\"1/e\">1/e</th>\
-         <th title=\"min over i\u{2208}1..m of r_i (reflected gaps in residue class i mod m)\">\
-         min r<sub>i</sub></th>\
-         <th title=\"max over i\u{2208}1..m of r_i\">max r<sub>i</sub></th>\
-         <th title=\"True iff some residue class i has r_i = 2\">\u{2203}r<sub>i</sub>=2</th>\
+         <th title=\"\u{03c1} = min over i\u{2208}1..m, i\u{2260}\u{03bc} of r_i \
+         (reflected gaps in residue class i mod m)\">\u{03c1}</th>\
          <th title=\"Deep: all elements m+1\u{2026}2m\u{2212}1 are gaps \
          (equivalently every Ap\u{e9}ry element w_i&gt;2m, every Kunz quotient q_i\u{2265}2)\">\
          deep</th>\
@@ -1113,7 +1078,7 @@ fn build_list_json(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
              \"sym\":{sym},\"asym\":{asym},\"level\":{level},\
              \"wilf\":{wilf:.6},\"inv_e\":{inv_e:.6},\
              \"max_gen\":{max_gen},\
-             \"min_ri\":{min_ri},\"max_ri\":{max_ri},\"any_ri_eq_2\":{any2},\
+             \"rho\":{rho},\
              \"deep\":{deep},\"descent\":{descent},\"di\":{di},\
              \"gen\":{gen},\"pf\":{pf},\"apery\":{apery},\
              \"c1\":{c1_arr}}}",
@@ -1131,9 +1096,7 @@ fn build_list_json(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
             level = sg.level,
             wilf = sg.wilf(),
             max_gen = sg.max_gen,
-            min_ri = sg.min_ri(),
-            max_ri = sg.max_ri(),
-            any2 = sg.any_ri_eq_2(),
+            rho = sg.rho(),
             deep = sg.deep,
             descent = sg.is_descent(),
             di = sg.is_descent_image(),

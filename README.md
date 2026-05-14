@@ -19,7 +19,9 @@ A browser-based tool for computing properties of numerical semigroups from a lis
 | Reflected gaps | r | Gaps n where f − n is also a gap |
 | Reflected Apéry | ra | Apéry elements w where w − m is a reflected gap |
 | Fundamental gaps | fg | Gaps n such that no multiple kn (k ≥ 2) is also a gap |
+| ρ | ρ | min over i ∈ 1..m, i ≠ μ of r_i (size of the smallest non-trivial reflected-gap residue class) |
 | Symmetric | ✅/🚫 | Whether t = 1 (equivalently f + 1 = 2g) |
+| Deep | ✅/🚫 | Every Apéry element w_i > 2m (equivalently every Kunz quotient q_i ≥ 2; every element in (m, 2m) is a gap) |
 | Descent image | di | Whether ∃ T with T.descent() = S; equivalently a min-gen lies in (f − m, f) or at f + m |
 | Generators | gen | Minimal generating set |
 | Pseudo-Frobenius | PF(S) | Gaps x such that x + s ∈ S for all s ∈ S \ {0} |

@@ -524,7 +524,7 @@ fn check(
 ///    reflected-gap pair, so `r += 2` and `count_set -= 1`; the new
 ///    Apéry in residue `i` becomes `w + m`.
 /// 3. **Ascent of the max Apéry** (`w == f + m ∈ gen_set`). The new
-///    `a_μ` jumps by `minr · m`, where `minr = min_ri(S)`; the size and
+///    `a_μ` jumps by `rho · m`, where `rho = rho(S)`; the size and
 ///    `r` changes follow from that jump.
 ///
 /// All four legs are exercised on every fixture in `check()`.
@@ -570,18 +570,18 @@ fn test_up_downs(s: &Semigroup) {
                 assert_eq!(up.count_set + 1, s.count_set);
             }
             if w == s.f + s.m {
-                let minr = s.min_ri();
+                let rho = s.rho();
                 assert_eq!(
                     up.count_gap,
-                    s.count_gap + minr,
-                    "removing atom generates minr gap for {i} and {w}"
+                    s.count_gap + rho,
+                    "removing atom generates rho gap for {i} and {w}"
                 );
-                assert!(up.apery_set.contains(&(w + minr * s.m)));
-                assert_eq!(up.apery_set[i], w + minr * s.m);
-                assert_eq!(up.r + minr * (s.m - 2), s.r, "r change w==f+m for i={i}");
+                assert!(up.apery_set.contains(&(w + rho * s.m)));
+                assert_eq!(up.apery_set[i], w + rho * s.m);
+                assert_eq!(up.r + rho * (s.m - 2), s.r, "r change w==f+m for i={i}");
                 assert_eq!(
                     up.count_set,
-                    minr * (s.m - 1) + s.count_set,
+                    rho * (s.m - 1) + s.count_set,
                     "sigma change w==f+m for i={i}"
                 );
             }
@@ -822,8 +822,8 @@ fn test_r_i_matches_brute_force() {
 }
 
 #[test]
-fn test_min_max_any_ri() {
-    // min_ri excludes i = μ (where r_μ = 0 by construction), so on a fresh
+fn test_rho() {
+    // rho() excludes i = μ (where r_μ = 0 by construction), so on a fresh
     // semigroup it picks up the smallest *non-trivial* count.
 
     // <4, 7, 9, 10>: f=6, μ=2. r_1=2, r_2=0, r_3=1 → min over {1,3} = 1.
@@ -831,29 +831,21 @@ fn test_min_max_any_ri() {
     assert_eq!(sg.r_i(1), 2);
     assert_eq!(sg.r_i(2), 0);
     assert_eq!(sg.r_i(3), 1);
-    assert_eq!(sg.min_ri(), 1);
-    assert_eq!(sg.max_ri(), 2);
-    assert!(sg.any_ri_eq_2());
+    assert_eq!(sg.rho(), 1);
 
     // <3, 5, 7>: f=4, μ=1. r_1=0, r_2=1 → min over {2} = 1.
     let sg = compute(&[3, 5, 7]);
-    assert_eq!(sg.min_ri(), 1);
-    assert_eq!(sg.max_ri(), 1);
-    assert!(!sg.any_ri_eq_2());
+    assert_eq!(sg.rho(), 1);
 
     // <3, 10, 11>: f=8, μ=2. r_1=3, r_2=0 → min over {1} = 3.
     let sg = compute(&[3, 10, 11]);
-    assert_eq!(sg.min_ri(), 3);
-    assert_eq!(sg.max_ri(), 3);
-    assert!(!sg.any_ri_eq_2());
+    assert_eq!(sg.rho(), 3);
 
-    // m = 2: 1..m \ {μ} is empty (μ = 1 since f is odd) → min_ri = 0,
-    // any_ri_eq_2 = false. <2, 5>: f=3, μ=1.
+    // m = 2: 1..m \ {μ} is empty (μ = 1 since f is odd) → rho = 0.
+    // <2, 5>: f=3, μ=1.
     let sg = compute(&[2, 5]);
     assert_eq!(sg.mu, 1);
-    assert_eq!(sg.min_ri(), 0);
-    assert_eq!(sg.max_ri(), 0);
-    assert!(!sg.any_ri_eq_2());
+    assert_eq!(sg.rho(), 0);
 }
 
 #[test]

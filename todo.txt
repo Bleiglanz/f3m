@@ -213,6 +213,39 @@ One test (test_csv_fixtures) parses each row and calls check(); all
 On failure, the gens-bearing assertion messages in check() still
 identify the offending row.
 
+TODO 91) [DONE]
+Removed `max_ri()` and `any_ri_eq_2()` from `semigroup.rs`.
+Cones (`semigroup_cones/src/main.rs`): dropped the `∃r_i=2` summary
+column (totals shrank from 15 to 14), the by_max_ri distribution
+table, the `max r_i` / `min r_i` per-row HTML columns (replaced by a
+single `ρ` column), and the `max_ri`/`any_ri_eq_2` JSON fields.
+Tests: replaced `test_min_max_any_ri` with `test_rho`. JS pivot row
+projection drops `min_ri/max_ri/any_ri_eq_2` and gains `rho`.
+
+TODO 92) [DONE]
+Renamed `Semigroup::min_ri()` → `Semigroup::rho()` everywhere.
+Touched: `semigroup_math/src/math/semigroup.rs`,
+`semigroup_math/tests/integration.rs` (incl. doc comment and the
+`minr` locals in `test_up_downs`), `semigroup_cones/src/main.rs`,
+`jsmodules/app.js` (pivot projection), `tex/writeup_updown.tex`
+(notation table + the verbatim code block).
+
+TODO 93) [DONE]
+Audit pass:
+  - `README.md` properties table: added `ρ` and `Deep` rows so it
+    matches the help-tab's Key Properties section.
+  - `index.html` help-tab: "Kunz coefficients" entry now describes
+    `r_i` and `ρ` (was `r_i / min r_i / max r_i`). Pivot tab field
+    hint updated.
+  - `index.html` (help-tab History row) and `jsmodules/app.js`
+    (PROP_THEAD_TR + CSV header) were already consistent after the
+    earlier Δt removal.
+  - Cached HTML reports under `normaliz/` and `history/` still
+    contain the old `min r_i / max r_i / ∃r_i=2` headers; those are
+    waldicone output and will refresh on the next CLI run, so they
+    are intentionally not edited here.
+
+
 
 
 

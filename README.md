@@ -23,6 +23,7 @@ A browser-based tool for computing properties of numerical semigroups from a lis
 | Symmetric | ✅/🚫 | Whether t = 1 (equivalently f + 1 = 2g) |
 | Deep | ✅/🚫 | Every Apéry element w_i > 2m (equivalently every Kunz quotient q_i ≥ 2; every element in (m, 2m) is a gap) |
 | Descent image | di | Whether ∃ T with T.descent() = S; equivalently a min-gen lies in (f − m, f) or at f + m |
+| V⊆S | V⊆S | True iff V(S) = {f − m + 1, …, f − 1} ⊆ S (the interval just below f is full) |
 | Generators | gen | Minimal generating set |
 | Pseudo-Frobenius | PF(S) | Gaps x such that x + s ∈ S for all s ∈ S \ {0} |
 | Wilf quotient | — | σ/(f+1); Wilf conjecture says ≥ 1/e |
@@ -103,7 +104,7 @@ The first five always appear in the Manipulate section; the last four only when 
 
 Every computed semigroup is appended to a summary table with rows labelled S₀, S₁, … The last column shows the set-containment relation (⊂, =, ⊃, ?) between the new entry and the previous one. Click a row number to restore that semigroup as the current input.
 
-Summary columns: **#** index:label, **toggle** set operation, **m** multiplicity, **f** Frobenius number, **es** small minimal generators (count of minimal generators g with g < f − m), **e** embedding dimension, **σ** semigroup elements below the conductor, **g** genus (gaps), **rl** large reflected gaps (gaps L with f − m < L < f, automatically reflected), **t** type, **r** reflected gaps, **ra** Apéry elements w where w−m is a reflected gap, **ρ** smallest r_i over residue classes i ∈ 1..m, i ≠ μ, **fg** fundamental gaps (gaps n with no multiple kn also a gap), **Sym** symmetric?, **di** descent image (some T with T.descent()=S exists), **gen** generators, **PF** pseudo-Frobenius numbers, **Wilf** Wilf quotient σ/(f+1), **1/e** Wilf conjecture lower bound, **expr** expression, **value** evaluated result, **⊆?** set-containment relation.
+Summary columns: **#** index:label, **toggle** set operation, **m** multiplicity, **f** Frobenius number, **es** small minimal generators (count of minimal generators g with g < f − m), **e** embedding dimension, **σ** semigroup elements below the conductor, **g** genus (gaps), **rl** large reflected gaps (gaps L with f − m < L < f, automatically reflected), **t** type, **r** reflected gaps, **ra** Apéry elements w where w−m is a reflected gap, **ρ** smallest r_i over residue classes i ∈ 1..m, i ≠ μ, **fg** fundamental gaps (gaps n with no multiple kn also a gap), **Sym** symmetric?, **di** descent image (some T with T.descent()=S exists), **V⊆S** true iff V(S) = {f−m+1, …, f−1} ⊆ S, **gen** generators, **PF** pseudo-Frobenius numbers, **Wilf** Wilf quotient σ/(f+1), **1/e** Wilf conjecture lower bound, **expr** expression, **value** evaluated result, **⊆?** set-containment relation.
 
 The GAP tab accumulates a full [GAP](https://gap-packages.github.io/numericalsgps/) script for all entries that can be verified with the `NumericalSgps` package. A **Copy** button copies it to the clipboard.
 

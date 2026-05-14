@@ -14,7 +14,7 @@ fn popup_cell(count: usize, content: &str) -> String {
 
 /// Render the data `<td>` cells shared by the compact summary row and history table rows.
 ///
-/// Columns: m, f, es, e, σ, g, rl, t, r, ra, ρ, fg, Sym, di, Wilf, 1/e — in that order.
+/// Columns: m, f, es, e, σ, g, rl, t, r, ra, ρ, fg, Sym, di, V⊆S, Wilf, 1/e — in that order.
 /// `e` shows the count with a hover popup listing the minimal generators;
 /// `t` shows the count with a hover popup listing the pseudo-Frobenius numbers.
 #[allow(clippy::cast_precision_loss)]
@@ -32,7 +32,7 @@ pub fn shortprop_cells(sg: &Semigroup) -> String {
     format!(
         "<td>{m}</td><td>{f}</td><td>{es}</td>{e_td}<td>{cg}</td><td>{g}</td>\
          <td>{rl}</td>{t_td}<td>{r}</td><td>{ra}</td><td>{rho}</td><td>{fg}</td>\
-         <td>{sym}</td><td>{di}</td><td>{wilf:.4}</td><td>{inv_e:.4}</td>",
+         <td>{sym}</td><td>{di}</td><td>{vins}</td><td>{wilf:.4}</td><td>{inv_e:.4}</td>",
         m = sg.m,
         f = fmt_spans(&[sg.f], "sg-frob"),
         es = sg.es,
@@ -45,6 +45,7 @@ pub fn shortprop_cells(sg: &Semigroup) -> String {
         fg = sg.fg,
         sym = glyph(sg.is_symmetric),
         di = glyph(sg.is_descent_image()),
+        vins = glyph(sg.v_in_s()),
         wilf = sg.wilf(),
         inv_e = 1.0 / sg.e as f64,
     )
@@ -69,6 +70,7 @@ pub fn shortprop(sg: &Semigroup) -> String {
          <th title=\"Fundamental gaps: gaps n with every multiple kn (k\u{2265}2) in S\">fg</th>\
          <th title=\"Symmetric: t=1 and g=(f+1)/2\">Sym</th>\
          <th title=\"Descent image: \u{2203} T with T.descent()=S; equivalently a min-gen lies in (f\u{2212}m, f) or at f+m\">di</th>\
+         <th title=\"V(S) = {{f\u{2212}m+1, \u{2026}, f\u{2212}1}} \u{2286} S: the interval just below f is full\">V\u{2286}S</th>\
          <th title=\"Wilf quotient: \u{03C3}/(f+1) \u{2265} 1/e (conjecture)\">Wilf</th>\
          <th title=\"Wilf conjecture lower bound: 1/e\">1/e</th>\
          </tr></thead><tbody><tr>{}</tr></tbody></table>",

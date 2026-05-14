@@ -273,7 +273,7 @@ fn synthetic_lattice(g: usize, m: usize) -> Option<(usize, Lattice)> {
 
 /// Renders the shortprops-style data cells for one semigroup: f, es, e, σ, g,
 /// rl, t, r, ra, fg, Sym, `ASym`, level, gen (textbox), PF (textbox), Wilf, 1/e,
-/// ρ, deep, di. The caller emits the leading `<td>{m}</td>`.
+/// ρ, deep, di, V⊆S. The caller emits the leading `<td>{m}</td>`.
 #[allow(clippy::cast_precision_loss)]
 fn props_cells(sg: &Semigroup) -> String {
     let pf_str = sg
@@ -293,6 +293,7 @@ fn props_cells(sg: &Semigroup) -> String {
     let asym = html_helpers::glyph(sg.is_almost_symmetric);
     let deep = html_helpers::glyph(sg.deep);
     let di = html_helpers::glyph(sg.is_descent_image());
+    let vins = html_helpers::glyph(sg.v_in_s());
     format!(
         "<td>{f}</td><td>{es}</td><td>{e}</td><td>{cg}</td><td>{g}</td>\
          <td>{rl}</td><td>{t}</td><td>{r}</td><td>{ra}</td><td>{fg}</td>\
@@ -300,7 +301,7 @@ fn props_cells(sg: &Semigroup) -> String {
          <td><input class=\"gens\" type=\"text\" readonly value=\"{gens_str}\"></td>\
          <td><input class=\"pfs\" type=\"text\" readonly value=\"{pf_str}\"></td>\
          <td>{wilf:.4}</td><td>{inv_e:.4}</td>\
-         <td>{rho}</td><td>{deep}</td><td>{di}</td>",
+         <td>{rho}</td><td>{deep}</td><td>{di}</td><td>{vins}</td>",
         f = sg.f,
         es = sg.es,
         e = sg.e,
@@ -949,7 +950,9 @@ fn build_list_html(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
          (equivalently every Ap\u{e9}ry element w_i&gt;2m, every Kunz quotient q_i\u{2265}2)\">\
          deep</th>\
          <th title=\"Descent image: \u{2203} T with T.descent()=S; equivalently \
-         a min-gen lies in (f\u{2212}m, f) or at f+m\">di</th>",
+         a min-gen lies in (f\u{2212}m, f) or at f+m\">di</th>\
+         <th title=\"V(S) = {f\u{2212}m+1, \u{2026}, f\u{2212}1} \u{2286} S: the \
+         interval just below f is full\">V\u{2286}S</th>",
     );
     for j in 1..=gmax {
         let cls = if j == 1 { " class=\"sep\"" } else { "" };
@@ -1080,6 +1083,7 @@ fn build_list_json(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
              \"max_gen\":{max_gen},\
              \"rho\":{rho},\
              \"deep\":{deep},\"descent\":{descent},\"di\":{di},\
+             \"v_in_s\":{vins},\
              \"gen\":{gen},\"pf\":{pf},\"apery\":{apery},\
              \"c1\":{c1_arr}}}",
             f = sg.f,
@@ -1100,6 +1104,7 @@ fn build_list_json(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
             deep = sg.deep,
             descent = sg.is_descent(),
             di = sg.is_descent_image(),
+            vins = sg.v_in_s(),
             gen = json_array(&sg.gen_set),
             pf = json_array(&sg.pf_set),
             apery = json_array(&sg.apery_set),

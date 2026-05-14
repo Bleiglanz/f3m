@@ -205,6 +205,12 @@ impl JsSemigroup {
     pub fn rho(&self) -> usize {
         self.0.rho()
     }
+    /// True iff the interval `V(S) = {f − m + 1, …, f − 1}` is contained in S.
+    #[wasm_bindgen(getter)]
+    #[must_use]
+    pub fn v_in_s(&self) -> bool {
+        self.0.v_in_s()
+    }
     /// μ = f mod m.
     #[wasm_bindgen(getter)]
     #[must_use]

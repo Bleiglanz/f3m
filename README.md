@@ -245,8 +245,14 @@ Cargo.toml                               — [workspace] root, shared dependency
 crates/
   semigroup_math/                        — pure Rust: no wasm, no HTML, no rayon
     src/lib.rs                           — declares math + eva
-    src/math/mod.rs                      — compute(), gcd, GAP code generation
-    src/math/semigroup.rs                — Semigroup struct + inspectors
+    src/math/mod.rs                      — module wiring, gcd, GAP code generation
+    src/math/semigroup_compute.rs        — compute(): sliding-window construction
+    src/math/semigroup/mod.rs            — Semigroup struct + Eq/Ord
+    src/math/semigroup/numerical.rs      — scalar inspectors (kunz, diag, r_i,
+                                           rho, wilf, …)
+    src/math/semigroup/vec_props.rs      — Vec<usize> inspectors (blob)
+    src/math/semigroup/bool_props.rs     — predicates (element, is_gap,
+                                           is_descent, v_in_s, classify, …)
     src/math/manipulators.rs             — (&self) -> Semigroup methods (descent,
                                            fast_descent, S/2, K(S), Apéry shift, …)
     src/math/creators.rs                 — parameterized creators (T(m,f), A(m,d,n),

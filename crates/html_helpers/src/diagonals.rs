@@ -144,7 +144,7 @@ pub fn diagonals_table(sg: &Semigroup) -> String {
     let c1: Vec<i64> = (0..dim).map(|i| cr[(i, 0)] as i64).collect();
     // Selmer's formula: sum of Apéry elements w₁…w_{m−1} = m·g + m·(m−1)/2
     #[allow(clippy::cast_possible_wrap)]
-    let apery_sum = (mult * sg.count_gap + mult * (mult - 1) / 2) as i64;
+    let apery_sum = (mult * sg.g + mult * (mult - 1) / 2) as i64;
     let html_one = render_one_vec(&one_u, &c1, apery_sum);
     let product = u_times_c_red(&cr);
     let sets = class_sets(sg);
@@ -193,7 +193,7 @@ pub fn diagonals_table(sg: &Semigroup) -> String {
     #[allow(clippy::cast_possible_wrap)]
     let f_plus_m_plus_r = (sg.f + mult + sg.r) as i64;
     #[allow(clippy::cast_possible_wrap)]
-    let two_g_plus_m_minus_1 = (2 * sg.count_gap + mult - 1) as i64;
+    let two_g_plus_m_minus_1 = (2 * sg.g + mult - 1) as i64;
     let html_d_prod = render_d_prod(
         zd.as_slice(),
         &d_prod,

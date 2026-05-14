@@ -25,7 +25,7 @@ pub(super) struct EvalCtx<'a> {
     t: usize,
     m: usize,
     max_gen: usize,
-    sigma: usize, // σ: semigroup elements below conductor (count_set)
+    sigma: usize, // σ: semigroup elements below conductor (sigma)
     r: usize,     // reflected gap count
 }
 
@@ -168,12 +168,12 @@ pub fn eval_expr(expr: &str, s: &JsSemigroup) -> Option<usize> {
         apery: &sg.apery_set,
         gen_set: &sg.gen_set,
         e: sg.e,
-        g: sg.count_gap,
+        g: sg.g,
         f: sg.f,
         t: sg.t,
         m: sg.m,
         max_gen: sg.max_gen,
-        sigma: sg.count_set,
+        sigma: sg.sigma,
         r: sg.r,
     };
     ctx.eval(expr)

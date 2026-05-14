@@ -105,14 +105,14 @@ impl JsSemigroup {
     /// σ — number of semigroup elements below the conductor f+1.
     #[wasm_bindgen(getter)]
     #[must_use]
-    pub fn count_set(&self) -> usize {
-        self.0.count_set
+    pub fn sigma(&self) -> usize {
+        self.0.sigma
     }
     /// Genus — number of gaps.
     #[wasm_bindgen(getter)]
     #[must_use]
-    pub fn count_gap(&self) -> usize {
-        self.0.count_gap
+    pub fn g(&self) -> usize {
+        self.0.g
     }
     /// Largest minimal generator.
     #[wasm_bindgen(getter)]

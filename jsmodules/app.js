@@ -67,9 +67,9 @@ const parseGens = str => str.split(/\D+/).map(t => parseInt(t, 10)).filter(n => 
 function buildLatexSource(s) {
   const gens = Array.from(s.gen_set);
   const pf = Array.from(s.pf);
-  const g = s.count_gap;
+  const g = s.g;
   const c = s.f + 1;
-  const sigma = s.count_set; // σ: elements below conductor = c − g
+  const sigma = s.sigma; // σ: elements below conductor = c − g
   const r = Array.from(s.blob).length; // reflected gap count
 
   const genStr = gens.join(',\\, ');
@@ -172,12 +172,12 @@ function signedDelta(cur, pre) {
 // trails. Remaining shortprop columns sit in between.
 const DELTA_PROPS = [
   { key: 'e',         label: 'e' },
-  { key: 'count_set', label: 'σ' },
+  { key: 'sigma', label: 'σ' },
   { key: 'r',         label: 'r' },
   { key: 'type_t',    label: 't' },
   { key: 'f',         label: 'f' },
   { key: 'es',        label: 'es' },
-  { key: 'count_gap', label: 'g' },
+  { key: 'g', label: 'g' },
   { key: 'rl',        label: 'rl' },
   { key: 'ra',        label: 'ra' },
   { key: 'fg',        label: 'fg' },
@@ -328,8 +328,8 @@ function render(s, toggle = null, label = '⏎') {
         <li>Multiplicity <strong>m = ${sg(s.m)}</strong></li>
         <li>Frobenius number <strong>f = ${sf(s.f)}</strong></li>
         <li>Embedding dimension <strong>e = ${s.e}</strong> (= number of minimal generators)</li>
-        <li>Number of gaps <strong>g = ${s.count_gap}</strong></li>
-        <li>Conductor <strong>c = ${s.f + 1}</strong>, elements below conductor: ${s.count_set}</li>
+        <li>Number of gaps <strong>g = ${s.g}</strong></li>
+        <li>Conductor <strong>c = ${s.f + 1}</strong>, elements below conductor: ${s.sigma}</li>
         <li>Type <strong>t = ${s.type_t}</strong> — pseudo-Frobenius numbers: ${pfStr}</li>
         <li>${s.is_symmetric ? 'S is <strong>symmetric</strong> (t&nbsp;=&nbsp;1, g&nbsp;=&nbsp;(f+1)/2)' : 'S is <strong>not symmetric</strong>'}</li>
       </ul>`;

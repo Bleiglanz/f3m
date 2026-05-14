@@ -245,22 +245,44 @@ Audit pass:
     waldicone output and will refresh on the next CLI run, so they
     are intentionally not edited here.
 
-TODO 94) analogous
-rename "count_gap" to "g" in the whole project (in the user facing side it is always called g)
-rename "count_set" to "sigma" in the whole project
-carefully check then like in 93 everywhere
+TODO 94) [DONE]
+Renamed `Semigroup::count_gap` → `g` and `Semigroup::count_set` → `sigma`
+across the workspace (~73 sites). Touched:
+  - `semigroup_math/src/math/semigroup/mod.rs` (struct fields + docs) and
+    the `compute()` builder in `semigroup_compute.rs` (locals + init).
+  - `semigroup_math/src/math/mod.rs` (GAP block emission).
+  - WASM getters in `semigroup_explorer/src/lib.rs`: `count_set` → `sigma`,
+    `count_gap` → `g`. JS reads `s.g` / `s.sigma`; delta-info DELTA_PROPS
+    keys updated.
+  - `html_helpers/{shortprops,diagonals}.rs`, `semigroup_cones/src/main.rs`
+    (incl. JSON emission), `semigroup_explorer/src/js_eval.rs`,
+    `tests/integration.rs`, `jsmodules/app.js`, `tex/writeup_updown.tex`.
+Refreshed waldicone cached HTML/JSON for all gmax (2, 10, 11, 13, 14).
 
+TODO 95)
+split integration.rs into two files: semigroup_tests.rs and math_tests.rs
+(in mathtests is only stuff not directly related to semigroups)
 
-TODO95) make a proposal for this
-a) move the compute fonction from mod.rs into a new file semigrouop_compute.rs
-b) extract three traits and place them in a new file semigroup_traits.rs
-- numerical properties (usize) trait Numerical_Props
-- list properties (Vec<usize>) trait Vec_Props
-- boolean properties           trait Bool_Props
-not sure where the rust doc comments should be then - best practice
-also the simple pub props like e,m,f,.etc - should the be private
-in the struct and then called like a function .e() - would be suboptimal in writing
-probably better to leave them
+TODO 96) [DONE]
+Took option (a) + the directory-split alternative discussed before
+implementing; rejected the trait extraction because it adds `use`
+ceremony at every call site and the `.e()` / `.e` ergonomics you
+flagged in the original note. The public fields stay public.
+
+Layout after the refactor:
+  crates/semigroup_math/src/math/
+    mod.rs                      — module wiring, gcd, gap_block, to_gap
+    semigroup_compute.rs        — compute(): sliding-window builder
+    semigroup/mod.rs            — Semigroup struct + PartialEq/Eq/PartialOrd
+    semigroup/numerical.rs      — wilf, kunz, diag, main_diag, r_i, rho
+    semigroup/vec_props.rs      — blob()
+    semigroup/bool_props.rs     — element, is_gap, is_reflected_gap,
+                                  is_descent, is_descent_image, v_in_s,
+                                  classify
+
+`pub use semigroup::Semigroup;` and `pub use semigroup_compute::compute;`
+keep the existing `math::Semigroup` / `math::compute` import surface
+unchanged for downstream crates. README architecture diagram updated.
 
 
 

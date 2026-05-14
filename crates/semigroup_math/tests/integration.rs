@@ -126,7 +126,7 @@ fn test_level_0_uniqueness() {
         assert_eq!(s.level, 0, "level should be 0 for m={m}");
         assert_eq!(s.f, m - 1, "f should be m−1 for m={m}");
         assert_eq!(s.mu, m - 1, "μ should be m−1 for m={m}");
-        assert_eq!(s.count_gap, m - 1, "g should be m−1 for m={m}");
+        assert_eq!(s.g, m - 1, "g should be m−1 for m={m}");
         assert_eq!(s.gen_set, gens, "min-gens should be {{m,…,2m−1}} for m={m}");
     }
 }
@@ -213,7 +213,7 @@ fn test_level_2_missing_stratification() {
                 assert_eq!(s1.m, m, "(m={m}, μ={mu}, M={m_set:?})");
                 assert_eq!(s1.mu, mu, "(m={m}, μ={mu}, M={m_set:?})");
                 assert_eq!(s1.level, 1, "(m={m}, μ={mu}, M={m_set:?})");
-                assert_eq!(s1.count_gap, m + mu - 1 - k, "level-1 genus formula");
+                assert_eq!(s1.g, m + mu - 1 - k, "level-1 genus formula");
 
                 let s2 = build_level_2_missing(m, mu, &m_set);
                 if is_sum_avoiding(&m_set, mu) {
@@ -221,12 +221,8 @@ fn test_level_2_missing_stratification() {
                     assert_eq!(s2.m, m, "(m={m}, μ={mu}, M={m_set:?})");
                     assert_eq!(s2.mu, mu, "(m={m}, μ={mu}, M={m_set:?})");
                     assert_eq!(s2.level, 2, "(m={m}, μ={mu}, M={m_set:?})");
-                    assert_eq!(s2.count_gap, m + mu - k, "missing genus formula");
-                    assert_eq!(
-                        s2.count_gap,
-                        s1.count_gap + 1,
-                        "genus shift l=1 → l=2 missing must be +1",
-                    );
+                    assert_eq!(s2.g, m + mu - k, "missing genus formula");
+                    assert_eq!(s2.g, s1.g + 1, "genus shift l=1 → l=2 missing must be +1",);
                 } else {
                     // Bad pair in M: 2m+μ reduces, w_μ collapses to 2m+μ,
                     // and the result lands back in level 1 (not level 2).
@@ -277,7 +273,7 @@ fn test_level_1_count_formula() {
             assert_eq!(s.m, m, "m mismatch (m={m}, μ={mu})");
             assert_eq!(s.level, 1, "level mismatch (m={m}, μ={mu})");
             assert_eq!(s.mu, mu, "μ mismatch (m={m})");
-            *actual.entry((s.count_gap, mu)).or_insert(0) += 1;
+            *actual.entry((s.g, mu)).or_insert(0) += 1;
         }
         // Compare against the closed form for every (g, μ) we observed.
         for ((g, mu), &n) in &actual {
@@ -319,7 +315,7 @@ fn test_level_1_count_formula() {
 ///
 /// Parameters match the GAP assertions in gap/test.g:
 /// `e` = embedding dimension, `f` = Frobenius number, `m` = multiplicity,
-/// `g` = genus, `c` = count_set (= 1+f−g), `sym` = IsSymmetric,
+/// `g` = genus, `c` = sigma (= 1+f−g), `sym` = IsSymmetric,
 /// `apery` = AperyList w.r.t. m (indexed 0..m), `pf` = PseudoFrobenius set,
 /// `t` = type.
 #[allow(clippy::too_many_arguments)]
@@ -344,8 +340,8 @@ fn check(
     assert_eq!(s.e, e, "e     for {gens:?}");
     assert_eq!(s.f, f, "f     for {gens:?}");
     assert_eq!(s.m, m, "m     for {gens:?}");
-    assert_eq!(s.count_gap, g, "genus for {gens:?}");
-    assert_eq!(s.count_set, c, "c     for {gens:?}");
+    assert_eq!(s.g, g, "genus for {gens:?}");
+    assert_eq!(s.sigma, c, "c     for {gens:?}");
     assert_eq!(s.is_symmetric, sym, "sym   for {gens:?}");
     assert_eq!(s.apery_set.as_slice(), apery, "apery for {gens:?}");
     let mut actual_pf = s.pf_set.clone();
@@ -355,8 +351,8 @@ fn check(
     assert_eq!(actual_pf, expected_pf, "pf    for {gens:?}");
     assert_eq!(s.t, t, "type  for {gens:?}");
     assert_eq!(f + m, *apery.iter().max().unwrap(), "f ist max apery -m");
-    assert_eq!(s.count_set + s.r, s.count_gap, "g ist sigma + r");
-    assert_eq!(s.f + s.r + 2, 2 * s.count_gap + 1, "f+r+2=2g+1");
+    assert_eq!(s.sigma + s.r, s.g, "g ist sigma + r");
+    assert_eq!(s.f + s.r + 2, 2 * s.g + 1, "f+r+2=2g+1");
     assert_eq!(
         s.ae,
         *s.gen_set.iter().max().unwrap(),
@@ -454,10 +450,7 @@ fn check(
     // so no gap x has f − x as a gap.)
     if s.is_symmetric {
         assert_eq!(s.r, 0, "symmetric ⇒ r=0 for {gens:?}");
-        assert_eq!(
-            s.count_gap, s.count_set,
-            "symmetric ⇒ g = #sporadics for {gens:?}",
-        );
+        assert_eq!(s.g, s.sigma, "symmetric ⇒ g = #sporadics for {gens:?}",);
     }
 
     // For t > 1, let L = max(PF(S) \ {f}). Then:
@@ -490,11 +483,7 @@ fn check(
     // The symmetric case is included (t = 1, both sides empty).
     if s.is_almost_symmetric {
         assert_eq!(s.ra, s.r, "almost-symmetric ⇒ ra=r for {gens:?}");
-        assert_eq!(
-            s.f + s.t,
-            2 * s.count_gap,
-            "almost-symmetric ⇒ f+t=2g for {gens:?}",
-        );
+        assert_eq!(s.f + s.t, 2 * s.g, "almost-symmetric ⇒ f+t=2g for {gens:?}",);
         let mut pf_minus_f: Vec<usize> = s.pf_set.iter().copied().filter(|&p| p != s.f).collect();
         pf_minus_f.sort_unstable();
         assert_eq!(
@@ -514,14 +503,14 @@ fn check(
 /// 1. **Descent of an outer Apéry** (`w > f` and `f > m`).
 ///    `w − m` is a gap; toggling it adds exactly one element to `S`.
 ///    The pair `(w − m, f − (w − m))` is a reflected-gap pair when
-///    `w < f + m`, hence `r` drops by 2 and `count_set` rises by 1.
+///    `w < f + m`, hence `r` drops by 2 and `sigma` rises by 1.
 ///    When `w == f + m` and `V(S) = {f−m+1, …, f−1} ⊆ S`, descent
 ///    collapses the conductor by `m`, raising `r` by `m − 2` and
-///    raising `count_set` by `m − 1` (one new element `f` plus the
+///    raising `sigma` by `m − 1` (one new element `f` plus the
 ///    `m − 1` elements of `V` already in `S` reaching the new conductor).
 /// 2. **Ascent of a "large" minimal generator** (`w ∈ gen_set` with
 ///    `f − m < w < f`). Removing `w` makes `(w, f − w)` a new
-///    reflected-gap pair, so `r += 2` and `count_set -= 1`; the new
+///    reflected-gap pair, so `r += 2` and `sigma -= 1`; the new
 ///    Apéry in residue `i` becomes `w + m`.
 /// 3. **Ascent of the max Apéry** (`w == f + m ∈ gen_set`). The new
 ///    `a_μ` jumps by `rho · m`, where `rho = rho(S)`; the size and
@@ -544,14 +533,14 @@ fn test_up_downs(s: &Semigroup) {
                 "reflected {w} at {i}"
             );
             let down = s.toggle(w - s.m);
-            assert_eq!(down.count_gap + 1, s.count_gap);
+            assert_eq!(down.g + 1, s.g);
             if w == s.f + s.m && s.v_in_s() {
                 assert_eq!(down.r + 2, s.r + s.m, "r change w==f+m for i={i}");
-                assert_eq!(down.count_set + s.m, s.count_set + 1, "count_set");
+                assert_eq!(down.sigma + s.m, s.sigma + 1, "sigma");
             }
             if w < s.f + s.m {
                 assert_eq!(down.r + 2, s.r, "r change w<f+m for i={i}");
-                assert_eq!(down.count_set, s.count_set + 1, "count_set");
+                assert_eq!(down.sigma, s.sigma + 1, "sigma");
             }
         }
 
@@ -559,29 +548,25 @@ fn test_up_downs(s: &Semigroup) {
         if s.gen_set.contains(&w) {
             let up = s.toggle(w);
             if w < s.f && w + s.m > s.f {
-                assert_eq!(
-                    up.count_gap,
-                    s.count_gap + 1,
-                    "removing atom generates gap for {i} and {w}"
-                );
+                assert_eq!(up.g, s.g + 1, "removing atom generates gap for {i} and {w}");
                 assert!(up.apery_set.contains(&(w + s.m)));
                 assert_eq!(up.apery_set[i], w + s.m);
                 assert_eq!(up.r, s.r + 2, "r change w<f for i={i}");
-                assert_eq!(up.count_set + 1, s.count_set);
+                assert_eq!(up.sigma + 1, s.sigma);
             }
             if w == s.f + s.m {
                 let rho = s.rho();
                 assert_eq!(
-                    up.count_gap,
-                    s.count_gap + rho,
+                    up.g,
+                    s.g + rho,
                     "removing atom generates rho gap for {i} and {w}"
                 );
                 assert!(up.apery_set.contains(&(w + rho * s.m)));
                 assert_eq!(up.apery_set[i], w + rho * s.m);
                 assert_eq!(up.r + rho * (s.m - 2), s.r, "r change w==f+m for i={i}");
                 assert_eq!(
-                    up.count_set,
-                    rho * (s.m - 1) + s.count_set,
+                    up.sigma,
+                    rho * (s.m - 1) + s.sigma,
                     "sigma change w==f+m for i={i}"
                 );
             }

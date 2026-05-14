@@ -304,8 +304,8 @@ fn props_cells(sg: &Semigroup) -> String {
         f = sg.f,
         es = sg.es,
         e = sg.e,
-        cg = sg.count_set,
-        g = sg.count_gap,
+        cg = sg.sigma,
+        g = sg.g,
         rl = sg.rl,
         t = sg.t,
         r = sg.r,
@@ -1085,7 +1085,7 @@ fn build_list_json(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
             f = sg.f,
             es = sg.es,
             e = sg.e,
-            sigma = sg.count_set,
+            sigma = sg.sigma,
             rl = sg.rl,
             r = sg.r,
             ra = sg.ra,
@@ -1170,7 +1170,7 @@ fn print_asym_anomalies(all_data: &[(usize, GenusData)]) {
                 let mut gens = sg.gen_set.clone();
                 gens.push(sg.f);
                 let s2 = compute(&gens);
-                let g2 = s2.count_gap;
+                let g2 = s2.g;
                 let fm2 = s2.f + s2.m;
                 let ok = s2.max_gen == fm2 && fm2 == 2 * g2;
                 if !ok {
@@ -1186,7 +1186,7 @@ fn print_asym_anomalies(all_data: &[(usize, GenusData)]) {
                         "  asym ⟨{}⟩ g={} f={} \u{2192} S\u{2032}=⟨{}⟩ \
                          g\u{2032}={g2} f\u{2032}={} m\u{2032}={} ae\u{2032}={} f\u{2032}+m\u{2032}={fm2} [{bucket}]",
                         fmt(&sg.gen_set),
-                        sg.count_gap,
+                        sg.g,
                         sg.f,
                         fmt(&s2.gen_set),
                         s2.f,

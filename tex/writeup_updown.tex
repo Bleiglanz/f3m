@@ -23,7 +23,7 @@
 \begin{tabular}{l|l}
 LaTeX & Code \\\hline
 $m,\,f,\,\mu$           & \verb|s.m|, \verb|s.f|, \verb|s.mu| \\
-$g,\,\sigma,\,r$        & \verb|s.count_gap|, \verb|s.count_set|, \verb|s.r| \\
+$g,\,\sigma,\,r$        & \verb|s.g|, \verb|s.sigma|, \verb|s.r| \\
 $r_i,\,\rho$            & \verb|s.r_i(i)|, \verb|s.rho()| \\
 $w_i,\,\operatorname{Ap}(S)$ & \verb|s.apery_set[i]|, \verb|s.apery_set| \\
 $\operatorname{RG}(S)$  & \verb|s.blob()| \\
@@ -159,14 +159,14 @@ fn test_up_downs(s: &Semigroup) {
                 "reflected {w} at {i}"
             );
             let down = s.toggle(w - s.m);
-            assert_eq!(down.count_gap + 1, s.count_gap);
+            assert_eq!(down.g + 1, s.g);
             if w == s.f + s.m && s.v_in_s() {
                 assert_eq!(down.r + 2, s.r + s.m, "r change w==f+m for i={i}");
-                assert_eq!(down.count_set + s.m, s.count_set + 1, "count_set");
+                assert_eq!(down.sigma + s.m, s.sigma + 1, "sigma");
             }
             if w < s.f + s.m {
                 assert_eq!(down.r + 2, s.r, "r change w<f+m for i={i}");
-                assert_eq!(down.count_set, s.count_set + 1, "count_set");
+                assert_eq!(down.sigma, s.sigma + 1, "sigma");
             }
         }
 
@@ -175,28 +175,28 @@ fn test_up_downs(s: &Semigroup) {
             let up = s.toggle(w);
             if w < s.f && w + s.m > s.f {
                 assert_eq!(
-                    up.count_gap,
-                    s.count_gap + 1,
+                    up.g,
+                    s.g + 1,
                     "removing atom generates gap for {i} and {w}"
                 );
                 assert!(up.apery_set.contains(&(w + s.m)));
                 assert_eq!(up.apery_set[i], w + s.m);
                 assert_eq!(up.r, s.r + 2, "r change w<f for i={i}");
-                assert_eq!(up.count_set + 1, s.count_set);
+                assert_eq!(up.sigma + 1, s.sigma);
             }
             if w == s.f + s.m {
                 let rho = s.rho();
                 assert_eq!(
-                    up.count_gap,
-                    s.count_gap + rho,
+                    up.g,
+                    s.g + rho,
                     "removing atom generates rho gap for {i} and {w}"
                 );
                 assert!(up.apery_set.contains(&(w + rho * s.m)));
                 assert_eq!(up.apery_set[i], w + rho * s.m);
                 assert_eq!(up.r + rho * (s.m - 2), s.r, "r change w==f+m for i={i}");
                 assert_eq!(
-                    up.count_set,
-                    rho * (s.m - 1) + s.count_set,
+                    up.sigma,
+                    rho * (s.m - 1) + s.sigma,
                     "sigma change w==f+m for i={i}"
                 );
             }

@@ -161,8 +161,8 @@ function deltaTCell(s, idx) {
   if (idx <= 0) { return '<td>—</td>'; }
   const prev = state_get(idx - 1);
   if (!prev) { return '<td>—</td>'; }
-  const cur = Number(s.t);
-  const pre = Number(prev.t);
+  const cur = Number(s.type_t);
+  const pre = Number(prev.type_t);
   if (!Number.isFinite(cur) || !Number.isFinite(pre)) { return '<td>—</td>'; }
   if (cur > pre) { return `<td>+${cur - pre}</td>`; }
   if (cur < pre) { return `<td>−${pre - cur}</td>`; }

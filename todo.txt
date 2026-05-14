@@ -245,7 +245,22 @@ Audit pass:
     waldicone output and will refresh on the next CLI run, so they
     are intentionally not edited here.
 
+TODO 94) analogous
+rename "count_gap" to "g" in the whole project (in the user facing side it is always called g)
+rename "count_set" to "sigma" in the whole project
+carefully check then like in 93 everywhere
 
+
+TODO95) make a proposal for this
+a) move the compute fonction from mod.rs into a new file semigrouop_compute.rs
+b) extract three traits and place them in a new file semigroup_traits.rs
+- numerical properties (usize) trait Numerical_Props
+- list properties (Vec<usize>) trait Vec_Props
+- boolean properties           trait Bool_Props
+not sure where the rust doc comments should be then - best practice
+also the simple pub props like e,m,f,.etc - should the be private
+in the struct and then called like a function .e() - would be suboptimal in writing
+probably better to leave them
 
 
 

@@ -1,0 +1,310 @@
+% Compile with LuaLaTeX: `lualatex writeup_updown.tex`
+\documentclass[11pt, a4paper]{article}
+\usepackage{fontspec}
+\usepackage[english]{babel}
+\usepackage[a4paper,top=2cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{graphicx}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+
+\def \N{{\mathbb Z}_{\geq 0}}
+\def \Npos{{\mathbb Z}_{>0}}
+\def \Z{\mathbb Z}
+\linespread{1.2}
+\setlength{\parindent}{0em}
+
+\begin{document}
+
+\section{Claude's review notes}
+
+I went through the writeup once, cross-referenced every formula
+against \texttt{crates/semigroup\_math} and the property assertions in
+\texttt{tests/integration.rs::test\_up\_downs}, applied the fixes
+directly in the following sections, and switched the preamble to a
+LuaLaTeX-friendly setup. This section records what was changed and
+what (if anything) is still open.
+
+\subsection*{Math edits applied}
+
+\begin{enumerate}
+  \item \textbf{$r_i$ sign}. The original definition
+        $r_i := (w_\mu - (w_{\mu-i}+w_i))/m$ contradicted the
+        explanation on the same line ("$f = w_{\mu-i}+w_i-(r_i+1)m$",
+        which solves to the opposite sign) and disagreed with
+        \verb|Semigroup::r_i| in \texttt{semigroup.rs:192} (which is
+        the Kunz coefficient $c(i, \mu-i)$). Now reads
+        $r_i := (w_i + w_{\mu-i} - w_\mu)/m$.
+
+  \item \textbf{$V(S)$}. Was $\{f-m+1, \dots, f-m\}$ (endpoints
+        disagreed). Now $\{f-m+1, \dots, f-1\}$, matching
+        \verb|v_in_s()| in \texttt{semigroup.rs:264}.
+
+  \item \textbf{$\rho$}. Was $\min_i r_i$, which collapses to $0$
+        because $r_\mu = 0$ for every numerical semigroup. Now
+        $\rho(S) := \min_{i \neq \mu} r_i$, matching
+        \verb|min_ri()| in \texttt{semigroup.rs:207}.
+
+  \item \textbf{Apéry indexing}. "$w_i = i \bmod m$" tightened to
+        "$w_i \equiv i \pmod m$", since $w_i$ is the unique Apéry
+        element with residue $i$, not the residue itself.
+
+  \item \textbf{Redundant clause in $\mathcal{D}_{total}$}. "$w_i =
+        f+m$" together with $i = \mu$ is automatic; the
+        load-bearing condition is $V(S) \subseteq S$. Now only the
+        latter remains.
+
+  \item \textbf{Subscript in \S~Correspondence}. The families are
+        indexed $(i, m)$ throughout \S~UpDown, but
+        \S~Correspondence had drifted to $(i, \mu)$. Restored to
+        $(i, m)$.
+
+  \item \textbf{Symmetric exclusion argument}. The original
+        sentence justified excluding symmetric semigroups from
+        $\mathcal{A}_{total}$ by appealing to $r = 0$, but that
+        alone doesn't prevent $w_\mu$ from being an atom. Replaced
+        with the actual reason: $\rho(S) = 0$ forces
+        $w_i + w_{\mu-i} = w_\mu$ for some $i \neq \mu$, so $w_\mu$
+        is decomposable and therefore not an atom; hence symmetric
+        semigroups give an empty $\mathcal{A}_{total}$.
+
+  \item \textbf{$a_\mu$ vs.\ $w_\mu$}. The body uses $w_\mu$
+        throughout; one stray $a_\mu$ near the end of
+        \S~Correspondence has been normalised.
+
+  \item \textbf{Closing paren on the symmetric note}. "($r=0$ can
+        never \dots)" $\to$ "($r=0$) can never \dots".
+
+  \item \textbf{$S_+$}. Added a one-line declaration $S_+ := S
+        \setminus \{0\}$ where the atom definition uses it.
+\end{enumerate}
+
+\subsection*{Typos / preamble cleanup}
+
+Section heading "Corrospondence" $\to$ "Correspondence". "just just"
+$\to$ "just". "relfected" $\to$ "reflected". "and$f$" got its space
+back. "would us now require" $\to$ "would now require". "$\mod i$"
+became "in residue class $i \pmod m$". The babel locale switched
+from German to English (the prose is English). Duplicate
+\verb|\usepackage| calls for \verb|amsmath|, \verb|amssymb|,
+\verb|graphicx|, and \verb|geometry| collapsed to one each;
+\verb|eurosym| was unused and is gone. \verb|inputenc| /
+\verb|fontenc| removed (Lua\TeX{} reads UTF-8 natively); replaced
+with \verb|fontspec|. The geometry options switched from
+\verb|letterpaper| to \verb|a4paper| to match the document class.
+
+\subsection*{Code block (\S~Code)}
+
+Replaced the older verbatim with the current cleaned
+\verb|test_up_downs| at
+\texttt{crates/semigroup\_math/tests/integration.rs:531} (early-return
+on $m=1$, formatted assertion messages, doc comment in the source).
+
+\subsection*{What checks out cleanly}
+
+The four $(\Delta g, \Delta \sigma, \Delta r)$ formulas all match the
+runtime invariants:
+\begin{itemize}
+  \item $\mathcal{D}_{flip}$: \verb|down.r + 2 == s.r| and
+        \verb|down.count_set == s.count_set + 1|.
+  \item $\mathcal{D}_{total}$: \verb|down.r + 2 == s.r + s.m| and
+        \verb|down.count_set + s.m == s.count_set + 1|.
+  \item $\mathcal{A}_{flip}$: \verb|up.r == s.r + 2| and
+        \verb|up.count_set + 1 == s.count_set|.
+  \item $\mathcal{A}_{total}$: \verb|up.r + minr*(s.m-2) == s.r| and
+        \verb|up.count_set == minr*(s.m-1) + s.count_set|.
+\end{itemize}
+The "trivial" identities $r + \sigma = g$, $f + 1 + r = 2g$, and $t -
+1 \leq r$ are asserted on every fixture (\texttt{integration.rs:358-385}).
+
+\subsection*{Notation $\leftrightarrow$ codebase}
+
+\begin{center}
+\begin{tabular}{l|l}
+LaTeX & Code \\\hline
+$m,\,f,\,\mu$           & \verb|s.m|, \verb|s.f|, \verb|s.mu| \\
+$g,\,\sigma,\,r$        & \verb|s.count_gap|, \verb|s.count_set|, \verb|s.r| \\
+$r_i,\,\rho$            & \verb|s.r_i(i)|, \verb|s.min_ri()| \\
+$w_i,\,\operatorname{Ap}(S)$ & \verb|s.apery_set[i]|, \verb|s.apery_set| \\
+$\operatorname{RG}(S)$  & \verb|s.blob()| \\
+$V(S) \subseteq S$      & \verb|s.v_in_s()| \\
+atom                    & element of \verb|s.gen_set| \\
+$S^\downarrow$ (descent) & \verb|s.toggle(w - s.m)| \\
+$S^\uparrow$ (ascent)    & \verb|s.toggle(w)| \\
+$t$                     & \verb|s.t| (Rust) / \verb|s.type_t| (JS)
+\end{tabular}
+\end{center}
+
+Not used in this note but tracked in the app: $r_a$
+(\verb|s.ra|, reflected Apéry), $e_s$ (\verb|s.es|, small atoms $g <
+f-m$), $r_l$ (\verb|s.rl|, large reflected gaps $L \in (f-m, f)$).
+
+\subsection*{Still open (your call)}
+
+\begin{itemize}
+  \item \S~Correspondence is doing two things at once: (a) when is
+        $D \circ A = \mathrm{id}$ on $\mathcal{A}_{total}$, (b) when
+        is $A \circ D = \mathrm{id}$ on a restricted
+        $\mathcal{D}_{total}$. Splitting these explicitly would
+        help; I left the text as-is to preserve your voice.
+  \item The closing question "we need to restrict to semigroups in
+        $\mathcal{D}_{total}(i,m)$ where $w_\mu$ is not an atom?"
+        ends with a question mark. Fine for a chat-with-friends
+        register, but if you intend it as a conclusion the wording
+        could be sharpened.
+\end{itemize}
+
+\section{Setup}
+
+Let $S$ be a numerical semigroup, with $f,\,m,\,g,\,\sigma$ as usual.
+Write $S_+ := S \setminus \{0\}$.
+\begin{itemize}
+    \item $\operatorname{Ap}(S):=\{s\in S \mid s-m \notin S\}$,
+    $\operatorname{RG}(S):=\{L\notin S \mid f-L \notin S\}$.
+    \item $a$ is an \textit{atom} iff $a\in S\setminus (S_+ + S_+)$
+    (the common name "minimal generator" actually means an element of
+    the unique minimal generating set).
+    \item $\operatorname{Ap}(S):=\{w_0,w_1,\dots,w_{m-1}\}$ where
+    $w_i \equiv i \pmod m$.
+    \item $\mu \in \{1,\dots,m-1\}$ is the number $\mu = f \bmod m$,
+    equivalently $f+m = w_\mu$.
+    \item For every $1\leq i \leq m-1$ let
+    \[
+        r_i := \frac{w_i + w_{\mu-i} - w_\mu}{m}
+    \]
+    (the number of reflected gaps in residue class $i \pmod m$). Just
+    look at $w_\mu - m = f = w_{\mu-i} + w_i - (r_i+1)m$, i.e.\
+    distribute the $r_i+1$ gaps between $w_\mu$ and $w_i + w_{\mu-i}$
+    along the residue class $\mu$.
+    \item $V(S):=\{f-m+1,\,f-m+2,\dots,f-1\}$, the
+    \textit{interval before $f$}.
+    \item $\rho(S):=\min_{i\neq\mu} r_i$ and
+    $r = \sum_i r_i = \#\operatorname{RG}(S)$.
+    \item Trivial: $r+\sigma=g$, $f+1+r=2g$, $t-1\leq r$.
+\end{itemize}
+
+\section{UpDown}
+
+Now define four families of semigroups, for a fixed $m>2$ and
+an $i \in \{1,\dots,m-1\}$, indicating by $'$ the new count in
+$S^\uparrow$ resp.\ $S^\downarrow$:
+\begin{enumerate}
+    \item $\mathcal{D}_{flip}(i,m)$: $i\neq \mu$, $S$ and
+    $f<w_i<f+m$.
+    \[S^\downarrow:=S\cup\{w_i-m\}\quad g'=g-1\quad \sigma'=\sigma+1\quad r'=r-2\]
+    \item $\mathcal{D}_{total}(i,m)$: $i=\mu$ and
+    $V(S)\subseteq S$ (then $w_\mu = f+m$ automatically).
+    \[S^\downarrow:=S\cup\{w_\mu-m\}\quad g'=g-1\quad \sigma'=\sigma-(m-1)\quad r'=r+(m-2)\]
+    \item $\mathcal{A}_{flip}(i,m)$: $i\neq \mu$, $S$ and $w_i$ is an
+    atom, $w_i \in V(S)$.
+    \[S^\uparrow:=S\setminus\{w_i\}\quad g'=g+1\quad \sigma'=\sigma-1\quad r'=r+2\]
+    \item $\mathcal{A}_{total}(i,m)$: $i=\mu$, $S$ and $w_\mu$ is an
+    atom; set $\rho=\rho(S)$.
+    \[S^\uparrow:=S\setminus\{w_\mu\}\quad g'=g+\rho \quad \sigma'=\sigma+\rho(m-1)\quad r'=r-\rho(m-2)\]
+\end{enumerate}
+All these claims can be proven by carefully checking the change in
+the semigroup --- and the property tests in \texttt{tests/integration.rs}
+verify each $(\Delta g, \Delta \sigma, \Delta r)$ on every fixture in
+\texttt{tests/data/check\_fixtures.csv}.
+
+\section{Correspondence}
+
+If we want a bijection between
+\[
+\mathcal{D}_{total}(i,m) \longleftrightarrow \mathcal{A}_{total}(i,m)
+\]
+we obviously need $\rho(S)=1$ for the semigroup in
+$\mathcal{A}_{total}(i,m)$; this is a necessary condition. The reason
+is simple: if $\rho > 1$, then $w_\mu+m$ cannot be written as a sum of
+Apéry elements, so it will not be in $S^\uparrow$. Note that symmetric
+semigroups ($r=0$) can never be in $\mathcal{A}_{total}(i,m)$: $r=0$
+forces $\rho=0$, which forces some $w_i + w_{\mu-i} = w_\mu$ with
+$i \neq \mu$, so $w_\mu$ is decomposable and therefore not an atom.
+\vskip5mm
+Viewed from below we need
+\[
+g + \rho -1 = g
+\qquad
+\sigma + \rho (m-1) - (m-1) = \sigma
+\qquad r-\rho(m-2)+(m-2)=r
+\]
+It is tempting to define adding $f$ or removing $f+m$ by maps
+\[
+D: \mathcal{D}_{total}(i,m) \rightarrow \mathcal{A}_{total}(i,m)
+\qquad D(S)=S\cup\{f(S)\} = S^\downarrow
+\] and \[
+A: \mathcal{A}_{total}(i,m) \rightarrow \mathcal{D}_{total}(i,m)
+\qquad A(S) = S \setminus \{w_\mu(S)\} = S^\uparrow
+\]
+This would be great --- at least for the $r_i$, because in this case
+we would have $r_i(D(S))=r_i(S)+1$ and $r_i(A(S))=r_i(S)-1$, which
+would now require that the semigroup in $\mathcal{D}_{total}(i,m)$ has
+$\rho=0$. That means $w_\mu(S^\uparrow)$ is decomposable and not an
+atom. It is obvious that $V(A(S))\subseteq A(S)$ --- so in order to
+get a well-defined bijection, we need to restrict to semigroups in
+$\mathcal{D}_{total}(i,m)$ where $w_\mu$ is not an atom?
+
+\section{Code}
+\begin{verbatim}
+fn test_up_downs(s: &Semigroup) {
+    if s.m == 1 {
+        return;
+    }
+    for i in 1..s.m {
+        let w = s.apery_set[i];
+
+        // Descent: w-m is a gap; adding it lifts the membership of w-m.
+        if w > s.f && s.f > s.m {
+            assert!(!s.element(w - s.m));
+            assert!(w <= s.f + s.m);
+            assert!(
+                w == s.f + s.m || s.is_reflected_gap(w - s.m),
+                "reflected {w} at {i}"
+            );
+            let down = s.toggle(w - s.m);
+            assert_eq!(down.count_gap + 1, s.count_gap);
+            if w == s.f + s.m && s.v_in_s() {
+                assert_eq!(down.r + 2, s.r + s.m, "r change w==f+m for i={i}");
+                assert_eq!(down.count_set + s.m, s.count_set + 1, "count_set");
+            }
+            if w < s.f + s.m {
+                assert_eq!(down.r + 2, s.r, "r change w<f+m for i={i}");
+                assert_eq!(down.count_set, s.count_set + 1, "count_set");
+            }
+        }
+
+        // Ascent: w must already be a minimal generator.
+        if s.gen_set.contains(&w) {
+            let up = s.toggle(w);
+            if w < s.f && w + s.m > s.f {
+                assert_eq!(
+                    up.count_gap,
+                    s.count_gap + 1,
+                    "removing atom generates gap for {i} and {w}"
+                );
+                assert!(up.apery_set.contains(&(w + s.m)));
+                assert_eq!(up.apery_set[i], w + s.m);
+                assert_eq!(up.r, s.r + 2, "r change w<f for i={i}");
+                assert_eq!(up.count_set + 1, s.count_set);
+            }
+            if w == s.f + s.m {
+                let minr = s.min_ri();
+                assert_eq!(
+                    up.count_gap,
+                    s.count_gap + minr,
+                    "removing atom generates minr gap for {i} and {w}"
+                );
+                assert!(up.apery_set.contains(&(w + minr * s.m)));
+                assert_eq!(up.apery_set[i], w + minr * s.m);
+                assert_eq!(up.r + minr * (s.m - 2), s.r, "r change w==f+m for i={i}");
+                assert_eq!(
+                    up.count_set,
+                    minr * (s.m - 1) + s.count_set,
+                    "sigma change w==f+m for i={i}"
+                );
+            }
+        }
+    }
+}
+\end{verbatim}
+
+\end{document}

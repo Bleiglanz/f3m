@@ -15,7 +15,7 @@ import init, {
 import { render3d, animate3dDescent, animate3dAscent } from './view3d.js';
 import { rebuildGraph, setupGraphUpto, setupShowGaps, setupGraphToggle } from './graph.js';
 
-const PROP_THEAD_TR = '<tr><th title="Index and operation label">#</th><th title="Generator added (+) or removed (\u2212)">toggle</th><th title="Multiplicity: smallest positive element">m</th><th title="Frobenius number: largest gap">f</th><th title="Small minimal generators: count of minimal generators g with g &lt; f\u2212m">es</th><th title="Embedding dimension: number of minimal generators (hover the cell to list them)">e</th><th title="Sporadic elements: elements of S below the conductor f+1">\u03C3</th><th title="Genus: number of gaps">g</th><th title="Large reflected gaps: gaps L with f\u2212m &lt; L &lt; f (automatically reflected)">rl</th><th title="Type: number of pseudo-Frobenius numbers (hover the cell to list them)">t</th><th title="Reflected gaps: gaps n where f\u2212n is also a gap">r</th><th title="Reflected Ap\u00E9ry: Ap\u00E9ry elements w where w\u2212m is a reflected gap">ra</th><th title="Fundamental gaps: gaps n with every multiple kn (k≥2) in S">fg</th><th title="Symmetric: t=1 and g=(f+1)/2">Sym</th><th title="Descent image: \u2203 T with T.descent()=S; equivalently a min-gen lies in (f\u2212m, f) or at f+m">di</th><th title="Wilf quotient: \u03C3/(f+1) \u2265 1/e (conjecture)">Wilf</th><th title="Wilf conjecture lower bound: 1/e">1/e</th><th title="Expression evaluated for this semigroup">expr</th><th title="Result of the expression">value</th><th title="Set-containment relation with previous entry">&#8838;?</th><th title="Change in type vs the previous entry: +|Δ| if t increased, −|Δ| if it decreased, 0 if unchanged">Δt</th></tr>';
+const PROP_THEAD_TR = '<tr><th title="Index and operation label">#</th><th title="Generator added (+) or removed (\u2212)">toggle</th><th title="Multiplicity: smallest positive element">m</th><th title="Frobenius number: largest gap">f</th><th title="Small minimal generators: count of minimal generators g with g &lt; f\u2212m">es</th><th title="Embedding dimension: number of minimal generators (hover the cell to list them)">e</th><th title="Sporadic elements: elements of S below the conductor f+1">\u03C3</th><th title="Genus: number of gaps">g</th><th title="Large reflected gaps: gaps L with f\u2212m &lt; L &lt; f (automatically reflected)">rl</th><th title="Type: number of pseudo-Frobenius numbers (hover the cell to list them)">t</th><th title="Reflected gaps: gaps n where f\u2212n is also a gap">r</th><th title="Reflected Ap\u00E9ry: Ap\u00E9ry elements w where w\u2212m is a reflected gap">ra</th><th title="Fundamental gaps: gaps n with every multiple kn (k≥2) in S">fg</th><th title="Symmetric: t=1 and g=(f+1)/2">Sym</th><th title="Descent image: \u2203 T with T.descent()=S; equivalently a min-gen lies in (f\u2212m, f) or at f+m">di</th><th title="Wilf quotient: \u03C3/(f+1) \u2265 1/e (conjecture)">Wilf</th><th title="Wilf conjecture lower bound: 1/e">1/e</th><th title="Expression evaluated for this semigroup">expr</th><th title="Result of the expression">value</th><th title="Set-containment relation with previous entry">&#8838;?</th></tr>';
 
 // ── UI-only state (Rust owns the data) ────────────────────────────────────────
 let currentGenSet = null;
@@ -146,7 +146,7 @@ function cellText(td) {
 
 // Build CSV text from the current history table and write it to #csv-output.
 function buildCsv() {
-  const CSV_HEADER = '#,toggle,m,f,es,e,σ,g,rl,t,r,ra,fg,Sym,di,Wilf,1/e,expr,value,⊆?,Δt,generators';
+  const CSV_HEADER = '#,toggle,m,f,es,e,σ,g,rl,t,r,ra,fg,Sym,di,Wilf,1/e,expr,value,⊆?,generators';
   const rows = Array.from(document.querySelectorAll('#history-tbody tr'));
   const lines = rows.map(tr => {
     const cells = Array.from(tr.cells).map(td => csvField(cellText(td))).join(',');
@@ -159,24 +159,13 @@ function buildCsv() {
 // Build a history table row for semigroup `s` at index `idx`.
 const sIdx = n => `S<sub>${n}</sub>`;
 
-// Signed change of two numeric values, using the same convention as Δt.
+// Signed change of two numeric values, used by the delta-info banner.
 // Returns null when either operand is non-finite.
 function signedDelta(cur, pre) {
   if (!Number.isFinite(cur) || !Number.isFinite(pre)) { return null; }
   if (cur > pre) { return { sign: '+', mag: cur - pre, cls: 'delta-plus' }; }
   if (cur < pre) { return { sign: '−', mag: pre - cur, cls: 'delta-minus' }; }
   return { sign: '', mag: 0, cls: 'delta-zero' };
-}
-
-// Δt cell: signed change in type vs the previous history entry.
-// idx === 0, no previous entry, or non-finite values render as an em dash.
-function deltaTCell(s, idx) {
-  if (idx <= 0) { return '<td>—</td>'; }
-  const prev = state_get(idx - 1);
-  if (!prev) { return '<td>—</td>'; }
-  const d = signedDelta(Number(s.type_t), Number(prev.type_t));
-  if (!d) { return '<td>—</td>'; }
-  return d.mag === 0 ? '<td>0</td>' : `<td>${d.sign}${d.mag}</td>`;
 }
 
 // Properties to summarise in the delta-info banner. e/σ/r/t lead; m
@@ -221,7 +210,7 @@ function historyRow(s, idx, label, toggle, expr, value, cmp) {
     ? `${sIdx(toggle.from)}${toggle.sign}<span class="${toggle.cls}">${toggle.n}</span>`
     : '—';
   const gens = Array.from(s.gen_set).join(' ');
-  return `<tr class="history-row" data-idx="${idx}" data-gens="${gens}"><td>${idx}:${label}</td><td>${toggleStr}</td>${shortprop_tds(s)}<td class="left">${expr}</td><td>${valStr}</td><td>${cmp}</td>${deltaTCell(s, idx)}</tr>`;
+  return `<tr class="history-row" data-idx="${idx}" data-gens="${gens}"><td>${idx}:${label}</td><td>${toggleStr}</td>${shortprop_tds(s)}<td class="left">${expr}</td><td>${valStr}</td><td>${cmp}</td></tr>`;
 }
 
 // Render a semigroup: update all UI tabs. Caller must call state_push first.

@@ -259,9 +259,13 @@ across the workspace (~73 sites). Touched:
     `tests/integration.rs`, `jsmodules/app.js`, `tex/writeup_updown.tex`.
 Refreshed waldicone cached HTML/JSON for all gmax (2, 10, 11, 13, 14).
 
-TODO 95)
-split integration.rs into two files: semigroup_tests.rs and math_tests.rs
-(in mathtests is only stuff not directly related to semigroups)
+TODO 95) [DONE]
+crates/semigroup_math/tests/integration.rs split into:
+  tests/math_tests.rs        — gcd, binom_basics, binom_overflow (pure-math)
+  tests/semigroup_tests.rs   — every Semigroup-touching test (renamed from
+                               integration.rs via `git mv`)
+Cargo treats every tests/*.rs as its own integration binary so the split
+is free. README and CLAUDE.md architecture diagrams updated to match.
 
 TODO 96) [DONE]
 Took option (a) + the directory-split alternative discussed before
@@ -284,34 +288,61 @@ Layout after the refactor:
 keep the existing `math::Semigroup` / `math::compute` import surface
 unchanged for downstream crates. README architecture diagram updated.
 
-TODO 96)
-changes in ascent and descent in semigroup modifiers.rs
-now the definition of di = descent image doesn't fit anymore
-tests fail
-check the new functions (we now ascent by atom if k*atom is apery between f-m and f)
-logic ok? if so let the "di" be in the visuals, but
-remove from tests
-(I will work out the new "di" later, should be something like
-"no apery in f-m ... f is a multiply of a atom"
+TODO 96) [DONE]  (second; the ascent/descent rewrite)
+Sequence of changes:
+  - Drop the 5 di-asserting tests, doc-note `is_descent_image` as
+    stale, then later remove `is_descent` / `is_descent_image`
+    (column `di`) from the codebase entirely. Refreshed waldicone
+    caches so no JSON carries the obsolete `descent` / `di` fields.
+  - Ascent generalised step-by-step:
+      (a) fold the f+m fallback into the same loop body
+          (k·a ∈ V(S) ∪ {f+m}, match condition is unified);
+      (b) walk deeper strata (μ, f) ∩ (f − (l+1)m, f − l m) for
+          l = 0..level−1, scanning k ∈ 1..=level at each l;
+      (c) port the same walk to JS as ascentTarget so the 3D
+          run-ascent loop animates the right cube.
+  - Descent's else-branch filter was missing the `x < f + m` clause,
+    so descent always pushed f. Fixed: largest Apéry strictly in
+    (f, f+m) → push x−m. With that, ascent's `.max()` is now a
+    left inverse: a ∘ d = S across the hand-picked round-trip
+    cases including ⟨10, 11, 13⟩.
+  - Final cleanup pass: O(1) Apéry membership
+    (apery_set[v % m] == v) in both Rust and JS; trimmed doc / test
+    narration.
+Regression tests added: test_ascent_f_plus_m_branch_concrete,
+test_ascent_k_at_least_2_concrete, test_ascent_deeper_strata_concrete,
+test_ascent_inverts_descent_v_of_s_branch.
 
-TODO 98)
-remove the pdf from gitignore, pdf files should be in the reports
+TODO 98) [DONE]
+Dropped `*.pdf` from `tex/.gitignore`; committed the current
+tex/writeup_updown.pdf so the rendered version travels with the
+source.
 
-TODO 99)
-create a function testcase(&Semigroup)
-it should create a string that can added to the test/data/check_fixtures.csv
-(gens;e;f;m;g;c;sym;apery;pf;t)
-crate a new tab in index.html tests
-there is a textbox and a copy button (like csv)
-every time a new semigroup is added to the history
-append the test string
-(i want to create more corner cases!)
+TODO 99) [DONE]
+New `html_helpers::testcase_csv(sg)` returns one CSV row in the
+fixture format (gens;e;f;m;g;c;sym;apery;pf;t); pf sorted, apery in
+residue-class order. WASM shim `JsSemigroup::testcase_csv`. New
+"Tests" tab in index.html with a readonly textarea + Copy button
+that mirrors the .csv tab. Every history append stashes the row on
+`tr.dataset.testcase`; `buildTestcases()` joins them when the tab
+becomes active. A round-trip unit test (compute(&[6,9,20]) →
+exact-match against the first fixture row) pins the format.
+User has already used the tab to capture 51 new corner cases into
+the CSV — fixtures committed in b15b09f.
 
-TODO 100)
-the GAP package numiericalsgps has a lot of functions
-our tests in semigroup_math/tests check for a lot of things
-our current GAP creating code for the GAP Tab in index html
-uses only some basic checks, can we include more of our checks in GAP?
+TODO 100) [DONE]
+Added gap_block_extras() in math/mod.rs (called after the existing
+scalar + matrix blocks). Emits GAP assertions for:
+  - algebraic identities r + σ = g, f + r + 2 = 2g + 1, t ≤ r + 1
+  - es and the inequality es ≤ e
+  - rl and rl < t (or rl = 0 when t = 0)
+  - V(S) ⊆ S
+  - IsAlmostSymmetric, with ra = r as a consequence when true
+  - the r_i list and ρ (the latter requires m ≥ 3)
+Verified end-to-end by running the emitted script through real GAP
+against the numericalsgps package on a spread of fixtures
+(m = 2..6, sym / asym / almost-sym, multi-generator) — all assertions
+pass.
 
 
 

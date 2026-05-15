@@ -33,6 +33,7 @@ pub mod diagonals;
 pub mod shortprops;
 mod spans;
 pub mod strata;
+pub mod testcase;
 pub mod tilt;
 
 pub use classify::classify_table;
@@ -41,6 +42,7 @@ pub use diagonals::diagonals_table;
 pub use shortprops::{shortprop, shortprop_cells};
 pub use spans::{ClassSets, class_sets, span};
 pub use strata::strata_table;
+pub use testcase::testcase_csv;
 pub use tilt::tilt_table;
 
 /// Render a boolean as the bright check / red prohibited glyph used

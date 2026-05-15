@@ -344,6 +344,14 @@ pub fn shortprop_tds(s: &JsSemigroup) -> String {
     html_helpers::shortprop_cells(&s.0)
 }
 
+/// CSV row in the `tests/data/check_fixtures.csv` format
+/// (`gens;e;f;m;g;c;sym;apery;pf;t`) for pasting into the fixtures file.
+#[wasm_bindgen]
+#[must_use]
+pub fn testcase_csv(s: &JsSemigroup) -> String {
+    html_helpers::testcase_csv(&s.0)
+}
+
 /// Sheared x-y grid view (Tilt tab).
 #[wasm_bindgen]
 #[must_use]

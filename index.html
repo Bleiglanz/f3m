@@ -107,6 +107,7 @@
     <button class="tab-btn" data-tab="tilt">Tilt</button>
     <button class="tab-btn" data-tab="gap">GAP</button>
     <button class="tab-btn" data-tab="csv">.csv</button>
+    <button class="tab-btn" data-tab="tests" title="Each entry as a CSV row ready to paste into tests/data/check_fixtures.csv">Tests</button>
     <button class="tab-btn" data-tab="latex">LaTeX</button>
     <button class="tab-btn" data-tab="help">Help</button>
     <button class="tab-btn" data-tab="pivot" title="Pivot-table view of all enumerated semigroups (loaded from a JSON sample)">Pivot</button>
@@ -172,6 +173,11 @@
   <div id="tab-csv" class="tab-content">
     <button id="csv-copy-btn">Copy</button>
     <textarea id="csv-output" readonly wrap="off" style="width:100%;box-sizing:border-box;font-family:monospace;font-size:0.85em;resize:vertical;height:400px"></textarea>
+  </div>
+
+  <div id="tab-tests" class="tab-content">
+    <button id="tests-copy-btn">Copy</button>
+    <textarea id="tests-output" readonly wrap="off" style="width:100%;box-sizing:border-box;font-family:monospace;font-size:0.85em;resize:vertical;height:400px"></textarea>
   </div>
 
   <div id="tab-latex" class="tab-content">
@@ -261,6 +267,7 @@
           <tr><td>Tilt</td><td>Sheared grid view with a tilt slider.</td></tr>
           <tr><td>GAP</td><td>Auto-generated <a href="https://gap-packages.github.io/numericalsgps/" target="_blank">GAP</a> verification script for all history entries. Copy button included.</td></tr>
           <tr><td>.csv</td><td>History table in CSV format, ready to copy. Includes a final <em>generators</em> column with the minimal generating set.</td></tr>
+          <tr><td>Tests</td><td>Each history entry as one CSV row in the <code>gens;e;f;m;g;c;sym;apery;pf;t</code> format used by <code>tests/data/check_fixtures.csv</code>. Compute corner cases here, then paste the lines into that file to grow the regression suite.</td></tr>
           <tr><td>LaTeX</td><td>Editable LaTeX source with live KaTeX preview of semigroup properties.</td></tr>
           <tr><td>Help</td><td>This reference page, plus a dynamic summary of the current semigroup.</td></tr>
           <tr><td>Pivot</td><td>Cross-tabulation of the precomputed semigroup catalogue using <a href="https://pivottable.js.org/" target="_blank">PivotTable.js</a>. Pick a <code>gmax</code> from the dropdown to load <code>normaliz/semigroup_g_from2to{gmax}_list.json</code>, then drag fields (g, m, e, es, f, t, &sigma;, rl, r, ra, fg, sym, asym, level, &rho;, deep, descent, di, &hellip;) into rows / columns / values to count or aggregate. Click a cell to drill down to the matching semigroups; click <em>Open</em> on a row to load that semigroup into the calculator.</td></tr>

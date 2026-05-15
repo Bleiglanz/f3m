@@ -1,5 +1,5 @@
 import init, {
-  js_compute, combined_table, tilt_table, shortprop_tds, eval_expr,
+  js_compute, combined_table, tilt_table, shortprop_tds, testcase_csv, eval_expr,
   js_graph_edges_text, js_node_class, js_classify_table, js_diagonals_table, js_rolf_primes,
   js_tmf, js_arith,
   js_random_generators, js_random_with_multiplier,
@@ -156,6 +156,15 @@ function buildCsv() {
   document.getElementById('csv-output').value = [CSV_HEADER, ...lines].join('\n');
 }
 
+// Build fixture-format text from the testcase row stashed on each history entry.
+// One line per entry, format `gens;e;f;m;g;c;sym;apery;pf;t` — pasteable into
+// crates/semigroup_math/tests/data/check_fixtures.csv as-is.
+function buildTestcases() {
+  const rows = Array.from(document.querySelectorAll('#history-tbody tr'));
+  const lines = rows.map(tr => tr.dataset.testcase ?? '').filter(Boolean);
+  document.getElementById('tests-output').value = lines.join('\n');
+}
+
 // Build a history table row for semigroup `s` at index `idx`.
 const sIdx = n => `S<sub>${n}</sub>`;
 
@@ -243,6 +252,9 @@ function render(s, toggle = null, label = '⏎') {
       histTbody.insertAdjacentHTML('beforeend', PROP_THEAD_TR);
     }
     histTbody.insertAdjacentHTML('beforeend', rowHtml);
+    // Stash one fixture-format CSV row per history entry; the Tests tab joins these.
+    const lastRow = histTbody.lastElementChild;
+    if (lastRow) { lastRow.dataset.testcase = testcase_csv(s); }
     document.getElementById('history-gap').textContent = state_gap_output();
   }
 
@@ -356,6 +368,7 @@ function render(s, toggle = null, label = '⏎') {
   document.getElementById('apery-shift-btn').style.display = w1IsGen ? '' : 'none';
 
   if (document.getElementById('tab-csv').classList.contains('active')) { buildCsv(); }
+  if (document.getElementById('tab-tests').classList.contains('active')) { buildTestcases(); }
   if (document.getElementById('tab-latex').classList.contains('active')) { buildLatex(s); }
   if (document.getElementById('tab-comp').classList.contains('active')) { renderComp(); }
   update3dButtonState();
@@ -613,6 +626,7 @@ function switchTab(name) {
   }
   if (name === 'gapgraph' && currentS) { render3d(currentS, doToggle); }
   if (name === 'csv') { buildCsv(); }
+  if (name === 'tests') { buildTestcases(); }
   if (name === 'latex' && currentS) { buildLatex(currentS); }
   if (name === 'diagonals' && currentS) { renderDiagonals(currentS); }
   if (name === 'comp') { renderComp(); }
@@ -633,6 +647,7 @@ function setupCopyButton(btnId, getContent) {
 
 setupCopyButton('gap-copy-btn', () => document.getElementById('history-gap').textContent);
 setupCopyButton('csv-copy-btn', () => document.getElementById('csv-output').value);
+setupCopyButton('tests-copy-btn', () => document.getElementById('tests-output').value);
 
 await init();
 
@@ -1106,6 +1121,7 @@ document.getElementById('reset-history-btn').addEventListener('click', guarded((
   document.getElementById('history-tbody').innerHTML = '';
   document.getElementById('history-gap').textContent = '';
   document.getElementById('csv-output').value = '';
+  document.getElementById('tests-output').value = '';
   gensInput.value = '6, 9, 20';
   // Suppress compute()'s pushState so we replace the current entry instead of stacking.
   navigating = true;

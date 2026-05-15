@@ -15,134 +15,197 @@
 
 \begin{document}
 
-\section{Claude's review notes}
-// inserted by claude
-\subsection*{Notation $\leftrightarrow$ codebase}
-
-\begin{center}
-\begin{tabular}{l|l}
-LaTeX & Code \\\hline
-$m,\,f,\,\mu$           & \verb|s.m|, \verb|s.f|, \verb|s.mu| \\
-$g,\,\sigma,\,r$        & \verb|s.g|, \verb|s.sigma|, \verb|s.r| \\
-$r_i,\,\rho$            & \verb|s.r_i(i)|, \verb|s.rho()| \\
-$w_i,\,\operatorname{Ap}(S)$ & \verb|s.apery_set[i]|, \verb|s.apery_set| \\
-$\operatorname{RG}(S)$  & \verb|s.blob()| \\
-$V(S) \subseteq S$      & \verb|s.v_in_s()| \\
-atom                    & element of \verb|s.gen_set| \\
-$S^\downarrow$ (descent) & \verb|s.toggle(w - s.m)| \\
-$S^\uparrow$ (ascent)    & \verb|s.toggle(w)| \\
-$t$                     & \verb|s.t| (Rust) / \verb|s.type_t| (JS)
-\end{tabular}
-\end{center}
-
-Not used in this note but tracked in the app: $r_a$
-(\verb|s.ra|, reflected Apéry), $e_s$ (\verb|s.es|, small atoms $g <
-f-m$), $r_l$ (\verb|s.rl|, large reflected gaps $L \in (f-m, f)$).
-
-\subsection*{Still open (your call)}
 \section{Setup}
-Let $S$ be a numerical semigroup, with $f,\,m,\,g,\,\sigma$ as usual.
+Let $S$ be a numerical semigroup, with $f,\,m,\,g,\,\sigma$ as usual
+(Frobenius, multiplicity, genus, number of sporadic elements).
 Write $S_+ := S \setminus \{0\}$.
 \begin{itemize}
-    \item $\operatorname{Ap}(S):=\{s\in S \mid s-m \notin S\}$,
-    $\operatorname{RG}(S):=\{L\notin S \mid f-L \notin S\}$.
-    \item $a$ is an \textit{atom} iff $a\in S\setminus (S_+ + S_+)$
-    (the common name "minimal generator" actually means an element of
-    the unique minimal generating set).
-    \item $\operatorname{Ap}(S):=\{w_0,w_1,\dots,w_{m-1}\}$ where
-    $w_i \equiv i \pmod m$.
-    \item $\mu \in \{1,\dots,m-1\}$ is the number $\mu = f \bmod m$,
-    equivalently $f+m = w_\mu$.
-    \item For every $1\leq i \leq m-1$ let
+    \item $\operatorname{Ap}(S):=\{s\in S \mid s-m \notin S\}$, the
+    \emph{Apéry set} (one representative per residue class mod $m$).
+    Index it by residue: $\operatorname{Ap}(S) = \{w_0,\dots,w_{m-1}\}$
+    with $w_i \equiv i \pmod m$. In particular $w_0 = 0$.
+    \item $\operatorname{RG}(S) := \{L \in \{1,\dots,f-1\}
+    \mid L \notin S,\ f-L \notin S\}$, the \emph{reflected gaps}.
+    \item $a$ is an \emph{atom} of $S$ iff
+    $a \in S_+ \setminus (S_+ + S_+)$. Equivalently, $a$ lies in the
+    unique minimal generating set $\operatorname{Atom}(S)$ of $S$.
+    \item $\mu \in \{1,\dots,m-1\}$ denotes $\mu := f \bmod m$;
+    equivalently $f+m = w_\mu$ (the largest Apéry element).
+    \item For each $i \in \{1,\dots,m-1\}$, set
     \[
-        r_i := \frac{w_i + w_{\mu-i} - w_\mu}{m}
+        r_i := \frac{w_i + w_{\mu-i} - w_\mu}{m},
     \]
-    (the number of reflected gaps in residue class $i \pmod m$). Just
-    look at $w_\mu - m = f = w_{\mu-i} + w_i - (r_i+1)m$, i.e.\
-    distribute the $r_i+1$ gaps between $w_\mu$ and $w_i + w_{\mu-i}$
-    along the residue class $\mu$.
-    \item $V(S):=\{f-m+1,\,f-m+2,\dots,f-1\}$, the
-    \textit{interval before $f$}.
-    \item $\rho(S):=\min_{i\neq\mu} r_i$ and
-    $r = \sum_i r_i = \#\operatorname{RG}(S)$.
-    \item Trivial: $r+\sigma=g$, $f+1+r=2g$, $t-1\leq r$.
+    where the index $\mu - i$ is taken mod $m$. Geometrically:
+    $w_i + w_{\mu-i}$ sits exactly $r_i$ steps of $m$ above $w_\mu$
+    on the residue-$\mu$ ladder, so the closed interval
+    $[w_\mu, w_i + w_{\mu-i}]$ in that ladder contains $r_i + 1$ rungs
+    (the rung $w_\mu - m = f$ being a gap and the rest of the rungs
+    above $w_\mu$ being elements of~$S$). $r_i$ counts the reflected
+    gaps in residue class $i \pmod m$.
+    \item $V(S) := \{f-m+1,\,f-m+2,\dots,f-1\}$, the
+    \emph{interval below $f$} ($m-1$ consecutive integers).
+    \item $\rho(S) := \min_{i \in \{1,\dots,m-1\}\setminus\{\mu\}} r_i$.
+    The class $i = \mu$ is excluded because $r_\mu = 0$ trivially
+    (every $x \equiv \mu$ has $f - x \equiv 0 \pmod m$, hence
+    $f - x \in S$).
+    \item Total reflected-gap count:
+    $r = \sum_{i=1}^{m-1} r_i = \#\operatorname{RG}(S)$
+    (the term $r_0$ would equal $0$ anyway).
+    \item Trivial identities: $r + \sigma = g$, $f + 1 + r = 2g$,
+    and $t - 1 \le r$. The first follows from closure: no pair
+    $\{x, f-x\}$ can lie inside $S_+$ (else $f \in S$), and similarly
+    $f/2$ is always a gap when $f$ is even; pairing up
+    $\{0,1,\dots,f\}$ under $x \leftrightarrow f-x$ then gives
+    $r + \sigma = g$. The second is $g + \sigma = f+1$ combined with
+    the first. The third holds because each pseudo-Frobenius
+    $z \neq f$ is a reflected gap ($z + S_+ \subseteq S$ would imply
+    $f \in S$ if $f - z \in S_+$).
 \end{itemize}
 
 \section{UpDown}
 
-Now define four families of semigroups, for a fixed $m>2$ and
-an $i \in \{1,\dots,m-1\}$, indicating by $'$ the new count in
-$S^\uparrow$ resp.\ $S^\downarrow$:
+Fix $m > 2$. We define four families of one-step moves, two
+\emph{descents} ($S \mapsto S^\downarrow$, adding one element) and
+two \emph{ascents} ($S \mapsto S^\uparrow$, removing one atom).
+Primes denote the new counts in $S^\downarrow$ resp.\ $S^\uparrow$.
+The descents are exactly the inverses of the ascents
+($\mathcal{A}_{flip}$ inverts $\mathcal{D}_{flip}$, with
+$w_i \in V(S)$ playing the role of $w_i - m$;
+$\mathcal{A}_{total}$ inverts $\mathcal{D}_{total}$).
+
 \begin{enumerate}
-    \item $\mathcal{D}_{flip}(i)$: $i\neq \mu(S)$, $S$ and
-    $f<w_i<f+m$.
-    \[S^\downarrow:=S\cup\{w_i-m\}\quad g'=g-1\quad \sigma'=\sigma+1\quad r'=r-2\]
-   
-    \item $\mathcal{D}_{total}(\mu)$: $V(S)\subseteq S$, $\mu=\mu(S)$
-    \[S^\downarrow:=S\cup\{w_\mu-m\}\quad g'=g-1\quad \sigma'=\sigma-(m-1)\quad r'=r+(m-2)\]
-   
-    \item $\mathcal{A}_{flip}(i)$: $i\neq \mu(S)$, $S$ and $w_i$ is an
-    atom, $w_i \in V(S)$.
-    \[S^\uparrow:=S\setminus\{w_i\}\quad g'=g+1\quad \sigma'=\sigma-1\quad r'=r+2\]
-   
-    \item $\mathcal{A}_{total}(\mu)$: $\mu=\mu(S)$, $w_\mu$ is an atom; define $\rho=\rho(S)$.
-    \[S^\uparrow:=S\setminus\{w_\mu\}\quad g'=g+\rho \quad \sigma'=\sigma+\rho(m-1)\quad r'=r-\rho(m-2)\]
+    \item $\mathcal{D}_{flip}(i)$, with $i \in \{1,\dots,m-1\}\setminus\{\mu\}$
+    and $f < w_i < f + m$:
+    \[S^\downarrow := S \cup \{w_i - m\}, \qquad
+       g' = g - 1,\ \sigma' = \sigma + 1,\ r' = r - 2.\]
+
+    \item $\mathcal{D}_{total}(\mu)$, requiring $V(S) \subseteq S$:
+    \[S^\downarrow := S \cup \{w_\mu - m\} = S \cup \{f\}, \qquad
+       g' = g - 1,\ \sigma' = \sigma - (m-1),\ r' = r + (m-2).\]
+
+    \item $\mathcal{A}_{flip}(i)$, with $i \in \{1,\dots,m-1\}\setminus\{\mu\}$,
+    $w_i$ an atom of $S$, and $w_i \in V(S)$:
+    \[S^\uparrow := S \setminus \{w_i\}, \qquad
+       g' = g + 1,\ \sigma' = \sigma - 1,\ r' = r + 2.\]
+
+    \item $\mathcal{A}_{total}(\mu)$, requiring $w_\mu = f+m$
+    to be an atom of $S$ (equivalently $\rho(S) > 0$); set
+    $\rho := \rho(S)$:
+    \[S^\uparrow := \bigl\langle A(S) \setminus \{w_\mu\} \bigr\rangle, \qquad
+       g' = g + \rho,\ \sigma' = \sigma + \rho(m-1),\ r' = r - \rho(m-2).\]
+    Note: $S^\uparrow$ is \emph{not} the set $S \setminus \{w_\mu\}$.
+    The latter happens to be closed under $+$ already (when $\rho > 0$)
+    but only drops one element; the structural ascent removes
+    $w_\mu, w_\mu + m, \dots, w_\mu + (\rho-1)m$ in one shot, since
+    those rungs of the residue-$\mu$ ladder were reachable in $S$
+    only via $w_\mu$. The first rung of class $\mu$ that survives is
+    $w_\mu + \rho m = w_i + w_{\mu-i}$ for some
+    $i \in \{1,\dots,m-1\}\setminus\{\mu\}$.
 \end{enumerate}
-All these claims can be proven by carefully checking the change in
-the semigroup --- and the property tests in \texttt{tests/integration.rs}
-verify each $(\Delta g, \Delta \sigma, \Delta r)$ on every fixture in
-\texttt{tests/data/check\_fixtures.csv}.
+
+All four claims are proved by tracking the Apéry set under the move.
+Aside: the Wilf conjecture in the form $(e-2)\sigma \ge r$ (which is
+equivalent to the standard $e\sigma \ge f+1$ via $r + \sigma = g$ and
+$g + \sigma = f+1$) constrains $\sigma$ and $r$ in tandem. We know
+the change of both in every case, so working out the change of $e$
+would close the loop.
 
 \section{Correspondence}
-If we want a bijection between
-\[
-\mathcal{D}_{total}(i,\mu) \longleftrightarrow \mathcal{A}_{total}(i,\mu)
-\]
-we obviously need $\rho(S)=1$ for the semigroup in
-$\mathcal{A}_{total}(i,m)$; this is a necessary condition. The reason
-is simple: if $\rho > 1$, then $w_\mu+m$ cannot be written as a sum of
-Apéry elements, so it will not be in $S^\uparrow$. Note that symmetric
-semigroups ($r=0$) can never be in $\mathcal{A}_{total}(i,m)$: $r=0$
-forces $\rho=0$, which forces some $w_i + w_{\mu-i} = w_\mu$ with
-$i \neq \mu$, so $w_\mu$ is decomposable and therefore not an atom.
-\vskip5mm
-Viewed from below we need
-\[
-g + \rho -1 = g
-\qquad
-\sigma + \rho (m-1) - (m-1) = \sigma
-\qquad r-\rho(m-2)+(m-2)=r
-\]
-It is therefore necessesay to go down more than one step. 
-\vskip1cm
-Let $m>2$ and $\mu \in \{1,\dots,m-1\}$ be fixed.
-Set 
-\[
-\mathbb{S}_\mu := \{ S \subseteq \N \;\mid\; S \text{ numerical Semigroup }, f>m, f \equiv \mu \mod m\}
-\]
-and define
-\[
-D: \mathcal{D}_{total}(i,m) \rightarrow \mathbb{S}_\mu \qquad D(S):=S \cup \{f\}
-\]
-It is helpful to know that $r_i(D(S))=r_i(S)+1$
-Skipping the proof of $\rho(D(S))=\rho(S)+1$ (and the fact that $\rho(S)>0$ is equivalent with
-$f+m=w_\mu$ beeing an atom) we need to ask 
-whether $V(D(S))\subseteq D(S)$.
 
-\subsection{Bijection}
-The only way is
+We now zoom in on the total cases. Fix $m > 2$ throughout this section.
+
+\textbf{Equivalence: $w_\mu$ atom $\Leftrightarrow \rho(S) > 0$.}
+If $\rho > 0$ then $w_i + w_{\mu-i} = w_\mu + r_i m > w_\mu$ for every
+$i \in \{1,\dots,m-1\}\setminus\{\mu\}$, so $w_\mu$ is not a sum of
+two positive Apéry elements, hence (since every element of $S_+$ is
+$w_j + km$ for some $j$ and $k \ge 0$) not a sum of two elements of
+$S_+$ at all; that is, $w_\mu$ is an atom. Conversely, if some
+$r_i = 0$ then $w_i + w_{\mu-i} = w_\mu$ with both summands in $S_+$,
+so $w_\mu$ is decomposable.
+
+\textbf{When can $\mathcal{D}_{total}$ and $\mathcal{A}_{total}$ undo
+each other?} Suppose we start at $S$ with $\rho(S) = 0$, so
+$w_\mu(S)$ is not an atom and we cannot apply $\mathcal{A}_{total}$
+to $S$ directly. Apply $\mathcal{D}_{total}$ instead (assuming
+$V(S) \subseteq S$): we obtain $S^\downarrow := S \cup \{f\}$, whose
+Frobenius drops and whose new $w_\mu$ is the atom $f$ (a fresh
+minimal generator). If the new $\rho(S^\downarrow) = 1$, then
+applying $\mathcal{A}_{total}$ to $S^\downarrow$ removes exactly one
+element --- the new $w_\mu$, namely the original $f$ --- and returns
+us to $S$. This is the one situation in which a single descent
+followed by a single ascent is a round trip:
 \[
-S_{\rho=0} \rightarrow D(S)_{\rho=1}
+   S_{\rho = 0}
+   \;\xrightarrow{\;\mathcal{D}_{total}\;}\;
+   D(S)_{\rho = 1}
+   \;\xrightarrow{\;\mathcal{A}_{total}\;}\;
+   S.
 \]
-meaning that only if $w_\mu$ is not an atom we can go down and up once
-if we want to get to the same semigroup, and only then $D(S) \in \mathcal{A}_{total}(\mu)$
-\subsection{$f+m$ atom, $\rho(S)>0$}
-As long as $V(S)\subseteq S$ we can go down
+For $\rho(D(S)) > 1$ the round trip is no longer one-step in the
+ascent: $\mathcal{A}_{total}$ deletes $\rho$ elements at once, so to
+return to $S$ we would need $\rho$ separate descents (each
+peeling off one element). Concretely, undoing the ascent's
+$(g + \rho,\ \sigma + \rho(m-1),\ r - \rho(m-2))$ by $\rho$
+applications of $\mathcal{D}_{total}$ gives a net change of
 \[
-S_\rho \rightarrow D(S)_{\rho+1} \rightarrow \dots
+   g + \rho - \rho \cdot 1 = g,\qquad
+   \sigma + \rho(m-1) - \rho(m-1) = \sigma,\qquad
+   r - \rho(m-2) + \rho(m-2) = r,
 \]
-and we will aways get semigroups where $f+m$ is an atom.
-But this sequence will stop once there is a gap in $V(S)$ or $f<m$
+as required. But each individual descent step demands
+$V \subseteq S$ at that point, which may fail before the round trip
+completes; see the next subsection.
+
+\textbf{The map $D$.} Let $\mathbb{S}_\mu^{\mathrm{old}}$ be the set
+of numerical semigroups $S$ with $m(S) = m$ and $\mu(S) = \mu$, and
+satisfying $f(S) > m$ and $V(S) \subseteq S$. Define
+\[
+   D : \mathbb{S}_\mu^{\mathrm{old}} \longrightarrow
+   \{\text{numerical semigroups with } m(S) = m\},
+   \qquad D(S) := S \cup \{f(S)\}.
+\]
+(We do \emph{not} claim $D(S)$ has Frobenius congruent to $\mu \bmod m$;
+in general $\mu(D(S)) \neq \mu(S)$. The subscript ``$\mu$'' refers
+to the residue of $f$ in $S$, not in $D(S)$.) The following
+properties are useful and are proved by tracking the Apéry set
+through the descent:
+\begin{itemize}
+   \item $\rho(D(S)) = \rho(S) + 1$, where on the left $\rho$ is
+   computed with respect to $\mu(D(S))$.
+   \item In residue class $i$ relative to the new $\mu(D(S))$,
+   $r_i(D(S)) = r_i(S) + 1$.
+   \item $\rho(D(S)) > 0$, so $w_\mu(D(S)) = f(S) + m$ is an atom
+   of $D(S)$, i.e.\ $D(S)$ is eligible for $\mathcal{A}_{total}$.
+\end{itemize}
+What remains to control along an iterated descent is whether
+$V(D(S)) \subseteq D(S)$ --- the condition needed to apply
+$\mathcal{D}_{total}$ a second time.
+
+\subsection{One-step bijection}
+The only way a single $(\mathcal{D}_{total}, \mathcal{A}_{total})$
+pair is a round trip is
+\[
+   S_{\rho = 0}\;\longleftrightarrow\;D(S)_{\rho = 1},
+\]
+i.e.\ when $w_\mu(S)$ is \emph{not} an atom of $S$ but $D(S)$ has
+$\rho = 1$. Only then is $D(S) \in \mathcal{A}_{total}(\mu(D(S)))$
+and the ascent's removal-of-$\rho$-elements coincides with the
+descent's addition of $f$.
+
+Symmetric semigroups ($r = 0$) are excluded from
+$\mathcal{A}_{total}$: $r = 0$ forces every $r_i = 0$, hence
+$\rho = 0$, hence $w_\mu$ is not an atom.
+
+\subsection{$f+m$ atom: iterated descent, $\rho(S) > 0$}
+As long as $V(S) \subseteq S$ we can keep descending:
+\[
+   S_\rho \;\to\; D(S)_{\rho+1} \;\to\; D^2(S)_{\rho+2} \;\to\; \dots
+\]
+At every step $f + m$ is the new atom $w_\mu$ (so $\mathcal{A}_{total}$
+remains applicable), and $\rho$ increases by $1$. The chain
+terminates exactly when either $V(S) \not\subseteq S$ at the
+current $S$ (so $\mathcal{D}_{total}$ no longer applies) or
+$f < m$ (so $V(S)$ is empty/degenerate).
 
 
 
@@ -209,5 +272,165 @@ fn test_up_downs(s: &Semigroup) {
     }
 }
 \end{verbatim}
+\section{Claude's review notes}
+% inserted by claude — second pass, after fixes
+
+\subsection*{What this writeup is about, in plain words}
+
+You have a numerical semigroup $S$ with multiplicity $m$ and
+Frobenius number $f$. Its Apéry set has one element $w_i$ per
+residue class mod $m$, and the largest of these is
+$w_\mu = f + m$ where $\mu = f \bmod m$. The writeup studies four
+local \emph{moves} that turn $S$ into a nearby semigroup:
+
+\begin{description}
+    \item[$\mathcal{D}_{flip}$ (descent, flip):] Pick an Apéry
+    element $w_i$ that lies in the open interval $(f, f+m)$ with
+    $i \neq \mu$. Add $w_i - m$ to $S$. This fills in a reflected
+    gap and lowers $w_i$ by $m$.
+    \item[$\mathcal{D}_{total}$ (descent, total):] When the whole
+    interval $V(S) = \{f-m+1,\dots,f-1\}$ already lies in $S$, add
+    $f$ itself. This collapses the Apéry structure dramatically:
+    the new Frobenius drops below $f-m$, many Apéry elements get
+    re-indexed at once, and $\sigma$ decreases by $m-1$.
+    \item[$\mathcal{A}_{flip}$ (ascent, flip):] The exact inverse
+    of $\mathcal{D}_{flip}$: remove a generator $w_i \in V(S)$ with
+    $i \neq \mu$.
+    \item[$\mathcal{A}_{total}$ (ascent, total):] The harder one.
+    Remove $w_\mu = f + m$ as a generator. Because $w_\mu$ is the
+    only way to reach the next few rungs of its residue ladder, you
+    actually lose $\rho$ elements in one move, where $\rho$ is the
+    smallest $r_i$ over $i \neq \mu$.
+\end{description}
+
+The book-keeping (how $g$, $\sigma$, $r$ change in each case) is
+mostly mechanical. What is interesting is whether you can
+\emph{compose} these moves in a controlled way: take a descent
+followed by an ascent and ask when you get back to the same
+semigroup. That is the content of the ``Correspondence'' section.
+The punchline is: a single descent--ascent pair is a round trip
+only when the descent target has $\rho = 1$, i.e.\ the descent
+lifts a semigroup with $w_\mu$ \emph{not} an atom to one with
+$w_\mu$ a uniquely-decodable atom. For higher $\rho$, you can
+iterate descents (provided $V(S) \subseteq S$ keeps holding), with
+each step increasing $\rho$ by one and keeping $f + m$ an atom ---
+until the chain hits a wall, namely a gap landing inside $V(S)$ or
+$f$ dropping below $m$.
+
+In short, this is a structural ``hill-climbing'' picture of the
+descent/ascent dynamics on the Kunz/Apéry side of the Wilf
+conjecture, with the four moves serving as elementary edges of an
+operation graph on numerical semigroups.
+
+\subsection*{Status of the issues from the first pass}
+
+\begin{itemize}
+    \item \textbf{Case~4 definition.} Fixed: now $\langle A(S) \setminus
+    \{w_\mu\}\rangle$, with a paragraph clarifying why the
+    naive set-minus is the wrong object.
+    \item \textbf{$\rho > 0$ hypothesis in Case~4.} Fixed: stated
+    inline as ``equivalently $\rho(S) > 0$'', and the equivalence
+    is proved in the Correspondence section.
+    \item \textbf{Index inconsistency $\mathcal{D}_{total}(i,\mu)$
+    vs.\ $\mathcal{A}_{total}(i,m)$.} Fixed: the spurious second
+    argument is gone everywhere; both families take only $\mu$.
+    \item \textbf{Codomain of $D$.} Fixed: $D$ now lands in
+    ``numerical semigroups with multiplicity $m$'' rather than
+    $\mathbb{S}_\mu$. The old $\mathbb{S}_\mu$ has been renamed
+    $\mathbb{S}_\mu^{\mathrm{old}}$ and serves only as the
+    domain of $D$.
+    \item \textbf{$r + \sigma = g$ justification.} Fixed: a
+    one-sentence reason (no $\{x, f-x\} \subset S_+$ by closure,
+    pair-counting on $[0,f]$) appears in the Setup section.
+    \item \textbf{``Viewed from below'' equations.} Fixed: rewritten
+    as $\rho$ descents undoing one ascent, with the matching
+    arithmetic.
+    \item \textbf{Minor wording / typos.} Fixed: ``necessesay /
+    beeing / aways / The the / Semigroup'', stray standalone $S$,
+    range of $L$ in RG, two Apéry definitions, ambiguous sum
+    range, tautological ``minimal generator'' parenthetical, Wilf
+    parenthetical.
+\end{itemize}
+
+\subsection*{Remaining issues (still open)}
+
+\begin{enumerate}
+    \item \textbf{No formal proofs.} The four change-formulas in
+    Section~UpDown are stated and informally justified
+    (``proved by tracking the Apéry set''). The codebase property
+    test \verb|test_up_downs| checks them empirically over a wide
+    fixture set, so they are very likely correct, but a reader of
+    the writeup gets no algebraic derivation. Worth writing out at
+    least one case (the $\sigma' = \sigma + \rho(m-1)$ case is the
+    only one that surprises) as a small lemma.
+
+    \item \textbf{$\rho(D(S)) = \rho(S) + 1$ asserted, not proved.}
+    The Correspondence section still says ``the following
+    properties are useful'' without supplying arguments. The
+    \verb|s.r_i(i)| identity for Kunz coefficients is the natural
+    proof tool, but the writeup doesn't reference it.
+
+    \item \textbf{$V(D(S)) \subseteq D(S)$ termination condition.}
+    The iterated descent chain is described informally as
+    ``stops once there is a gap in $V$ or $f < m$''. There is
+    presumably a clean characterisation of which semigroups admit
+    a chain of length $\ge k$, but the writeup doesn't attempt one.
+    Could be stated either combinatorially (in terms of the Apéry
+    set) or via the Kunz matrix.
+
+    \item \textbf{Symmetry / direction conventions.} ``Descent''
+    \emph{adds} elements to $S$; ``ascent'' \emph{removes} them.
+    This convention (descend = grow) is consistent with the
+    codebase but is the reverse of what some readers might expect
+    from the words. A one-line note up front (``descent shrinks
+    the gap set; ascent enlarges it'') would help.
+
+    \item \textbf{Wilf-aside is a teaser, not a result.} The line
+    ``we really should work out the change in $e$'' is a TODO; no
+    statement about how $e$ moves under any of the four operations
+    is given. If the writeup is meant to be self-contained even as
+    an informal note, this is the most natural next section.
+
+    \item \textbf{Code listing is not commented on.} The verbatim
+    Rust test in Section~Code is given without text explaining
+    which assertion corresponds to which case in
+    Section~UpDown. Adding case labels in comments
+    (\verb|// Case 1: D_flip|, etc.) would help the reader who
+    wants to cross-check the math against the code.
+
+    \item \textbf{Where $\mathcal{D}_{flip}$ / $\mathcal{A}_{flip}$
+    live in the descent graph.} Section~Correspondence treats only
+    the \emph{total} pair. Whether the flip pair admits any
+    analogous round-trip discussion is not addressed. The
+    inversion remark ``$\mathcal{A}_{flip}$ inverts
+    $\mathcal{D}_{flip}$'' is a single sentence; the consequence
+    (that the flip pair is always a round-trip on the appropriate
+    domain) deserves a paragraph.
+
+    \item \textbf{Notation drift between $r_i$ and $c(i,j)$.}
+    Internally to the codebase, $r_i = c(i, \mu - i)$ where
+    $c(\cdot,\cdot)$ is the Kunz coefficient. The writeup never
+    introduces $c$, even though the Kunz interpretation makes some
+    arguments (especially $\rho(D(S)) = \rho(S) + 1$) crisper.
+\end{enumerate}
+
+\subsection*{Notation $\leftrightarrow$ codebase}
+
+\begin{center}
+	\begin{tabular}{l|l}
+		LaTeX & Code \\\hline
+		$m,\,f,\,\mu$           & \verb|s.m|, \verb|s.f|, \verb|s.mu| \\
+		$g,\,\sigma,\,r$        & \verb|s.g|, \verb|s.sigma|, \verb|s.r| \\
+		$r_i,\,\rho$            & \verb|s.r_i(i)|, \verb|s.rho()| \\
+		$w_i,\,\operatorname{Ap}(S)$ & \verb|s.apery_set[i]|, \verb|s.apery_set| \\
+		$\operatorname{RG}(S)$  & \verb|s.blob()| \\
+		$V(S) \subseteq S$      & \verb|s.v_in_s()| \\
+		atom                    & element of \verb|s.gen_set| \\
+		$S^\downarrow$ (descent) & \verb|s.toggle(w - s.m)| \\
+		$S^\uparrow$ (ascent)    & \verb|s.toggle(w)| \\
+		$t$                     & \verb|s.t| (Rust) / \verb|s.type_t| (JS)
+	\end{tabular}
+\end{center}
+
 
 \end{document}

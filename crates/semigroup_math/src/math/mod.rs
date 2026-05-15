@@ -145,9 +145,116 @@ pub fn gap_block(sg: &Semigroup, idx: usize) -> String {
     .unwrap();
     if sg.m >= 2 {
         gap_block_matrix(sg, idx, &mut out);
+        gap_block_extras(sg, idx, &mut out);
     }
     out.push('\n');
     out
+}
+
+/// Appends the secondary scalar GAP assertions for `sg`: the small-min-gen
+/// count `es`, the large-reflected-gap count `rl`, the
+/// `V(S) ⊆ S` predicate, the `IsAlmostSymmetric` cross-check (with the
+/// `ra = r` consequence), and the small algebraic identities `r + σ = g`,
+/// `f + r + 2 = 2g + 1`, `t ≤ r + 1`. Requires `m ≥ 2` so that `r{idx}`
+/// (defined in [`gap_block_matrix`]) is in scope.
+fn gap_block_extras(sg: &Semigroup, idx: usize, out: &mut String) {
+    use std::fmt::Write as _;
+    let f = sg.f;
+    let m = sg.m;
+
+    // Algebraic identities — cheap belt-and-suspenders against numericalsgps drift.
+    writeln!(
+        out,
+        "Assert(0, r{idx} + {sigma} = GenusOfNumericalSemigroup(ng{idx}));",
+        sigma = sg.sigma,
+    )
+    .unwrap();
+    writeln!(
+        out,
+        "Assert(0, {f} + r{idx} + 2 = 2*GenusOfNumericalSemigroup(ng{idx}) + 1);",
+    )
+    .unwrap();
+    writeln!(
+        out,
+        "Assert(0, TypeOfNumericalSemigroup(ng{idx}) <= r{idx} + 1);",
+    )
+    .unwrap();
+
+    // es: minimal generators strictly below f − m. Only meaningful when f > m.
+    if f > m {
+        writeln!(
+            out,
+            "es{idx} := Size(Filtered(MinimalGenerators(ng{idx}), gen -> gen < {f} - {m}));;",
+        )
+        .unwrap();
+        writeln!(out, "Assert(0, es{idx} = {});", sg.es).unwrap();
+        writeln!(out, "Assert(0, es{idx} <= EmbeddingDimension(ng{idx}));").unwrap();
+    }
+
+    // rl: gaps in the open interval (f−m, f). Each is automatically reflected.
+    if f > m {
+        writeln!(
+            out,
+            "rl{idx} := Size(Filtered(Gaps(ng{idx}), gap -> gap > {f} - {m} and gap < {f}));;",
+        )
+        .unwrap();
+        writeln!(out, "Assert(0, rl{idx} = {});", sg.rl).unwrap();
+        if sg.t > 0 {
+            writeln!(
+                out,
+                "Assert(0, rl{idx} < TypeOfNumericalSemigroup(ng{idx}));",
+            )
+            .unwrap();
+        } else {
+            writeln!(out, "Assert(0, rl{idx} = 0);").unwrap();
+        }
+    }
+
+    // V(S) = {f−m+1, …, f−1} ⊆ S. Mirrors Semigroup::v_in_s (gated f ≥ m).
+    if f >= m {
+        writeln!(
+            out,
+            "vins{idx} := ForAll([{lo}..{hi}], i -> BelongsToNumericalSemigroup(i, ng{idx}));;",
+            lo = f - m + 1,
+            hi = f - 1,
+        )
+        .unwrap();
+        writeln!(out, "Assert(0, vins{idx} = {});", sg.v_in_s()).unwrap();
+    }
+
+    // Almost-symmetric: numericalsgps has a primitive; the ra = r consequence
+    // is then a meaningful cross-check on our reflected-Apéry count.
+    writeln!(
+        out,
+        "Assert(0, IsAlmostSymmetric(ng{idx}) = {});",
+        sg.is_almost_symmetric,
+    )
+    .unwrap();
+    if sg.is_almost_symmetric {
+        writeln!(out, "Assert(0, r{idx} = {});", sg.ra).unwrap();
+    }
+
+    // r_i (Kunz row-versus-μ) and ρ. r_i is meaningful for i ∈ {1, …, m−1};
+    // ρ = min over the further restriction i ≠ μ, so ρ needs m ≥ 3.
+    let n = m - 1;
+    let ri_values: Vec<String> = (1..m).map(|i| sg.r_i(i).to_string()).collect();
+    writeln!(
+        out,
+        "ri{idx} := List([1..{n}], i -> (ap{idx}[i+1] + ap{idx}[((({mu}-i) mod {m})+1)] \
+         - ap{idx}[{mu}+1]) / {m});;",
+        mu = sg.mu,
+    )
+    .unwrap();
+    writeln!(out, "Assert(0, ri{idx} = [{}]);", ri_values.join(",")).unwrap();
+    if m >= 3 {
+        writeln!(
+            out,
+            "rho{idx} := Minimum(List(Filtered([1..{n}], i -> i <> {mu}), i -> ri{idx}[i]));;",
+            mu = sg.mu,
+        )
+        .unwrap();
+        writeln!(out, "Assert(0, rho{idx} = {});", sg.rho()).unwrap();
+    }
 }
 
 /// Appends the matrix-algebra and canonical-ideal GAP assertions for `sg` (requires `m ≥ 2`).

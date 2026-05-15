@@ -1034,17 +1034,35 @@ function descentTarget(s) {
   return best === -1 ? null : best;
 }
 
-// The min-gen that Rust's `ascent` will toggle past f: largest one in (f−m, f),
-// or f+m if no such gen exists. Returns null when neither clause fires.
+// The atom that Rust's `ascent` will toggle: largest atom `a` whose k-th
+// multiple `k·a` is an Apéry element of S landing in stratum
+// (f − (l+1)m, f − l m) (or equals f + m), for the first (l, k) in the
+// outer-then-inner sweep that has any match. Mirrors `Semigroup::ascent`
+// in crates/semigroup_math/src/math/manipulators.rs.
+//
+// Returns null when no (l, k) matches (the ascent will be a no-op).
 function ascentTarget(s) {
-  const gens = Array.from(s.gen_set); // one FFI hop, used twice
-  let best = -1;
-  for (const g of gens) {
-    if (g > s.m && g < s.f && g + s.m > s.f && g > best) { best = g; }
+  const m = s.m;
+  const f = s.f;
+  if (f < m) { return null; }                   // level = 0, nothing to do
+  const level = Math.floor(f / m);
+  const fm = f + m;
+  const gens = Array.from(s.gen_set);           // one FFI hop, reused inside
+  const apery = new Set(Array.from(s.apery_set));
+  for (let l = 0; l < level; l++) {
+    for (let k = 1; k <= level; k++) {
+      let best = -1;
+      for (const a of gens) {
+        const v = k * a;
+        const inStratum = v > m && v + l * m < f && v + (l + 1) * m > f;
+        if ((inStratum || v === fm) && apery.has(v) && a > best) {
+          best = a;
+        }
+      }
+      if (best !== -1) { return best; }
+    }
   }
-  if (best !== -1) { return best; }
-  const fm = s.f + s.m;
-  return gens.includes(fm) ? fm : null;
+  return null;
 }
 
 const DIRS = {

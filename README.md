@@ -268,7 +268,8 @@ crates/
       semigroup_matrices.rs              — U(m), L(m), V(m), Kunz, C_red,
                                            u_pair_relations, zd_vector, D(m)
     src/eva/mod.rs                       — arithmetic expression evaluator
-    tests/integration.rs                 — GAP-cross-checked property tests
+    tests/semigroup_tests.rs             — GAP-cross-checked property tests
+    tests/math_tests.rs                  — pure-math tests (gcd, binom)
   html_helpers/                          — pure-string HTML generators, no wasm-bindgen
     src/{combined_table,shortprops,tilt,classify,diagonals,spans}.rs
                                          — every public fn returns String; both other

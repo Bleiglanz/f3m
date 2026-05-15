@@ -51,7 +51,8 @@ crates/
                                          — gluing, U(m)/V(m)/D(m) matrices, symmetric
                                            partner
     src/eva/mod.rs                       — arithmetic expression evaluator
-    tests/integration.rs                 — GAP-cross-checked property tests
+    tests/semigroup_tests.rs             — GAP-cross-checked property tests
+    tests/math_tests.rs                  — pure-math tests (gcd, binom)
   html_helpers/                          — pure-string HTML generators, no wasm-bindgen
     src/{combined_table,shortprops,tilt,classify,diagonals,spans}.rs
                                          — every public fn returns String; both other

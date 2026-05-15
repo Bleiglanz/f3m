@@ -284,12 +284,34 @@ Layout after the refactor:
 keep the existing `math::Semigroup` / `math::compute` import surface
 unchanged for downstream crates. README architecture diagram updated.
 
+TODO 96)
+changes in ascent and descent in semigroup modifiers.rs
+now the definition of di = descent image doesn't fit anymore
+tests fail
+check the new functions (we now ascent by atom if k*atom is apery between f-m and f)
+logic ok? if so let the "di" be in the visuals, but
+remove from tests
+(I will work out the new "di" later, should be something like
+"no apery in f-m ... f is a multiply of a atom"
 
+TODO 98)
+remove the pdf from gitignore, pdf files should be in the reports
 
+TODO 99)
+create a function testcase(&Semigroup)
+it should create a string that can added to the test/data/check_fixtures.csv
+(gens;e;f;m;g;c;sym;apery;pf;t)
+crate a new tab in index.html tests
+there is a textbox and a copy button (like csv)
+every time a new semigroup is added to the history
+append the test string
+(i want to create more corner cases!)
 
-
-
-
+TODO 100)
+the GAP package numiericalsgps has a lot of functions
+our tests in semigroup_math/tests check for a lot of things
+our current GAP creating code for the GAP Tab in index html
+uses only some basic checks, can we include more of our checks in GAP?
 
 
 

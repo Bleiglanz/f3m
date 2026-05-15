@@ -505,7 +505,11 @@ fn test_up_downs(s: &Semigroup) {
                 assert_eq!(up.r, s.r + 2, "r change w<f for i={i}");
                 assert_eq!(up.sigma + 1, s.sigma);
             }
-            if w == s.f + s.m {
+            // Skip m == 2: {1..m-1}\{μ} = ∅, so the ρ-formula is vacuous and
+            // removing the lone non-multiplicity atom collapses the semigroup
+            // to ℕ via gcd-normalisation (e.g. ⟨2, 5⟩ ⇒ ⟨2⟩ ⇒ ℕ). The "ascent
+            // of w_μ" structural claim assumes another residue class survives.
+            if w == s.f + s.m && s.m >= 3 {
                 let rho = s.rho();
                 assert_eq!(
                     up.g,

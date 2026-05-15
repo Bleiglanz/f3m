@@ -89,7 +89,7 @@ The first five always appear in the Manipulate section; the last four only when 
 |---|---|
 | FastDescent | Collapses every Descent step needed to drop f by exactly m into a single closure. Adds (x − m) for every Apéry element x > f (the x = f+m case contributes f itself; cases with x ∈ (f, f+m) contribute the gap below x in the same residue class). Returns S unchanged when f < 2m; otherwise the result has new f = old f − m and unchanged μ |
 | Descent | A controlled step down the gaps ladder. If the smallest Apéry element above f is a_μ = f+m, adds f itself; otherwise adds x−m for the *largest* Apéry element x ∈ (f, f+m) (the new minimal generator lands in (f−m, f)). For S = ℕ the result is S itself |
-| Ascent | Structural reverse of Descent. For each k from 1 to level(S), tries to toggle the largest atom a such that k·a is an Apéry element in the window (m, f) ∩ (f − m, ∞); falls back to removing f + m when it is a minimal generator. No-op when nothing applies |
+| Ascent | Structural reverse of Descent. For each k from 1 to level(S), picks the largest atom a such that k·a is an Apéry element of S landing in (f−m, f) ∪ {f+m}; toggles a, or runs the f+m removal when k·a = f+m. k = 1 covers the two classical cases (atom in V(S) or f+m itself an atom); k ≥ 2 catches multiples of an atom that happen to be Apéry, e.g. ⟨4, 5⟩ with k = 2, a = 5, 2·5 = 10 = w₂. No-op when nothing matches |
 | S/2 | Replace generators with those of S/2 = { x : 2x ∈ S } |
 | S=SYM/2 | Compute the symmetric partner S̄ such that S = S̄/2 (Rosales–García-Sánchez 2008) |
 | K(S) | Canonical ideal: numerical semigroup with generators { f − p : p ∈ PF(S), p ≠ f } |

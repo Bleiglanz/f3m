@@ -29,40 +29,45 @@ impl Semigroup {
             compute(&newgen)
         }
     }
-    /// TODO: doc needs to be rewritten — code changed in TODO 96.
-    ///
     /// Ascent: structural reverse of [`Self::descent`].
     ///
-    /// 1. For each `k` from `1` to `self.level`, pick the largest atom `a`
-    ///    such that `k·a` is an Apéry element in the window `(m, f) ∩ (f − m, ∞)`
-    ///    (so that toggling it past `f` produces a smaller numerical
-    ///    semigroup) and toggle it.
-    /// 2. Fallback: if no such `k·a` is found and `f + m` is itself a
-    ///    minimal generator, remove `f + m` as an element of `S`. Toggle's
-    ///    standard `1..=(f+m)` enumeration range is too narrow here (the
-    ///    new max Apéry of `S \ {f+m}` can reach `f + 2m`), so the closure
-    ///    is computed over the elements of `S` in `1..=f+2m` minus `f+m`.
+    /// Iterates `k` from `1` to `self.level`. At each `k`, scans the
+    /// atoms (minimal generators) for ones whose `k`-th multiple `k·a`
+    /// is an Apéry element of `S` landing in the window
+    /// `(f − m, f) ∪ {f + m}` (and exceeding `m`). Picks the largest
+    /// such atom `w` and:
     ///
-    /// Returns `self` unchanged when neither clause applies.
+    /// - if `w < f + m`, simply toggles `w` via [`Self::toggle`];
+    /// - if `w = f + m` (the unified ex-fallback branch), removes
+    ///   `f + m` as an element by enumerating `S ∩ (1..=f + 2m) \ {f+m}`
+    ///   and recomputing — `toggle`'s standard `1..=(f+m)` range is too
+    ///   narrow because the new max Apéry of `S \ {f+m}` can reach
+    ///   `f + 2m`.
+    ///
+    /// The `k = 1` iteration covers the two classical cases (an atom in
+    /// `V(S)` or `f + m` itself a minimal generator); `k ≥ 2` catches
+    /// multiples of an atom that happen to be Apéry elements of `S`,
+    /// e.g. `⟨4, 5⟩` (k=2, a=5, 2·5 = 10 = w₂ ∈ V(S)).
+    ///
+    /// Returns `self` unchanged when no `k` produces a match.
     #[must_use]
     pub fn ascent(&self) -> Self {
         for k in 1..=self.level {
-            let mut atoms = self.gen_set.clone();
-            atoms.sort_unstable();
-            atoms.reverse();
-            if let Some(w) = atoms
+            let removable = |a: usize| -> bool {
+                (k * a > self.m && k * a < self.f && (k * a) + self.m > self.f)
+                    || (k * a == self.m + self.f)
+            };
+            if let Some(w) = self
+                .gen_set
                 .iter()
                 .copied()
-                .filter(|&a| k * a > self.m && k * a < self.f && (k * a) + self.m > self.f)
+                .filter(|&a| removable(a))
                 .filter(|&a| self.apery_set.contains(&(k * a)))
                 .max()
             {
-                return self.toggle(w);
-            }
-            if self.gen_set.contains(&(self.f + self.m)) {
-                // S \ {f+m}: enumerate up to f + 2m so the next Apéry (≤ f + 2m
-                // in residue μ) is included for `compute` to pick up.
-                // only because toggle(f+m) would not work!
+                if w < self.f + self.m {
+                    return self.toggle(w);
+                }
                 let elements: Vec<usize> = (1..=self.f + 2 * self.m)
                     .filter(|&x| x != self.f + self.m && self.element(x))
                     .collect();

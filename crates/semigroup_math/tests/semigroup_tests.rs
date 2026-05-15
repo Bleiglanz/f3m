@@ -1019,18 +1019,49 @@ fn test_fast_descent_changes_r_by_exact_amount() {
 }
 
 #[test]
-fn test_ascent_f_plus_m_fallback_concrete() {
-    // ⟨5, 7, 23⟩: window (5, 18) has no min-gen, but f+m = 23 is one.
-    // Ascent toggles 23 and recovers ⟨5, 7⟩ exactly.
+fn test_ascent_f_plus_m_branch_concrete() {
+    // Removing f+m as an atom is now folded into the same loop body as
+    // the "k·a in V(S)" cases (matched by `k·a == f+m`, taken when the
+    // winning atom equals f+m).
+    //
+    // ⟨5, 7, 23⟩: V(S) = (5, 18) has no atom; f+m = 23 wins at k=1.
+    // Ascent removes 23 and recovers ⟨5, 7⟩ exactly.
     let s = compute(&[5, 7, 23]);
     let parent = s.ascent();
     assert_eq!(parent.gen_set, vec![5, 7]);
 
-    // ⟨2, 5⟩: window (2, 3) is empty; f+m = 5 is a min-gen. The extended
-    // range catches the new max apéry = 7, recovering ⟨2, 7⟩.
+    // ⟨2, 5⟩: V(S) = (2, 3) is empty; f+m = 5 wins at k=1. The extended
+    // range catches the new max Apéry = 7, recovering ⟨2, 7⟩.
     let s = compute(&[2, 5]);
     let parent = s.ascent();
     assert_eq!(parent.gen_set, vec![2, 7]);
+}
+
+#[test]
+fn test_ascent_k_at_least_2_concrete() {
+    // The k≥2 branch: an atom whose k-th multiple is an Apéry element
+    // landing in V(S) gets toggled. The canonical witness is the
+    // ⟨n, n+1⟩ family for n ≥ 4: with a = n+1 and k = n−2,
+    //   k·a = (n−2)(n+1) = w_{n−2} ∈ V(S).
+    //
+    // ⟨4, 5⟩: at k=2, atom 5 satisfies 2·5 = 10 = w₂ ∈ (7, 11).
+    // Ascent toggles 5, leaving the previously-Apéry multiples
+    // {2·5, 3·5} = {10, 15} as fresh atoms.
+    let s = compute(&[4, 5]);
+    let up = s.ascent();
+    assert!(up.gen_set.contains(&10), "expected 10 = 2·5 as a new atom");
+    assert!(up.gen_set.contains(&15), "expected 15 = 3·5 as a new atom");
+    assert!(!up.gen_set.contains(&5), "atom 5 should be removed");
+    assert_eq!(up.g, s.g + 1, "k≥2 ascent always adds exactly one gap");
+
+    // ⟨5, 6⟩: at k=3, atom 6 satisfies 3·6 = 18 = w_3 ∈ (14, 19).
+    // 2·6 = 12 and 3·6 = 18 both end up as new atoms.
+    let s = compute(&[5, 6]);
+    let up = s.ascent();
+    assert!(up.gen_set.contains(&12));
+    assert!(up.gen_set.contains(&18));
+    assert!(!up.gen_set.contains(&6));
+    assert_eq!(up.g, s.g + 1);
 }
 
 #[test]

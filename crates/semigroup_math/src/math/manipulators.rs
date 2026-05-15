@@ -29,26 +29,21 @@ impl Semigroup {
             compute(&newgen)
         }
     }
-    /// TODO: doc need to be rewritten, code changes!
+    /// TODO: doc needs to be rewritten — code changed in TODO 96.
     ///
-    /// Ascent: dual of [`Self::descent`], inverting both descent branches.
+    /// Ascent: structural reverse of [`Self::descent`].
     ///
-    /// 1. **`!is_descent` inverse**: pick the largest minimal generator
-    ///    `w` with `m < w < f` and toggle it. Mirrors descent's
-    ///    "smallest Apéry > f" rule on `gen_set` instead of `apery_set`.
-    /// 2. **`is_descent` inverse** (fallback): if no such `w` exists and
-    ///    `f + m` is itself a minimal generator, remove `f + m` as an
-    ///    element of `S`. Toggle's standard `1..=(f+m)` enumeration
-    ///    range is too narrow here (the new max Apéry of `S \ {f+m}` can
-    ///    reach `f + 2m`), so the closure is computed over the elements
-    ///    of `S` in `1..=f+2m` minus `f+m`.
-    ///
-    /// The two clauses match the two cases of [`Self::is_descent_image`]:
-    /// `ascent` is non-trivial whenever `is_descent_image()` is true.
+    /// 1. For each `k` from `1` to `self.level`, pick the largest atom `a`
+    ///    such that `k·a` is an Apéry element in the window `(m, f) ∩ (f − m, ∞)`
+    ///    (so that toggling it past `f` produces a smaller numerical
+    ///    semigroup) and toggle it.
+    /// 2. Fallback: if no such `k·a` is found and `f + m` is itself a
+    ///    minimal generator, remove `f + m` as an element of `S`. Toggle's
+    ///    standard `1..=(f+m)` enumeration range is too narrow here (the
+    ///    new max Apéry of `S \ {f+m}` can reach `f + 2m`), so the closure
+    ///    is computed over the elements of `S` in `1..=f+2m` minus `f+m`.
     ///
     /// Returns `self` unchanged when neither clause applies.
-    ///
-    /// #?? Duality with [`Self::descent`]
     #[must_use]
     pub fn ascent(&self) -> Self {
         for k in 1..=self.level {
@@ -80,25 +75,15 @@ impl Semigroup {
         self.clone()
     }
 
-    /// TODO rewrite this doc - code change
+    /// TODO: doc needs to be rewritten — code changed in TODO 96.
+    ///
     /// Descent: a controlled step down the gaps ladder.
     ///
     /// Returns `self` when `f < m` (only the trivial `S = ℕ` case).
-    /// Otherwise picks the smallest Apéry element `x` with `x > f` and
-    /// adds `x − m` (a gap in the same residue class as `x`) as a new
-    /// generator.
-    ///
-    /// The two-branch presentation in the literature (add `f` when
-    /// [`Self::is_descent`], otherwise add `x − m` for some `x ∈ (f, f+m)`)
-    /// is the same rule: when `is_descent` holds the only Apéry element
-    /// above `f` is `a_μ = f+m`, and `(f+m) − m = f`.
-    ///
-    /// # Duality with [`Self::ascent`]
-    ///
-    /// `descent` is a left inverse of `ascent` **only** on the subset of
-    /// semigroups where `ascent` enters its branch (2): `f + m ∈ gen_set`
-    /// and no minimal generator lies in `(f − m, f)`. See [`Self::ascent`]
-    /// for the proof sketch and a counterexample.
+    /// Otherwise: if the smallest Apéry element above `f` is `a_μ = f+m`,
+    /// add `f` itself as a new generator; otherwise add `x − m` for the
+    /// *largest* Apéry element `x ∈ (f, f+m)` (the new minimal generator
+    /// lands in the window `(f − m, f)`).
     #[must_use]
     pub fn descent(&self) -> Self {
         if self.f < self.m {

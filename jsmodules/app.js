@@ -15,7 +15,7 @@ import init, {
 import { render3d, animate3dDescent, animate3dAscent } from './view3d.js';
 import { rebuildGraph, setupGraphUpto, setupShowGaps, setupGraphToggle } from './graph.js';
 
-const PROP_THEAD_TR = '<tr><th title="Index and operation label">#</th><th title="Generator added (+) or removed (\u2212)">toggle</th><th title="Multiplicity: smallest positive element">m</th><th title="Frobenius number: largest gap">f</th><th title="Small minimal generators: count of minimal generators g with g &lt; f\u2212m">es</th><th title="Embedding dimension: number of minimal generators (hover the cell to list them)">e</th><th title="Sporadic elements: elements of S below the conductor f+1">\u03C3</th><th title="Genus: number of gaps">g</th><th title="Large reflected gaps: gaps L with f\u2212m &lt; L &lt; f (automatically reflected)">rl</th><th title="Type: number of pseudo-Frobenius numbers (hover the cell to list them)">t</th><th title="Reflected gaps: gaps n where f\u2212n is also a gap">r</th><th title="Reflected Ap\u00E9ry: Ap\u00E9ry elements w where w\u2212m is a reflected gap">ra</th><th title="ρ: smallest r_i over residue classes i ∈ 1..m, i ≠ μ">ρ</th><th title="Fundamental gaps: gaps n with every multiple kn (k≥2) in S">fg</th><th title="Symmetric: t=1 and g=(f+1)/2">Sym</th><th title="Descent image: \u2203 T with T.descent()=S; equivalently a min-gen lies in (f\u2212m, f) or at f+m">di</th><th title="V(S) = {f\u2212m+1, \u2026, f\u22121} \u2286 S: the interval just below f is full">V\u2286S</th><th title="Wilf quotient: \u03C3/(f+1) \u2265 1/e (conjecture)">Wilf</th><th title="Wilf conjecture lower bound: 1/e">1/e</th><th title="Expression evaluated for this semigroup">expr</th><th title="Result of the expression">value</th><th title="Set-containment relation with previous entry">&#8838;?</th></tr>';
+const PROP_THEAD_TR = '<tr><th title="Index and operation label">#</th><th title="Generator added (+) or removed (\u2212)">toggle</th><th title="Multiplicity: smallest positive element">m</th><th title="Frobenius number: largest gap">f</th><th title="Small minimal generators: count of minimal generators g with g &lt; f\u2212m">es</th><th title="Embedding dimension: number of minimal generators (hover the cell to list them)">e</th><th title="Sporadic elements: elements of S below the conductor f+1">\u03C3</th><th title="Genus: number of gaps">g</th><th title="Large reflected gaps: gaps L with f\u2212m &lt; L &lt; f (automatically reflected)">rl</th><th title="Type: number of pseudo-Frobenius numbers (hover the cell to list them)">t</th><th title="Reflected gaps: gaps n where f\u2212n is also a gap">r</th><th title="Reflected Ap\u00E9ry: Ap\u00E9ry elements w where w\u2212m is a reflected gap">ra</th><th title="ρ: smallest r_i over residue classes i ∈ 1..m, i ≠ μ">ρ</th><th title="Fundamental gaps: gaps n with every multiple kn (k≥2) in S">fg</th><th title="Symmetric: t=1 and g=(f+1)/2">Sym</th><th title="V(S) = {f\u2212m+1, \u2026, f\u22121} \u2286 S: the interval just below f is full">V\u2286S</th><th title="Wilf quotient: \u03C3/(f+1) \u2265 1/e (conjecture)">Wilf</th><th title="Wilf conjecture lower bound: 1/e">1/e</th><th title="Expression evaluated for this semigroup">expr</th><th title="Result of the expression">value</th><th title="Set-containment relation with previous entry">&#8838;?</th></tr>';
 
 // ── UI-only state (Rust owns the data) ────────────────────────────────────────
 let currentGenSet = null;
@@ -146,7 +146,7 @@ function cellText(td) {
 
 // Build CSV text from the current history table and write it to #csv-output.
 function buildCsv() {
-  const CSV_HEADER = '#,toggle,m,f,es,e,σ,g,rl,t,r,ra,ρ,fg,Sym,di,V⊆S,Wilf,1/e,expr,value,⊆?,generators';
+  const CSV_HEADER = '#,toggle,m,f,es,e,σ,g,rl,t,r,ra,ρ,fg,Sym,V⊆S,Wilf,1/e,expr,value,⊆?,generators';
   const rows = Array.from(document.querySelectorAll('#history-tbody tr'));
   const lines = rows.map(tr => {
     const cells = Array.from(tr.cells).map(td => csvField(cellText(td))).join(',');
@@ -529,8 +529,6 @@ async function fetchPivotData(gmax) {
     rho: s.rho,
     v_in_s: s.v_in_s,
     deep: s.deep,
-    descent: s.descent,
-    di: s.di,
     'ae=f+m': s.max_gen === s.f + s.m,
     gen: s.gen.join(', '),
     pf: s.pf.length ? s.pf.join(', ') : '—',
@@ -1069,7 +1067,8 @@ function update3dButtonState() {
     descBtn.textContent = 'run descent';
     descBtn.disabled = !currentS || currentS.f < currentS.m;
     ascBtn.textContent = 'run ascent';
-    ascBtn.disabled = !currentS || !currentS.is_descent_image;
+    // Ascent self-terminates when it becomes a no-op; enable whenever we have a semigroup.
+    ascBtn.disabled = !currentS;
   }
 }
 

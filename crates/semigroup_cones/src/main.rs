@@ -273,7 +273,7 @@ fn synthetic_lattice(g: usize, m: usize) -> Option<(usize, Lattice)> {
 
 /// Renders the shortprops-style data cells for one semigroup: f, es, e, σ, g,
 /// rl, t, r, ra, fg, Sym, `ASym`, level, gen (textbox), PF (textbox), Wilf, 1/e,
-/// ρ, deep, di, V⊆S. The caller emits the leading `<td>{m}</td>`.
+/// ρ, deep, V⊆S. The caller emits the leading `<td>{m}</td>`.
 #[allow(clippy::cast_precision_loss)]
 fn props_cells(sg: &Semigroup) -> String {
     let pf_str = sg
@@ -292,7 +292,6 @@ fn props_cells(sg: &Semigroup) -> String {
     let sym = html_helpers::glyph(sg.is_symmetric);
     let asym = html_helpers::glyph(sg.is_almost_symmetric);
     let deep = html_helpers::glyph(sg.deep);
-    let di = html_helpers::glyph(sg.is_descent_image());
     let vins = html_helpers::glyph(sg.v_in_s());
     format!(
         "<td>{f}</td><td>{es}</td><td>{e}</td><td>{cg}</td><td>{g}</td>\
@@ -301,7 +300,7 @@ fn props_cells(sg: &Semigroup) -> String {
          <td><input class=\"gens\" type=\"text\" readonly value=\"{gens_str}\"></td>\
          <td><input class=\"pfs\" type=\"text\" readonly value=\"{pf_str}\"></td>\
          <td>{wilf:.4}</td><td>{inv_e:.4}</td>\
-         <td>{rho}</td><td>{deep}</td><td>{di}</td><td>{vins}</td>",
+         <td>{rho}</td><td>{deep}</td><td>{vins}</td>",
         f = sg.f,
         es = sg.es,
         e = sg.e,
@@ -363,12 +362,6 @@ struct GenusTally {
     f_vs_m: [usize; 4],
     /// Count of deep semigroups: those where all elements m+1 … 2m−1 are gaps.
     deep: usize,
-    /// Count of descent semigroups: every Apéry element is either exactly f+m
-    /// or strictly less than f (adding f to S is "clean").
-    descent: usize,
-    /// Count of semigroups in the descent image: there exists a `T` with
-    /// `T.descent() = S` (equivalently a min-gen lies in (f−m, f) or at f+m).
-    descent_image: usize,
     by_m: Vec<usize>,
     by_e: Vec<usize>,
     by_t: Vec<usize>,
@@ -387,8 +380,6 @@ fn tally_genus(g: usize, data: &GenusData, cols: usize) -> GenusTally {
     let mut by_rho = vec![0usize; cols];
     let mut f_vs_m = [0usize; 4];
     let mut deep = 0usize;
-    let mut descent = 0usize;
-    let mut descent_image = 0usize;
     let (mut total, mut zero, mut w1gen, mut sym, mut asym, mut ae_fm_2g_plus_1, mut ae_fm_2g) =
         (0usize, 0usize, 0usize, 0usize, 0usize, 0usize, 0usize);
     for (m, _, _, lats) in data {
@@ -471,12 +462,6 @@ fn tally_genus(g: usize, data: &GenusData, cols: usize) -> GenusTally {
             if sg.deep {
                 deep += 1;
             }
-            if sg.is_descent() {
-                descent += 1;
-            }
-            if sg.is_descent_image() {
-                descent_image += 1;
-            }
         }
     }
     GenusTally {
@@ -489,8 +474,6 @@ fn tally_genus(g: usize, data: &GenusData, cols: usize) -> GenusTally {
         ae_fm_2g,
         f_vs_m,
         deep,
-        descent,
-        descent_image,
         by_m,
         by_e,
         by_t,
@@ -560,22 +543,16 @@ fn build_scalars_table(cols: usize, all_data: &[(usize, GenusData)]) -> String {
          <th class=\"sep\" title=\"Count of deep semigroups: all elements \
          m+1\u{2026}2m\u{2212}1 are gaps (equivalently every Kunz quotient q_i \u{2265} 2)\">\
          N<sub>deep</sub>(g)</th>\
-         <th class=\"sep\" title=\"Count of descent semigroups: every Ap\u{e9}ry \
-         element is either exactly f+m or strictly less than f\">\
-         N<sub>descent</sub>(g)</th>\
-         <th class=\"sep\" title=\"Count of semigroups in the descent image: \
-         \u{2203} T with T.descent()=S; equivalently a min-gen lies in \
-         (f\u{2212}m, f) or at f+m\">N<sub>di</sub>(g)</th>\
          </tr></thead><tbody>",
     );
     let sep_at = |i: usize| {
-        if i == 5 || i == 9 || i == 11 || i == 12 || i == 13 {
+        if i == 5 || i == 9 || i == 11 {
             "sum sep"
         } else {
             "sum"
         }
     };
-    let mut totals = [0usize; 14];
+    let mut totals = [0usize; 12];
     for (g, data) in all_data {
         let row = tally_genus(*g, data, cols);
         let cells = [
@@ -591,8 +568,6 @@ fn build_scalars_table(cols: usize, all_data: &[(usize, GenusData)]) -> String {
             row.ae_fm_2g_plus_1,
             row.ae_fm_2g,
             row.deep,
-            row.descent,
-            row.descent_image,
         ];
         for (acc, c) in totals.iter_mut().zip(cells.iter()) {
             *acc += *c;
@@ -636,13 +611,6 @@ fn build_scalars_table(cols: usize, all_data: &[(usize, GenusData)]) -> String {
          <dd>deep semigroups: all elements m+1\u{2026}2m\u{2212}1 are gaps, \
          equivalently every Kunz quotient q<sub>i</sub>\u{a0}\u{2265}\u{a0}2 \
          (equivalently every Ap\u{e9}ry element w<sub>i</sub>\u{a0}&gt;\u{a0}2m).</dd>\
-         <dt>N<sub>descent</sub>(g)</dt>\
-         <dd>descent semigroups: every Ap\u{e9}ry element is either exactly f+m \
-         or strictly less than f \
-         (adding f to S is \u{201c}clean\u{201d}).</dd>\
-         <dt>N<sub>di</sub>(g)</dt>\
-         <dd>semigroups in the descent image: \u{2203} T with T.descent()=S, \
-         equivalently a min-gen lies in (f\u{2212}m, f) or at f+m.</dd>\
          </dl>\n\
          <p class=\"note\">Empirical: <code>f&lt;m</code> is always 1 (the unique \
          ordinary semigroup \u{27e8}g+1,\u{2026},2g+1\u{27e9}); \
@@ -949,8 +917,6 @@ fn build_list_html(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
          <th title=\"Deep: all elements m+1\u{2026}2m\u{2212}1 are gaps \
          (equivalently every Ap\u{e9}ry element w_i&gt;2m, every Kunz quotient q_i\u{2265}2)\">\
          deep</th>\
-         <th title=\"Descent image: \u{2203} T with T.descent()=S; equivalently \
-         a min-gen lies in (f\u{2212}m, f) or at f+m\">di</th>\
          <th title=\"V(S) = {f\u{2212}m+1, \u{2026}, f\u{2212}1} \u{2286} S: the \
          interval just below f is full\">V\u{2286}S</th>",
     );
@@ -1082,7 +1048,7 @@ fn build_list_json(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
              \"wilf\":{wilf:.6},\"inv_e\":{inv_e:.6},\
              \"max_gen\":{max_gen},\
              \"rho\":{rho},\
-             \"deep\":{deep},\"descent\":{descent},\"di\":{di},\
+             \"deep\":{deep},\
              \"v_in_s\":{vins},\
              \"gen\":{gen},\"pf\":{pf},\"apery\":{apery},\
              \"c1\":{c1_arr}}}",
@@ -1102,8 +1068,6 @@ fn build_list_json(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
             max_gen = sg.max_gen,
             rho = sg.rho(),
             deep = sg.deep,
-            descent = sg.is_descent(),
-            di = sg.is_descent_image(),
             vins = sg.v_in_s(),
             gen = json_array(&sg.gen_set),
             pf = json_array(&sg.pf_set),

@@ -163,12 +163,6 @@ impl JsSemigroup {
     pub fn is_almost_symmetric(&self) -> bool {
         self.0.is_almost_symmetric
     }
-    /// True if `S` lies in the image of `descent` — i.e. `ascent()` does something.
-    #[wasm_bindgen(getter)]
-    #[must_use]
-    pub fn is_descent_image(&self) -> bool {
-        self.0.is_descent_image()
-    }
     /// Number of reflected gaps (gaps n with f−n also a gap).
     #[wasm_bindgen(getter)]
     #[must_use]

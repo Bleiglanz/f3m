@@ -840,65 +840,22 @@ fn test_is_deep() {
 }
 
 #[test]
-fn test_is_descent() {
-    // Checks the implication: is_descent() && max_gen == f+m  =>  deep.
-    let check = |sg: &semigroup_math::math::Semigroup| {
-        if sg.is_descent() && sg.max_gen == sg.f + sg.m {
-            assert!(
-                sg.deep,
-                "is_descent && max_gen==f+m should imply deep for gens={:?}",
-                sg.gen_set,
-            );
-        }
-    };
-
-    // <2,5>: apery=[0,5], f=3, f+m=5=max_gen. is_descent=true, deep=true.
-    let sg = compute(&[2, 5]);
-    assert!(sg.is_descent());
-    assert_eq!(sg.max_gen, sg.f + sg.m);
-    assert!(sg.deep);
-    check(&sg);
-
-    // <3,7,11>: apery=[0,7,11], f=8, f+m=11=max_gen. is_descent=true, deep=true.
-    let sg = compute(&[3, 7, 11]);
-    assert!(sg.is_descent());
-    assert_eq!(sg.max_gen, sg.f + sg.m);
-    assert!(sg.deep);
-    check(&sg);
-
-    // <3,4>: apery=[0,4,8], f=5, f+m=8. is_descent=true (4<f, 8=f+m),
-    // but max_gen=4≠8=f+m and deep=false (4∈S). Implication not triggered.
-    let sg = compute(&[3, 4]);
-    assert!(sg.is_descent());
-    assert_ne!(sg.max_gen, sg.f + sg.m);
-    assert!(!sg.deep);
-    check(&sg);
-
-    // <3,4,5>: apery=[0,4,5], f=2. w_1=4>f=2 and 4≠f+m=5. is_descent=false.
-    let sg = compute(&[3, 4, 5]);
-    assert!(!sg.is_descent());
-    check(&sg);
-}
-
-#[test]
 fn test_fast_descent_drops_f_by_m_and_preserves_mu() {
     // Specification: whenever f ≥ 2m the result of fast_descent has μ unchanged
     // and Frobenius number exactly old f − m.
 
-    // 1. Hand-checked !is_descent example: <10,11,13> has f=38, m=10, μ=8 and
-    //    apéry=[0,11,22,13,24,35,26,37,48,39] — a_9 = 39 ∈ (f, f+m), so
-    //    is_descent is false and naïvely adding only f would land at f=29, μ=9.
+    // 1. Hand-picked: <10,11,13> has f=38, m=10, μ=8 and apéry
+    //    [0,11,22,13,24,35,26,37,48,39]. a_9 = 39 ∈ (f, f+m), so naïvely
+    //    adding only f would land at f=29 with μ=9.
     let s = compute(&[10, 11, 13]);
-    assert!(!s.is_descent());
     assert_eq!((s.f, s.m, s.mu), (38, 10, 8));
     let t = s.fast_descent();
     assert_eq!(t.f, s.f - s.m);
     assert_eq!(t.mu, s.mu);
 
-    // 2. is_descent example for completeness: <5,7> has f=23, m=5, μ=3 and
-    //    apéry=[0,21,7,28,14], so the only Apéry element ≥ f is 28 = f+m.
+    // 2. <5,7> has f=23, m=5, μ=3 and apéry [0,21,7,28,14]: the only Apéry
+    //    element ≥ f is 28 = f+m.
     let s = compute(&[5, 7]);
-    assert!(s.is_descent());
     assert_eq!((s.f, s.m, s.mu), (23, 5, 3));
     let t = s.fast_descent();
     assert_eq!(t.f, s.f - s.m);
@@ -1022,9 +979,9 @@ fn test_random_creators_predicate_postconditions() {
 
 #[test]
 fn test_fast_descent_changes_r_by_exact_amount() {
-    // fast_descent (when f ≥ 2m) collapses k = #(apéry ∈ (f, f+m)) per-step
-    // !is_descent removals (each Δr = −2) followed by one is_descent step
-    // (Δr = m − 2). Net: Δr = (m − 2) − 2·k.
+    // fast_descent (when f ≥ 2m) folds k = #(apéry ∈ (f, f+m)) per-step
+    // "add x−m" removals (each Δr = −2) plus one "add f" step
+    // (Δr = m − 2) into a single closure. Net: Δr = (m − 2) − 2·k.
     let mut tested = 0;
     for a in 2..=15 {
         for b in (a + 1)..=25 {

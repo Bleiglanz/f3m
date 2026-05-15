@@ -22,7 +22,6 @@ A browser-based tool for computing properties of numerical semigroups from a lis
 | ρ | ρ | min over i ∈ 1..m, i ≠ μ of r_i (size of the smallest non-trivial reflected-gap residue class) |
 | Symmetric | ✅/🚫 | Whether t = 1 (equivalently f + 1 = 2g) |
 | Deep | ✅/🚫 | Every Apéry element w_i > 2m (equivalently every Kunz quotient q_i ≥ 2; every element in (m, 2m) is a gap) |
-| Descent image | di | Whether ∃ T with T.descent() = S; equivalently a min-gen lies in (f − m, f) or at f + m |
 | V⊆S | V⊆S | True iff V(S) = {f − m + 1, …, f − 1} ⊆ S (the interval just below f is full) |
 | Generators | gen | Minimal generating set |
 | Pseudo-Frobenius | PF(S) | Gaps x such that x + s ∈ S for all s ∈ S \ {0} |
@@ -89,8 +88,8 @@ The first five always appear in the Manipulate section; the last four only when 
 | Button | Action |
 |---|---|
 | FastDescent | Collapses every Descent step needed to drop f by exactly m into a single closure. Adds (x − m) for every Apéry element x > f (the x = f+m case contributes f itself; cases with x ∈ (f, f+m) contribute the gap below x in the same residue class). Returns S unchanged when f < 2m; otherwise the result has new f = old f − m and unchanged μ |
-| Descent | A controlled step down the gaps ladder: picks the smallest Apéry element x > f (always exists since a_μ = f+m) and adds x − m as a new generator. When `is_descent` holds the smallest such x is f+m and the rule reduces to "add f" |
-| Ascent | Dual of Descent: picks the largest minimal generator w with m < w < f and toggles it past f. Otherwise (the `is_descent` regime), if f + m is itself a minimal generator, removes f + m. Activates exactly when S is in the descent image (column **di**) |
+| Descent | A controlled step down the gaps ladder. If the smallest Apéry element above f is a_μ = f+m, adds f itself; otherwise adds x−m for the *largest* Apéry element x ∈ (f, f+m) (the new minimal generator lands in (f−m, f)). For S = ℕ the result is S itself |
+| Ascent | Structural reverse of Descent. For each k from 1 to level(S), tries to toggle the largest atom a such that k·a is an Apéry element in the window (m, f) ∩ (f − m, ∞); falls back to removing f + m when it is a minimal generator. No-op when nothing applies |
 | S/2 | Replace generators with those of S/2 = { x : 2x ∈ S } |
 | S=SYM/2 | Compute the symmetric partner S̄ such that S = S̄/2 (Rosales–García-Sánchez 2008) |
 | K(S) | Canonical ideal: numerical semigroup with generators { f − p : p ∈ PF(S), p ≠ f } |
@@ -104,7 +103,7 @@ The first five always appear in the Manipulate section; the last four only when 
 
 Every computed semigroup is appended to a summary table with rows labelled S₀, S₁, … The last column shows the set-containment relation (⊂, =, ⊃, ?) between the new entry and the previous one. Click a row number to restore that semigroup as the current input.
 
-Summary columns: **#** index:label, **toggle** set operation, **m** multiplicity, **f** Frobenius number, **es** small minimal generators (count of minimal generators g with g < f − m), **e** embedding dimension, **σ** semigroup elements below the conductor, **g** genus (gaps), **rl** large reflected gaps (gaps L with f − m < L < f, automatically reflected), **t** type, **r** reflected gaps, **ra** Apéry elements w where w−m is a reflected gap, **ρ** smallest r_i over residue classes i ∈ 1..m, i ≠ μ, **fg** fundamental gaps (gaps n with no multiple kn also a gap), **Sym** symmetric?, **di** descent image (some T with T.descent()=S exists), **V⊆S** true iff V(S) = {f−m+1, …, f−1} ⊆ S, **gen** generators, **PF** pseudo-Frobenius numbers, **Wilf** Wilf quotient σ/(f+1), **1/e** Wilf conjecture lower bound, **expr** expression, **value** evaluated result, **⊆?** set-containment relation.
+Summary columns: **#** index:label, **toggle** set operation, **m** multiplicity, **f** Frobenius number, **es** small minimal generators (count of minimal generators g with g < f − m), **e** embedding dimension, **σ** semigroup elements below the conductor, **g** genus (gaps), **rl** large reflected gaps (gaps L with f − m < L < f, automatically reflected), **t** type, **r** reflected gaps, **ra** Apéry elements w where w−m is a reflected gap, **ρ** smallest r_i over residue classes i ∈ 1..m, i ≠ μ, **fg** fundamental gaps (gaps n with no multiple kn also a gap), **Sym** symmetric?, **V⊆S** true iff V(S) = {f−m+1, …, f−1} ⊆ S, **gen** generators, **PF** pseudo-Frobenius numbers, **Wilf** Wilf quotient σ/(f+1), **1/e** Wilf conjecture lower bound, **expr** expression, **value** evaluated result, **⊆?** set-containment relation.
 
 The GAP tab accumulates a full [GAP](https://gap-packages.github.io/numericalsgps/) script for all entries that can be verified with the `NumericalSgps` package. A **Copy** button copies it to the clipboard.
 
@@ -253,7 +252,7 @@ crates/
                                            rho, wilf, …)
     src/math/semigroup/vec_props.rs      — Vec<usize> inspectors (blob)
     src/math/semigroup/bool_props.rs     — predicates (element, is_gap,
-                                           is_descent, v_in_s, classify, …)
+                                           is_reflected_gap, v_in_s, classify)
     src/math/manipulators.rs             — (&self) -> Semigroup methods (descent,
                                            fast_descent, S/2, K(S), Apéry shift, …)
     src/math/creators.rs                 — parameterized creators (T(m,f), A(m,d,n),

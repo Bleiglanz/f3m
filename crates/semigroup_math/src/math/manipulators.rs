@@ -101,15 +101,19 @@ impl Semigroup {
         self.clone()
     }
 
-    /// TODO: doc needs to be rewritten — code changed in TODO 96.
-    ///
     /// Descent: a controlled step down the gaps ladder.
     ///
     /// Returns `self` when `f < m` (only the trivial `S = ℕ` case).
-    /// Otherwise: if the smallest Apéry element above `f` is `a_μ = f+m`,
-    /// add `f` itself as a new generator; otherwise add `x − m` for the
-    /// *largest* Apéry element `x ∈ (f, f+m)` (the new minimal generator
-    /// lands in the window `(f − m, f)`).
+    /// Otherwise:
+    /// - if the smallest Apéry element above `f` is `a_μ = f + m`
+    ///   (nothing in `(f, f + m)`), add `f` itself as a new generator;
+    /// - otherwise pick the *largest* Apéry element `x ∈ (f, f + m)`
+    ///   and add `x − m`. The new minimal generator lands in
+    ///   `(f − m, f) = V(S)`.
+    ///
+    /// The largest-`x` choice is what makes [`Self::ascent`] (which
+    /// picks the largest matching atom) a left inverse: descent adds
+    /// the same atom that the next ascent will remove.
     #[must_use]
     pub fn descent(&self) -> Self {
         if self.f < self.m {
@@ -127,11 +131,12 @@ impl Semigroup {
         if smallest == self.f + self.m {
             newgen.push(smallest - self.m);
         } else {
-            // there exists one smaller than f+m
+            // Largest Apéry strictly between f and f + m. Always exists in this
+            // branch because `smallest != f + m` forces some Apéry into (f, f + m).
             let largest_smaller_fpm = *self
                 .apery_set
                 .iter()
-                .filter(|&&x| x > self.f)
+                .filter(|&&x| x > self.f && x < self.f + self.m)
                 .max()
                 .unwrap_or(&0);
             newgen.push(largest_smaller_fpm - self.m);

@@ -1107,6 +1107,22 @@ fn test_apery_shift_first_when_kunz_move_is_blocked() {
 }
 
 #[test]
+fn test_ascent_inverts_descent_v_of_s_branch() {
+    // When descent enters the V(S) branch (smallest Apéry > f is NOT f+m),
+    // it picks the *largest* Apéry x ∈ (f, f+m) and adds x − m. The
+    // resulting atom lands in V(S'), and ascent's `.max()` on the new
+    // semigroup recovers exactly that atom — so a ∘ d = S.
+    //
+    // ⟨10, 11, 13⟩: apéry = [0,11,22,13,24,35,26,37,48,39], f = 38;
+    // smallest > 38 is 39 ≠ 48 = f+m, largest in (38, 48) is 39, so
+    // descent adds 39 − 10 = 29.
+    let s = compute(&[10, 11, 13]);
+    let d = s.descent();
+    assert!(d.gen_set.contains(&29), "descent should add 29 = 39 − m");
+    assert_eq!(d.ascent().gen_set, s.gen_set, "a ∘ d must round-trip");
+}
+
+#[test]
 fn test_up_down_identity_fpm_branch() {
     // descent(ascent(S)) == S whenever ascent enters its f+m branch:
     // f+m is a min-gen and no min-gen lies in (m, f) with g + m > f.

@@ -29,6 +29,8 @@ impl Semigroup {
             compute(&newgen)
         }
     }
+    /// TODO: doc need to be rewritten, code changes!
+    ///
     /// Ascent: dual of [`Self::descent`], inverting both descent branches.
     ///
     /// 1. **`!is_descent` inverse**: pick the largest minimal generator
@@ -46,47 +48,39 @@ impl Semigroup {
     ///
     /// Returns `self` unchanged when neither clause applies.
     ///
-    /// # Duality with [`Self::descent`]
-    ///
-    /// Only branch (2) is a clean inverse of [`Self::descent`]. Concretely,
-    /// `descent(ascent(S)) == S` holds **iff ascent enters branch (2)**, i.e.
-    /// iff `f + m ∈ gen_set` *and* no minimal generator lies in `(f − m, f)`.
-    ///
-    /// In branch (1) the choices made by `ascent` (largest min-gen in
-    /// `(f − m, f)`) and by `descent` (smallest Apéry above `f`) are not
-    /// dual: removing a min-gen `g*` lifts the Frobenius from `f` to some
-    /// `f' ≥ f`, after which `descent` picks the smallest Apéry above the
-    /// *new* `f'`, which is generally not `g* + m`. Counterexample:
-    /// `S = ⟨4, 5, 7⟩` → `ascent` removes `5` → `⟨4, 7, 9, 10⟩` (`f' = 6`)
-    /// → `descent` adds `7 − 4 = 3` → `⟨3, 4⟩ ≠ ⟨4, 5, 7⟩`.
+    /// #?? Duality with [`Self::descent`]
     #[must_use]
     pub fn ascent(&self) -> Self {
-        // (m, f) window, underflow-free: g + m > f ⇔ g > f − m.
-        if let Some(w) = self
-            .gen_set
-            .iter()
-            .copied()
-            .filter(|&g| g > self.m && g < self.f && g + self.m > self.f)
-            .max()
-        {
-            return self.toggle(w);
+        for k in 1..=self.level {
+            let mut atoms = self.gen_set.clone();
+            atoms.sort_unstable();
+            atoms.reverse();
+            if let Some(w) = atoms
+                .iter()
+                .copied()
+                .filter(|&a| k * a > self.m && k * a < self.f && (k * a) + self.m > self.f)
+                .filter(|&a| self.apery_set.contains(&(k * a)))
+                .max()
+            {
+                return self.toggle(w);
+            }
+            if self.gen_set.contains(&(self.f + self.m)) {
+                // S \ {f+m}: enumerate up to f + 2m so the next Apéry (≤ f + 2m
+                // in residue μ) is included for `compute` to pick up.
+                // only because toggle(f+m) would not work!
+                let elements: Vec<usize> = (1..=self.f + 2 * self.m)
+                    .filter(|&x| x != self.f + self.m && self.element(x))
+                    .collect();
+                if elements.is_empty() {
+                    return self.clone();
+                }
+                return compute(&elements);
+            }
         }
-        let max_apery = self.f + self.m;
-        if !self.gen_set.contains(&max_apery) {
-            return self.clone();
-        }
-        // S \ {f+m}: enumerate up to f + 2m so the next Apéry (≤ f + 2m
-        // in residue μ) is included for `compute` to pick up.
-        let upper = max_apery + self.m;
-        let elts: Vec<usize> = (1..=upper)
-            .filter(|&x| x != max_apery && self.element(x))
-            .collect();
-        if elts.is_empty() {
-            return self.clone();
-        }
-        compute(&elts)
+        self.clone()
     }
 
+    /// TODO rewrite this doc - code change
     /// Descent: a controlled step down the gaps ladder.
     ///
     /// Returns `self` when `f < m` (only the trivial `S = ℕ` case).
@@ -110,6 +104,7 @@ impl Semigroup {
         if self.f < self.m {
             return self.clone();
         }
+        let mut newgen = self.gen_set.clone();
         // a_μ = f + m is always an Apéry element above f, so this iterator is
         // non-empty whenever m ≥ 1.
         let smallest = *self
@@ -118,9 +113,18 @@ impl Semigroup {
             .filter(|&&x| x > self.f)
             .min()
             .unwrap_or(&0);
-        let mut newgen = self.gen_set.clone();
-        // x > f ≥ m here, so x − m ≥ 1.
-        newgen.push(smallest - self.m);
+        if smallest == self.f + self.m {
+            newgen.push(smallest - self.m);
+        } else {
+            // there exists one smaller than f+m
+            let largest_smaller_fpm = *self
+                .apery_set
+                .iter()
+                .filter(|&&x| x > self.f)
+                .max()
+                .unwrap_or(&0);
+            newgen.push(largest_smaller_fpm - self.m);
+        }
         compute(&newgen)
     }
 

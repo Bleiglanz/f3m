@@ -44,11 +44,14 @@ impl Semigroup {
             .all(|&w| w == self.f + self.m || w < self.f)
     }
 
-    /// True iff `S` lies in the image of [`Self::descent`] — i.e. some
-    /// minimal generator falls in the half-open window `(f − m, f)`
-    /// (the `!is_descent` regime: descent added it as `x − m` for some
-    /// Apéry `x ∈ (f, f+m)`) or equals `f + m` (the `is_descent` regime:
-    /// descent added `T.f` which became the new max Apéry element).
+    /// True iff some minimal generator falls in the half-open window
+    /// `(f − m, f)` or equals `f + m`.
+    ///
+    /// TODO: the descent rule changed (see [`super::super::manipulators`]);
+    /// this predicate no longer matches the image of `descent()` exactly.
+    /// Retained as the `di` column in shortprops/cones/help-tab while a
+    /// new characterisation (something like "no Apéry in `(f−m, f)` is a
+    /// multiple of an atom") is worked out. Not asserted in any test.
     #[must_use]
     pub fn is_descent_image(&self) -> bool {
         let max_apery = self.f + self.m;

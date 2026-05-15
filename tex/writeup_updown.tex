@@ -24,8 +24,10 @@ Write $S_+ := S \setminus \{0\}$.
     \emph{Apéry set} (one representative per residue class mod $m$).
     Index it by residue: $\operatorname{Ap}(S) = \{w_0,\dots,w_{m-1}\}$
     with $w_i \equiv i \pmod m$. In particular $w_0 = 0$.
+    
     \item $\operatorname{RG}(S) := \{L \in \{1,\dots,f-1\}
     \mid L \notin S,\ f-L \notin S\}$, the \emph{reflected gaps}.
+    
     \item $a$ is an \emph{atom} of $S$ iff
     $a \in S_+ \setminus (S_+ + S_+)$. Equivalently, $a$ lies in the
     unique minimal generating set $\operatorname{Atom}(S)$ of $S$.
@@ -42,8 +44,10 @@ Write $S_+ := S \setminus \{0\}$.
     (the rung $w_\mu - m = f$ being a gap and the rest of the rungs
     above $w_\mu$ being elements of~$S$). $r_i$ counts the reflected
     gaps in residue class $i \pmod m$.
-    \item $V(S) := \{f-m+1,\,f-m+2,\dots,f-1\}$, the
-    \emph{interval below $f$} ($m-1$ consecutive integers).
+    
+    \item $V(S,l) := \{f-lm+1,\,f-(l-1)m+2,\dots,f-1\}$, the $l$-Stratum, for 
+    $l=1$ this is the 
+    \emph{interval below $f$} (always $m-1$ consecutive integers).
     \item $\rho(S) := \min_{i \in \{1,\dots,m-1\}\setminus\{\mu\}} r_i$.
     The class $i = \mu$ is excluded because $r_\mu = 0$ trivially
     (every $x \equiv \mu$ has $f - x \equiv 0 \pmod m$, hence
@@ -84,8 +88,8 @@ $\mathcal{A}_{total}$ inverts $\mathcal{D}_{total}$).
        g' = g - 1,\ \sigma' = \sigma - (m-1),\ r' = r + (m-2).\]
 
     \item $\mathcal{A}_{flip}(i)$, with $i \in \{1,\dots,m-1\}\setminus\{\mu\}$,
-    $w_i$ an atom of $S$, and $w_i \in V(S)$:
-    \[S^\uparrow := S \setminus \{w_i\}, \qquad
+    $ka=w_i$ and Apery--Element for an atom a of $S$ and $k>0$, and $w_i \in V(S,l)$ (going down on l if necessary):
+    \[S^\uparrow := S \setminus \{a\}, \qquad
        g' = g + 1,\ \sigma' = \sigma - 1,\ r' = r + 2.\]
 
     \item $\mathcal{A}_{total}(\mu)$, requiring $w_\mu = f+m$

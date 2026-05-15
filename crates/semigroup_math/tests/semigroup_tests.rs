@@ -1039,14 +1039,13 @@ fn test_ascent_f_plus_m_branch_concrete() {
 
 #[test]
 fn test_ascent_k_at_least_2_concrete() {
-    // The k≥2 branch: an atom whose k-th multiple is an Apéry element
-    // landing in V(S) gets toggled. The canonical witness is the
-    // ⟨n, n+1⟩ family for n ≥ 4: with a = n+1 and k = n−2,
-    //   k·a = (n−2)(n+1) = w_{n−2} ∈ V(S).
+    // The k≥2 branch in the shallowest stratum (l=0, i.e. V(S)): an
+    // atom whose k-th multiple is an Apéry element landing in V(S)
+    // gets toggled. Canonical witness: the ⟨n, n+1⟩ family for n ≥ 4,
+    // with a = n+1 and k = n−2, giving k·a = (n−2)(n+1) = w_{n−2}.
     //
     // ⟨4, 5⟩: at k=2, atom 5 satisfies 2·5 = 10 = w₂ ∈ (7, 11).
-    // Ascent toggles 5, leaving the previously-Apéry multiples
-    // {2·5, 3·5} = {10, 15} as fresh atoms.
+    // Ascent toggles 5, leaving {2·5, 3·5} = {10, 15} as fresh atoms.
     let s = compute(&[4, 5]);
     let up = s.ascent();
     assert!(up.gen_set.contains(&10), "expected 10 = 2·5 as a new atom");
@@ -1061,6 +1060,35 @@ fn test_ascent_k_at_least_2_concrete() {
     assert!(up.gen_set.contains(&12));
     assert!(up.gen_set.contains(&18));
     assert!(!up.gen_set.contains(&6));
+    assert_eq!(up.g, s.g + 1);
+}
+
+#[test]
+fn test_ascent_deeper_strata_concrete() {
+    // l ≥ 1 branch: an Apéry multiple k·a sitting below V(S) in a
+    // deeper stratum (f − (l+1)m, f − l m). The old V(S)-only code
+    // would have been a no-op on these.
+    //
+    // ⟨4, 9⟩: m=4, f=23, level=5. V(S) = (19, 23) holds no atom or
+    // Apéry multiple. At l=1 the stratum (15, 19) contains 18 = 2·9
+    // = w₂, so ascent toggles atom 9.
+    let s = compute(&[4, 9]);
+    assert_eq!((s.m, s.f), (4, 23));
+    let up = s.ascent();
+    assert!(!up.gen_set.contains(&9), "atom 9 should be removed");
+    assert_eq!(
+        up.g,
+        s.g + 1,
+        "deeper-stratum ascent still adds exactly one gap"
+    );
+
+    // ⟨4, 13⟩: m=4, f=35. At l=2 the stratum (27, 31) contains
+    // 26 = 2·13 — wait, 26 ∉ stratum 2 (stratum 2 is (f−3m, f−2m) =
+    // (23, 27)). 26 ∈ (23, 27). 26 = 2·13 = w₂. So at l=2, k=2.
+    let s = compute(&[4, 13]);
+    assert_eq!((s.m, s.f), (4, 35));
+    let up = s.ascent();
+    assert!(!up.gen_set.contains(&13), "atom 13 should be removed");
     assert_eq!(up.g, s.g + 1);
 }
 

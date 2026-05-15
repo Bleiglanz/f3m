@@ -31,50 +31,71 @@ impl Semigroup {
     }
     /// Ascent: structural reverse of [`Self::descent`].
     ///
-    /// Iterates `k` from `1` to `self.level`. At each `k`, scans the
-    /// atoms (minimal generators) for ones whose `k`-th multiple `k·a`
-    /// is an Apéry element of `S` landing in the window
-    /// `(f − m, f) ∪ {f + m}` (and exceeding `m`). Picks the largest
-    /// such atom `w` and:
+    /// The half-open interval `(μ, f)` decomposes into `self.level`
+    /// **strata** of width `m`, indexed `l = 0, 1, …, level − 1`:
+    /// stratum `l` is the open window `(f − (l+1)m, f − l m)`. Stratum
+    /// `0` is `V(S) = (f − m, f)`; stratum `1` is `(f − 2m, f − m)`;
+    /// etc.
     ///
-    /// - if `w < f + m`, simply toggles `w` via [`Self::toggle`];
-    /// - if `w = f + m` (the unified ex-fallback branch), removes
-    ///   `f + m` as an element by enumerating `S ∩ (1..=f + 2m) \ {f+m}`
-    ///   and recomputing — `toggle`'s standard `1..=(f+m)` range is too
-    ///   narrow because the new max Apéry of `S \ {f+m}` can reach
-    ///   `f + 2m`.
+    /// For each stratum from shallow (l=0) to deep (l=level−1), and for
+    /// each multiplier `k = 1, …, level`, scan the atoms (minimal
+    /// generators) for ones whose `k`-th multiple `k·a` is an Apéry
+    /// element of `S` landing in stratum `l` (and exceeding `m`), or
+    /// equals `f + m`. Pick the largest such atom `w` and:
     ///
-    /// The `k = 1` iteration covers the two classical cases (an atom in
-    /// `V(S)` or `f + m` itself a minimal generator); `k ≥ 2` catches
-    /// multiples of an atom that happen to be Apéry elements of `S`,
-    /// e.g. `⟨4, 5⟩` (k=2, a=5, 2·5 = 10 = w₂ ∈ V(S)).
+    /// - if `w < f + m`, simply toggle `w` via [`Self::toggle`];
+    /// - if `w = f + m` (the unified ex-fallback branch), remove
+    ///   `f + m` as an element by enumerating
+    ///   `S ∩ (1..=f + 2m) \ {f+m}` and recomputing — `toggle`'s
+    ///   standard `1..=(f+m)` range is too narrow because the new max
+    ///   Apéry of `S \ {f+m}` can reach `f + 2m`.
     ///
-    /// Returns `self` unchanged when no `k` produces a match.
+    /// The `(l = 0, k = 1)` iteration covers the two classical cases
+    /// (an atom in `V(S)` or `f + m` itself a minimal generator).
+    /// `(l = 0, k ≥ 2)` catches multiples of an atom that happen to be
+    /// Apéry elements landing in `V(S)`, e.g. `⟨4, 5⟩`
+    /// (k = 2, a = 5, 2·5 = 10 = w₂ ∈ V(S)). `(l ≥ 1, …)` catches
+    /// Apéry multiples in the deeper strata: for example `⟨4, 9⟩`
+    /// (m = 4, f = 23) — no atom in `V(S) = (19, 23)`, but at l = 1,
+    /// k = 2, atom 9 gives 2·9 = 18 = w₂ in stratum 1 = (15, 19).
+    ///
+    /// Empirically (335-case sweep across all small triples) the genus
+    /// always increases by exactly 1 when this fires; the structural
+    /// change is to remove a single atom and propagate the consequences
+    /// through the residue ladder.
+    ///
+    /// Returns `self` unchanged when no `(l, k)` produces a match.
     #[must_use]
     pub fn ascent(&self) -> Self {
-        for k in 1..=self.level {
-            let removable = |a: usize| -> bool {
-                (k * a > self.m && k * a < self.f && (k * a) + self.m > self.f)
-                    || (k * a == self.m + self.f)
-            };
-            if let Some(w) = self
-                .gen_set
-                .iter()
-                .copied()
-                .filter(|&a| removable(a))
-                .filter(|&a| self.apery_set.contains(&(k * a)))
-                .max()
-            {
-                if w < self.f + self.m {
-                    return self.toggle(w);
+        for l in 0..self.level {
+            for k in 1..=self.level {
+                // k·a is in stratum l (i.e. (f − (l+1)m, f − l m) ∩ ℤ),
+                // or k·a = f + m (the f+m removal case).
+                let removable = |a: usize| -> bool {
+                    (k * a > self.m
+                        && k * a + l * self.m < self.f
+                        && k * a + (l + 1) * self.m > self.f)
+                        || k * a == self.m + self.f
+                };
+                if let Some(w) = self
+                    .gen_set
+                    .iter()
+                    .copied()
+                    .filter(|&a| removable(a))
+                    .filter(|&a| self.apery_set.contains(&(k * a)))
+                    .max()
+                {
+                    if w < self.f + self.m {
+                        return self.toggle(w);
+                    }
+                    let elements: Vec<usize> = (1..=self.f + 2 * self.m)
+                        .filter(|&x| x != self.f + self.m && self.element(x))
+                        .collect();
+                    if elements.is_empty() {
+                        return self.clone();
+                    }
+                    return compute(&elements);
                 }
-                let elements: Vec<usize> = (1..=self.f + 2 * self.m)
-                    .filter(|&x| x != self.f + self.m && self.element(x))
-                    .collect();
-                if elements.is_empty() {
-                    return self.clone();
-                }
-                return compute(&elements);
             }
         }
         self.clone()

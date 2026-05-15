@@ -1020,75 +1020,51 @@ fn test_fast_descent_changes_r_by_exact_amount() {
 
 #[test]
 fn test_ascent_f_plus_m_branch_concrete() {
-    // Removing f+m as an atom is now folded into the same loop body as
-    // the "k·a in V(S)" cases (matched by `k·a == f+m`, taken when the
-    // winning atom equals f+m).
-    //
-    // ⟨5, 7, 23⟩: V(S) = (5, 18) has no atom; f+m = 23 wins at k=1.
-    // Ascent removes 23 and recovers ⟨5, 7⟩ exactly.
+    // ⟨5, 7, 23⟩: V(S) = (5, 18) has no atom; f+m = 23 wins at k=1,
+    // ascent removes 23 → ⟨5, 7⟩.
     let s = compute(&[5, 7, 23]);
-    let parent = s.ascent();
-    assert_eq!(parent.gen_set, vec![5, 7]);
+    assert_eq!(s.ascent().gen_set, vec![5, 7]);
 
-    // ⟨2, 5⟩: V(S) = (2, 3) is empty; f+m = 5 wins at k=1. The extended
-    // range catches the new max Apéry = 7, recovering ⟨2, 7⟩.
+    // ⟨2, 5⟩: V(S) is empty; f+m = 5 wins at k=1. The extended-range
+    // closure catches the new max Apéry 7 → ⟨2, 7⟩.
     let s = compute(&[2, 5]);
-    let parent = s.ascent();
-    assert_eq!(parent.gen_set, vec![2, 7]);
+    assert_eq!(s.ascent().gen_set, vec![2, 7]);
 }
 
 #[test]
 fn test_ascent_k_at_least_2_concrete() {
-    // The k≥2 branch in the shallowest stratum (l=0, i.e. V(S)): an
-    // atom whose k-th multiple is an Apéry element landing in V(S)
-    // gets toggled. Canonical witness: the ⟨n, n+1⟩ family for n ≥ 4,
-    // with a = n+1 and k = n−2, giving k·a = (n−2)(n+1) = w_{n−2}.
-    //
-    // ⟨4, 5⟩: at k=2, atom 5 satisfies 2·5 = 10 = w₂ ∈ (7, 11).
-    // Ascent toggles 5, leaving {2·5, 3·5} = {10, 15} as fresh atoms.
+    // ⟨4, 5⟩: at k=2, atom 5 satisfies 2·5 = 10 = w₂ ∈ V(S) = (7, 11).
+    // Ascent toggles 5; {2·5, 3·5} = {10, 15} become fresh atoms.
     let s = compute(&[4, 5]);
     let up = s.ascent();
-    assert!(up.gen_set.contains(&10), "expected 10 = 2·5 as a new atom");
-    assert!(up.gen_set.contains(&15), "expected 15 = 3·5 as a new atom");
-    assert!(!up.gen_set.contains(&5), "atom 5 should be removed");
-    assert_eq!(up.g, s.g + 1, "k≥2 ascent always adds exactly one gap");
+    assert!(!up.gen_set.contains(&5));
+    assert!(up.gen_set.contains(&10));
+    assert!(up.gen_set.contains(&15));
+    assert_eq!(up.g, s.g + 1);
 
-    // ⟨5, 6⟩: at k=3, atom 6 satisfies 3·6 = 18 = w_3 ∈ (14, 19).
-    // 2·6 = 12 and 3·6 = 18 both end up as new atoms.
+    // ⟨5, 6⟩: at k=3, atom 6 satisfies 3·6 = 18 = w₃ ∈ V(S) = (14, 19).
     let s = compute(&[5, 6]);
     let up = s.ascent();
+    assert!(!up.gen_set.contains(&6));
     assert!(up.gen_set.contains(&12));
     assert!(up.gen_set.contains(&18));
-    assert!(!up.gen_set.contains(&6));
     assert_eq!(up.g, s.g + 1);
 }
 
 #[test]
 fn test_ascent_deeper_strata_concrete() {
-    // l ≥ 1 branch: an Apéry multiple k·a sitting below V(S) in a
-    // deeper stratum (f − (l+1)m, f − l m). The old V(S)-only code
-    // would have been a no-op on these.
-    //
-    // ⟨4, 9⟩: m=4, f=23, level=5. V(S) = (19, 23) holds no atom or
-    // Apéry multiple. At l=1 the stratum (15, 19) contains 18 = 2·9
-    // = w₂, so ascent toggles atom 9.
+    // ⟨4, 9⟩: m=4, f=23. V(S) = (19, 23) has no match, but stratum
+    // l=1 = (15, 19) contains 18 = 2·9 = w₂, so ascent toggles 9.
     let s = compute(&[4, 9]);
-    assert_eq!((s.m, s.f), (4, 23));
     let up = s.ascent();
-    assert!(!up.gen_set.contains(&9), "atom 9 should be removed");
-    assert_eq!(
-        up.g,
-        s.g + 1,
-        "deeper-stratum ascent still adds exactly one gap"
-    );
+    assert!(!up.gen_set.contains(&9));
+    assert_eq!(up.g, s.g + 1);
 
-    // ⟨4, 13⟩: m=4, f=35. At l=2 the stratum (27, 31) contains
-    // 26 = 2·13 — wait, 26 ∉ stratum 2 (stratum 2 is (f−3m, f−2m) =
-    // (23, 27)). 26 ∈ (23, 27). 26 = 2·13 = w₂. So at l=2, k=2.
+    // ⟨4, 13⟩: m=4, f=35. Stratum l=2 = (f−3m, f−2m) = (23, 27)
+    // contains 26 = 2·13 = w₂, so ascent toggles 13 at (l=2, k=2).
     let s = compute(&[4, 13]);
-    assert_eq!((s.m, s.f), (4, 35));
     let up = s.ascent();
-    assert!(!up.gen_set.contains(&13), "atom 13 should be removed");
+    assert!(!up.gen_set.contains(&13));
     assert_eq!(up.g, s.g + 1);
 }
 

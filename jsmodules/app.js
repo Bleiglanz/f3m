@@ -1034,28 +1034,22 @@ function descentTarget(s) {
   return best === -1 ? null : best;
 }
 
-// The atom that Rust's `ascent` will toggle: largest atom `a` whose k-th
-// multiple `k·a` is an Apéry element of S landing in stratum
-// (f − (l+1)m, f − l m) (or equals f + m), for the first (l, k) in the
-// outer-then-inner sweep that has any match. Mirrors `Semigroup::ascent`
-// in crates/semigroup_math/src/math/manipulators.rs.
-//
-// Returns null when no (l, k) matches (the ascent will be a no-op).
+// Mirror of `Semigroup::ascent` in manipulators.rs: returns the atom that
+// the next ascent step will toggle, or null when ascent will be a no-op.
 function ascentTarget(s) {
   const m = s.m;
   const f = s.f;
-  if (f < m) { return null; }                   // level = 0, nothing to do
-  const level = Math.floor(f / m);
   const fm = f + m;
-  const gens = Array.from(s.gen_set);           // one FFI hop, reused inside
-  const apery = new Set(Array.from(s.apery_set));
+  const level = Math.floor(f / m);
+  const gens = Array.from(s.gen_set);
+  const apery = Array.from(s.apery_set);        // indexed by residue mod m
   for (let l = 0; l < level; l++) {
     for (let k = 1; k <= level; k++) {
       let best = -1;
       for (const a of gens) {
         const v = k * a;
         const inStratum = v > m && v + l * m < f && v + (l + 1) * m > f;
-        if ((inStratum || v === fm) && apery.has(v) && a > best) {
+        if ((inStratum || v === fm) && apery[v % m] === v && a > best) {
           best = a;
         }
       }

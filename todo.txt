@@ -427,9 +427,38 @@ flow? Waldicone already uses Normaliz internally, so it would be the same
 software with an invertible change of basis; benefit would be presentation
 parity with the in-app view rather than performance.
 
+Note (monomial / toric framing of the (r, n) picture):
 
+Identify each r-vector with a monomial R = x_1^{r_1} · … · x_{m-1}^{r_{m-1}}
+and each n-vector with N = x_1^{n_1} · … · x_{m-1}^{n_{m-1}}; then R · N is
+the monomial with exponent vector q = r + n. The reflection symmetry on r
+restricts R to the sub-monoid of symmetric monomials avoiding the μ-axis:
 
+    Σ_r |{R of degree r}| z^r = 1/(1-z)^s · 1/(1-z^2)^d
 
+where s = #self-paired indices in {1,…,m-1}\{μ} and d = #reflection pairs
+(s + 2d = m - 2). N has the usual generating function 1/(1-z)^{m-1}.
+
+The Kunz pair-relation c(i, j) ≥ 0 is NOT a monomial divisibility (it mixes
+coordinates across indices i, j, (i+j) mod m), but it IS a binomial relation
+in the toric ideal
+
+    I = ⟨ x_i · x_j  −  t^δ · x_{(i+j) mod m}  :  1 ≤ i ≤ j ≤ m-1 ⟩
+
+with δ = 0 if i+j < m and δ = 1 if i+j ≥ m (the homogeniser t absorbs the
+wraparound +1, mirroring the constant column of pair_relations_rn). Lattice
+points of the Kunz cone are in bijection with monomials of k[x_1,…,x_{m-1},t]/I
+graded by total degree (= genus after pinning t = 1). The Hilbert series of
+this toric ring is exactly what Normaliz computes.
+
+Relaxed count (RSym only, no pair-relations) decomposes via g = r + σ:
+
+    #{(r, n) : g = r + σ, RSym holds}
+      = Σ_{r=0}^{g} [number of r-vectors of degree r] · C(σ + m-2, m-2)
+
+This is an upper bound on the count of numerical semigroups with the given
+(m, μ, g); the deficit equals the lattice points violating some c(i, j) ≥ 0.
+Could be worth plotting "true count / relaxed count" as a tightness metric.
 
 
 

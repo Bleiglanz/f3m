@@ -533,80 +533,6 @@ span[data-remove-gen]     { cursor: pointer; }
 .tilt-grid span[data-n] { display: inline; padding: 0.15rem; }
 
 
-/* ─── Strata Explorer (strata.html) ─────────────────────────────── */
-.strata-grid {
-  border-collapse: collapse;
-  font-family: var(--mono);
-  font-size: 0.85rem;
-  width: auto;
-  margin: 0;
-}
-
-.strata-grid th, .strata-grid td {
-  border: 1px solid var(--border);
-  text-align: center;
-  width: 2em;
-  height: 2em;
-  padding: 0;
-}
-
-.strata-grid thead th, .strata-grid tr.strata-foot th {
-  background: var(--th-bg);
-  color: var(--th-fg);
-  font-weight: 600;
-}
-
-.strata-grid tbody th {
-  background: var(--surface-2);
-  color: var(--label);
-  font-weight: 600;
-}
-
-.strata-grid td.strata-in  { background: var(--sg-gen-bg);   color: var(--sg-gen-fg); cursor: pointer; font-weight: 600; }
-.strata-grid td.strata-out { background: var(--sg-out-bg);   color: var(--sg-out-fg); cursor: pointer; }
-
-/* Column-symmetry highlight (i ↔ N+1−i): a soft amber wash over both
-   columns, drawn under any other highlight via a low-opacity background. */
-.strata-grid [data-v].strata-col-hl { background: rgba(255, 180, 60, 0.22); }
-
-/* The currently-hovered empty cell. */
-.strata-grid td.strata-self-hl { outline: 2px solid var(--orange); outline-offset: -2px; }
-
-/* TODO 79: empty cells whose value equals val(hovered) + w_j. !important
-   beats the column-highlight wash so the gap-translates pop. */
-.strata-grid td.strata-gap-hl { background: rgba(168, 33, 24, 0.32) !important; color: var(--text); }
-
-/* Minimum (w_i) rows below the chain. */
-.strata-grid tr.strata-w-label th { background: var(--surface-2); color: var(--label); font-weight: 600; }
-.strata-grid td.strata-w-cell { background: var(--surface); color: var(--text); font-weight: 600; }
-.strata-grid td.strata-w-undef { color: var(--dim); font-weight: normal; }
-
-a.strata-back {
-  align-self: center;
-  margin-left: auto;
-  font-size: 0.85rem;
-  color: var(--muted);
-  text-decoration: none;
-}
-a.strata-back:hover { color: var(--text); }
-
-/* Side-by-side layout: strata grid (left) and the semigroup ⟨m, w_j, lmax+N+1, …⟩
-   structure grid (right). On narrow screens both panes wrap to their own row. */
-.strata-pane {
-  display: flex;
-  gap: 1.5rem;
-  flex-wrap: wrap;
-  align-items: flex-start;
-}
-.strata-pane > .table-wrap,
-.strata-pane > .strata-sg-side { flex: 0 0 auto; min-width: 0; }
-.strata-sg-caption {
-  font-size: 0.85rem;
-  color: var(--muted);
-  margin-bottom: 0.4rem;
-  font-family: var(--mono);
-}
-
 /* ─── Tooltips ──────────────────────────────────────────────────── */
 .has-tip {
   position: relative;
@@ -747,6 +673,8 @@ body.hide-classification .classify-row { display: none; }
 
 .diagonals-pane { display: flex; gap: 1.5rem; flex-wrap: wrap; }
 .diagonals-table { background: var(--surface); }
+.diagonals-pane hr.diagonals-sep { flex-basis: 100%; border: 0; border-top: 2px solid var(--border); margin: 0.6rem 0; }
+.classify-table th.rn-mu, .classify-table td.rn-mu { background: rgba(255, 180, 60, 0.32); }
 
 /* ─── Pivot Tab ─────────────────────────────────────────────────── */
 /* Force a bright/black scheme: PivotTable.js + jQueryUI defaults inherit from

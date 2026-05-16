@@ -38,12 +38,8 @@ use semigroup_math::math::{
     Semigroup, compute,
     creators::{arith_generators, rolf_primes, tmf_generators},
     gap_block,
-    random_creators::{
-        random_generators, random_matching_generators, random_primes_subset,
-        random_with_multiplier_generators,
-    },
+    random_creators::{random_generators, random_primes_subset, random_with_multiplier_generators},
 };
-use semigroup_math::strata::{decode_chain, encode_chain, random_strata};
 use std::cmp::Ordering;
 use wasm_bindgen::prelude::*;
 
@@ -198,6 +194,14 @@ impl JsSemigroup {
     #[must_use]
     pub fn rho(&self) -> usize {
         self.0.rho()
+    }
+    /// Reflected-gaps-by-residue vector `(r_1, …, r_{m−1})`. The slot at
+    /// `i = μ` is always 0.
+    #[wasm_bindgen(getter)]
+    #[must_use]
+    pub fn r_vec(&self) -> Vec<u32> {
+        #[allow(clippy::cast_possible_truncation)]
+        (1..self.0.m).map(|i| self.0.r_i(i) as u32).collect()
     }
     /// True iff the interval `V(S) = {f − m + 1, …, f − 1}` is contained in S.
     #[wasm_bindgen(getter)]
@@ -413,36 +417,6 @@ pub fn js_random_with_multiplier(k: usize) -> Vec<u32> {
     to_u32(&random_with_multiplier_generators(k))
 }
 
-/// Generators of a randomly drawn symmetric semigroup, or an empty vec
-/// if no symmetric sample was found within the retry budget.
-#[wasm_bindgen]
-#[must_use]
-pub fn js_random_symmetric() -> Vec<u32> {
-    random_matching_generators(|s| s.is_symmetric)
-        .map(|g| to_u32(&g))
-        .unwrap_or_default()
-}
-
-/// Generators of a randomly drawn pseudo-symmetric semigroup (`r = 1`),
-/// or an empty vec on retry exhaustion.
-#[wasm_bindgen]
-#[must_use]
-pub fn js_random_pseudo_symmetric() -> Vec<u32> {
-    random_matching_generators(|s| s.r == 1)
-        .map(|g| to_u32(&g))
-        .unwrap_or_default()
-}
-
-/// Generators of a randomly drawn proper almost-symmetric semigroup
-/// (`r ≥ 2`, `f + t = 2g`), or an empty vec on retry exhaustion.
-#[wasm_bindgen]
-#[must_use]
-pub fn js_random_almost_symmetric() -> Vec<u32> {
-    random_matching_generators(|s| s.is_almost_symmetric && s.r >= 2)
-        .map(|g| to_u32(&g))
-        .unwrap_or_default()
-}
-
 /// 4 to 8 randomly chosen primes from the fixed list, sorted ascending.
 #[wasm_bindgen]
 #[must_use]
@@ -469,62 +443,6 @@ pub fn gap_header() -> String {
 #[must_use]
 pub fn gap_footer() -> String {
     semigroup_math::math::GAP_FOOTER.to_string()
-}
-
-// ── Strata-explorer exports ──────────────────────────────────────────────────
-
-/// Empty strata chain of length `lmax + 1` encoded as `;`-separated rows.
-#[wasm_bindgen]
-#[must_use]
-pub fn js_strata_empty(lmax: usize) -> String {
-    let chain: Vec<Vec<usize>> = vec![Vec::new(); lmax + 1];
-    encode_chain(&chain)
-}
-
-/// Random monotonic strata chain `M_0 ⊆ … ⊆ M_lmax ⊆ {1,…,N}`, encoded.
-#[wasm_bindgen]
-#[must_use]
-pub fn js_strata_random(n: usize, lmax: usize) -> String {
-    encode_chain(&random_strata(n, lmax))
-}
-
-/// Render a strata chain as an HTML table with `n` columns and stride `m`.
-#[wasm_bindgen]
-#[must_use]
-pub fn js_strata_table(chain_str: &str, n: usize, m: usize) -> String {
-    html_helpers::strata_table(&decode_chain(chain_str), n, m)
-}
-
-/// Toggle membership of `v` at level `l`, propagating to keep the chain monotone.
-///
-/// Adding `v` cascades up to all higher levels; removing `v` cascades down to
-/// all lower levels (excluding `M_0`, which stays empty by convention). Toggles
-/// at level `0` and out-of-range coordinates are no-ops.
-#[wasm_bindgen]
-#[must_use]
-pub fn js_strata_toggle(chain_str: &str, l: usize, v: usize) -> String {
-    let mut chain = decode_chain(chain_str);
-    if l == 0 || l >= chain.len() || v == 0 {
-        return encode_chain(&chain);
-    }
-    let currently_in = chain[l].binary_search(&v).is_ok();
-    if currently_in {
-        // Remove from level l and every level below (M_0 stays empty regardless).
-        for row in &mut chain[1..=l] {
-            if let Ok(pos) = row.binary_search(&v) {
-                row.remove(pos);
-            }
-        }
-    } else {
-        // Add to level l and every level above.
-        let last = chain.len() - 1;
-        for row in &mut chain[l..=last] {
-            if let Err(pos) = row.binary_search(&v) {
-                row.insert(pos, v);
-            }
-        }
-    }
-    encode_chain(&chain)
 }
 
 /// Parse a comma-separated generator list and compute its semigroup.

@@ -10,10 +10,7 @@ use semigroup_math::math::{
     creators::{arith_generators, rolf_primes, tmf_generators},
     gcd,
     matrix::{c_red, d_matrix, u_matrix, zd_vector},
-    random_creators::{
-        random_generators, random_matching_generators, random_primes_subset,
-        random_with_multiplier_generators,
-    },
+    random_creators::{random_generators, random_primes_subset, random_with_multiplier_generators},
 };
 
 #[test]
@@ -958,23 +955,6 @@ fn test_random_creators_basic_shape() {
     let primes = random_primes_subset();
     assert!((4..=8).contains(&primes.len()));
     assert!(primes.windows(2).all(|w| w[0] < w[1]));
-}
-
-#[test]
-fn test_random_creators_predicate_postconditions() {
-    let g =
-        random_matching_generators(|s| s.is_symmetric).expect("random_symmetric should succeed");
-    assert!(compute(&g).is_symmetric);
-
-    let g =
-        random_matching_generators(|s| s.r == 1).expect("random_pseudo_symmetric should succeed");
-    assert_eq!(compute(&g).r, 1);
-
-    let g = random_matching_generators(|s| s.is_almost_symmetric && s.r >= 2)
-        .expect("random_almost_symmetric should succeed");
-    let s = compute(&g);
-    assert!(s.is_almost_symmetric);
-    assert!(s.r >= 2);
 }
 
 #[test]

@@ -32,7 +32,6 @@ pub mod combined_table;
 pub mod diagonals;
 pub mod shortprops;
 mod spans;
-pub mod strata;
 pub mod testcase;
 pub mod tilt;
 
@@ -41,7 +40,6 @@ pub use combined_table::combined_table;
 pub use diagonals::diagonals_table;
 pub use shortprops::{shortprop, shortprop_cells};
 pub use spans::{ClassSets, class_sets, span};
-pub use strata::strata_table;
 pub use testcase::testcase_csv;
 pub use tilt::tilt_table;
 

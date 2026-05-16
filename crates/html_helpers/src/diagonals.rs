@@ -9,6 +9,18 @@ use semigroup_math::math::matrix::{
 };
 use std::fmt::Write as _;
 
+/// Renders a single `<td>` for an integer cell that takes one of the three
+/// small values `{−1, 0, +1}` (matrices like `u_pair_relations(m)` and
+/// `RSym`). Other values fall back to plain decimal rendering.
+fn pm_cell(val: i64) -> String {
+    match val {
+        0 => "<td class=\"pm-zero\">0</td>".to_string(),
+        1 => "<td class=\"pm-pos1\">1</td>".to_string(),
+        -1 => "<td class=\"pm-neg1\">\u{2212}1</td>".to_string(),
+        _ => format!("<td>{val}</td>"),
+    }
+}
+
 /// Render a five-row table for `one`, `one·U(m)`, `c₁`, `one·U(m)·c₁`, and `mg+(m-1)m/2`.
 fn render_one_vec(one_u: &[i64], c1: &[i64], apery_sum: i64) -> String {
     let dim = one_u.len();
@@ -165,12 +177,7 @@ pub fn diagonals_table(sg: &Semigroup) -> String {
         &classified,
     );
     let pair = u_pair_relations(mult);
-    let pair_cell = |_a: usize, _b: usize, val: i64| match val {
-        0 => "<td class=\"pm-zero\">0</td>".to_string(),
-        1 => "<td class=\"pm-pos1\">1</td>".to_string(),
-        -1 => "<td class=\"pm-neg1\">\u{2212}1</td>".to_string(),
-        _ => format!("<td>{val}</td>"),
-    };
+    let pair_cell = |_a: usize, _b: usize, val: i64| pm_cell(val);
     let html_pair = render(
         &pair,
         "(U_i+U_j\u{2212}U_{i+j})/m",
@@ -203,6 +210,8 @@ pub fn diagonals_table(sg: &Semigroup) -> String {
         two_g_plus_m_minus_1,
     );
 
+    let html_rn_block = render_rn_block(sg);
+
     let mut out = String::from("<div class=\"diagonals-pane\">");
     let _ = write!(out, "<div class=\"table-wrap\">{html_u}</div>");
     let _ = write!(
@@ -224,6 +233,197 @@ pub fn diagonals_table(sg: &Semigroup) -> String {
     let _ = write!(out, "<div class=\"table-wrap\">{html_pair}</div>");
     let _ = write!(out, "<div class=\"table-wrap\">{html_d}</div>");
     let _ = write!(out, "<div class=\"table-wrap\">{html_d_prod}</div>");
+    out.push_str("<hr class=\"diagonals-sep\">");
+    out.push_str(&html_rn_block);
     out.push_str("</div>");
     out
+}
+
+/// Renders the rn table, the `RSym` matrix, the `RSym`·rv verification row,
+/// and the two sum identities `1·rv = r` and `1·nv = g − r`.
+fn render_rn_block(sg: &Semigroup) -> String {
+    let mult = sg.m;
+    if mult < 2 {
+        return String::new();
+    }
+    let dim = mult - 1;
+    let mu = sg.mu;
+    #[allow(clippy::cast_possible_wrap)]
+    let r_vec: Vec<i64> = (1..mult).map(|i| sg.r_i(i) as i64).collect();
+    #[allow(clippy::cast_possible_wrap)]
+    let n_vec: Vec<i64> = (1..mult)
+        .map(|i| ((sg.apery_set[i] - i) / mult) as i64 - r_vec[i - 1])
+        .collect();
+
+    let mut html = String::new();
+    html.push_str(&render_rn_table(&r_vec, &n_vec, mu));
+
+    let cols2 = 2 * dim;
+    let r_sym = build_r_sym(mult, mu);
+    html.push_str(&render_r_sym_matrix(&r_sym, mult, cols2));
+
+    let prod: Vec<i64> = (0..dim)
+        .map(|row| {
+            (0..dim)
+                .map(|col| r_sym[row * cols2 + col] * r_vec[col])
+                .sum()
+        })
+        .collect();
+    html.push_str(&render_r_sym_prod(&prod, mult));
+
+    let sum_r: i64 = r_vec.iter().sum();
+    let sum_n: i64 = n_vec.iter().sum();
+    #[allow(clippy::cast_possible_wrap)]
+    let r_expected = sg.r as i64;
+    #[allow(clippy::cast_possible_wrap)]
+    let gmr_expected = sg.g as i64 - r_expected;
+    let _ = write!(
+        html,
+        "<p class=\"det-note\">\u{03a3}r<sub>i</sub> = {sum_r}, \
+         r = {r_expected} {}</p>\
+         <p class=\"det-note\">\u{03a3}n<sub>i</sub> = {sum_n}, \
+         g \u{2212} r = {gmr_expected} {}</p>",
+        check_glyph(sum_r == r_expected),
+        check_glyph(sum_n == gmr_expected),
+    );
+    html
+}
+
+/// `(m−1) × 2(m−1)` flat row-major `RSym` matrix. Row `i` (1-based) has
+/// `+1` at column `i`; if `(μ − i) mod m ≠ 0` it also has `−1` at column
+/// `(μ − i) mod m`; the lone row `i = μ` ends up all-zeros after the
+/// `−1` cancels the `+1` at column `μ`.
+fn build_r_sym(mult: usize, mu: usize) -> Vec<i64> {
+    let dim = mult - 1;
+    let cols2 = 2 * dim;
+    let mut r_sym = vec![0i64; dim * cols2];
+    for ii in 1..mult {
+        let row = ii - 1;
+        r_sym[row * cols2 + row] += 1;
+        let j_mod = (mu + mult - ii) % mult;
+        if j_mod == 0 {
+            r_sym[row * cols2 + row] -= 1;
+        } else {
+            r_sym[row * cols2 + (j_mod - 1)] -= 1;
+        }
+    }
+    r_sym
+}
+
+const fn check_glyph(ok: bool) -> &'static str {
+    if ok { "\u{2713}" } else { "\u{2717}" }
+}
+
+/// Header row `r_1 … r_{m-1} n_1 … n_{m-1}` after a caller-supplied title `<th>`.
+/// `mu_class` is added to the `r_μ` cell when non-empty (used to highlight the
+/// always-zero μ slot in the rn table).
+fn rn_header_row(title: &str, mult: usize, mu: usize, mu_class: &str) -> String {
+    let mut h = format!("<th>{title}</th>");
+    for i in 1..mult {
+        let cls = if i == mu && !mu_class.is_empty() {
+            format!(" class=\"{mu_class}\"")
+        } else {
+            String::new()
+        };
+        let _ = write!(h, "<th{cls}>r<sub>{i}</sub></th>");
+    }
+    for i in 1..mult {
+        let _ = write!(h, "<th>n<sub>{i}</sub></th>");
+    }
+    h
+}
+
+fn render_rn_table(r_vec: &[i64], n_vec: &[i64], mu: usize) -> String {
+    let mult = r_vec.len() + 1;
+    let mut h = String::from(
+        "<div class=\"table-wrap\">\
+         <table class=\"classify-table u-matrix-table\"><thead><tr>",
+    );
+    h.push_str(&rn_header_row("rn", mult, mu, "rn-mu"));
+    h.push_str("</tr></thead><tbody><tr><th></th>");
+    for (idx, v) in r_vec.iter().enumerate() {
+        let cls = if idx + 1 == mu {
+            " class=\"rn-mu\""
+        } else {
+            ""
+        };
+        let _ = write!(h, "<td{cls}>{v}</td>");
+    }
+    for v in n_vec {
+        let _ = write!(h, "<td>{v}</td>");
+    }
+    h.push_str("</tr></tbody></table></div>");
+    h
+}
+
+fn render_r_sym_matrix(r_sym: &[i64], mult: usize, cols2: usize) -> String {
+    let dim = mult - 1;
+    let mut h = String::from(
+        "<div class=\"table-wrap\">\
+         <table class=\"classify-table u-matrix-table\"><thead><tr>",
+    );
+    h.push_str(&rn_header_row("RSym", mult, 0, ""));
+    h.push_str("</tr></thead><tbody>");
+    for row in 0..dim {
+        let _ = write!(h, "<tr><th>{}</th>", row + 1);
+        for col in 0..cols2 {
+            h.push_str(&pm_cell(r_sym[row * cols2 + col]));
+        }
+        h.push_str("</tr>");
+    }
+    h.push_str("</tbody></table></div>");
+    h
+}
+
+fn render_r_sym_prod(prod: &[i64], mult: usize) -> String {
+    let all_zero = prod.iter().all(|&v| v == 0);
+    let mut h = String::from(
+        "<div class=\"table-wrap\">\
+         <table class=\"classify-table u-matrix-table\"><thead><tr>\
+         <th>RSym\u{b7}rv</th>",
+    );
+    for i in 1..mult {
+        let _ = write!(h, "<th>{i}</th>");
+    }
+    let _ = write!(h, "<th>= 0?</th></tr></thead><tbody><tr><th></th>");
+    for v in prod {
+        let _ = write!(h, "<td>{v}</td>");
+    }
+    let _ = write!(
+        h,
+        "<td>{}</td></tr></tbody></table></div>",
+        check_glyph(all_zero)
+    );
+    h
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use semigroup_math::math::compute;
+
+    fn assert_rn_identities(gens: &[usize]) {
+        let sg = compute(gens);
+        let html = render_rn_block(&sg);
+        // Both identity checks must render the green tick.
+        assert!(
+            html.contains("\u{2713}") && !html.contains("\u{2717}"),
+            "rn block reported a failure for gens={gens:?}:\n{html}"
+        );
+        // The RSym·rv block always appears (even when the +1/−1 row μ cancels
+        // to zero), so the "= 0?" header should be present.
+        assert!(html.contains("= 0?"), "missing RSym·rv table for {gens:?}");
+    }
+
+    #[test]
+    fn rn_identities_small_examples() {
+        // Symmetric ⟨3, 5, 7⟩: r = 0.
+        assert_rn_identities(&[3, 5, 7]);
+        // Almost-symmetric ⟨4, 5, 6⟩.
+        assert_rn_identities(&[4, 5, 6]);
+        // Generic ⟨5, 7, 9, 11⟩.
+        assert_rn_identities(&[5, 7, 9, 11]);
+        // Larger multiplicity ⟨7, 9, 11, 13⟩.
+        assert_rn_identities(&[7, 9, 11, 13]);
+    }
 }

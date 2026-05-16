@@ -3,7 +3,6 @@ import init, {
   js_graph_edges_text, js_node_class, js_classify_table, js_diagonals_table, js_rolf_primes,
   js_tmf, js_arith,
   js_random_generators, js_random_with_multiplier,
-  js_random_symmetric, js_random_pseudo_symmetric, js_random_almost_symmetric,
   js_random_primes,
   state_push, state_get, state_len, state_clear, state_current_idx, state_set_current_idx,
   state_get_eva_expr, state_set_eva_expr, state_gap_output, state_cmp,
@@ -69,8 +68,11 @@ function buildLatexSource(s) {
   const pf = Array.from(s.pf);
   const g = s.g;
   const c = s.f + 1;
-  const sigma = s.sigma; // σ: elements below conductor = c − g
-  const r = Array.from(s.blob).length; // reflected gap count
+  const sigma = s.sigma;
+  const r = s.r;
+  const t = s.type_t;
+  const mu = s.mu;
+  const rVec = Array.from(s.r_vec);
 
   const genStr = gens.join(',\\, ');
   const pfStr = pf.length ? `\\{${pf.join(',\\, ')}\\}` : '\\emptyset';
@@ -90,17 +92,26 @@ function buildLatexSource(s) {
     `c(S) &= ${c}        & \\text{conductor } (f+1) \\\\`,
     `\\sigma(S) &= ${sigma} & \\text{elements below conductor } (c - g) \\\\`,
     `r(S) &= ${r}        & \\text{reflected gaps } |\\{n : n \\notin S,\\, f{-}n \\notin S\\}| \\\\`,
-    `t(S) &= ${s.type_t} & \\text{type } |\\mathrm{PF}(S)|`,
+    `t(S) &= ${t} & \\text{type } |\\mathrm{PF}(S)|`,
     `\\end{array}`,
   ].join('\n'));
 
   blocks.push(`\\mathrm{PF}(S) = ${pfStr}`);
 
-  if (s.is_symmetric) {
-    blocks.push(`S \\text{ is \\textbf{symmetric}:}\\quad t = 1,\\quad g = \\tfrac{f+1}{2} = ${g}`);
-  } else {
-    blocks.push(`S \\text{ is \\textbf{not symmetric}:}\\quad t(S) = ${s.type_t} \\neq 1`);
+  if (r === 0) {
+    blocks.push(`S \\text{ is \\textbf{symmetric}:}\\quad r = 0`);
+  } else if (r === 1) {
+    blocks.push(`S \\text{ is \\textbf{pseudo-symmetric}:}\\quad r = 1`);
+  } else if (r === t - 1 && r > 1) {
+    blocks.push(`S \\text{ is \\textbf{almost-symmetric}:}\\quad r = t - 1 = ${r}`);
   }
+
+  const rVecLatex = rVec
+    .map((v, idx) => (idx + 1 === mu ? `\\boxed{${v}}` : `${v}`))
+    .join(',\\, ');
+  blocks.push(
+    `\\text{reflected gaps mod } i:\\quad (r_1,\\ldots,r_{m-1}) = (${rVecLatex})`
+  );
 
   blocks.push(
     `\\text{Wilf:}\\quad \\frac{\\sigma}{c} = \\frac{${sigma}}{${c}} \\approx ${(sigma / c).toFixed(4)} \\;\\geq\\; \\frac{1}{e} = \\frac{1}{${s.e}} \\approx ${(1 / s.e).toFixed(4)}`
@@ -461,38 +472,46 @@ const escHtml = s => String(s).replace(/[&<>"']/g, c => HTML_ESCAPES[c]);
 
 async function driveRandomCreator(genFn, label, emptyMsg, postProcess) {
   const constraint = document.getElementById('constraint-input').value.trim();
-  if (!constraint) { driveCreator(genFn, label, emptyMsg, postProcess); return; }
+  const constraintGt = document.getElementById('constraint-gt-input').value.trim();
+  if (!constraint && !constraintGt) { driveCreator(genFn, label, emptyMsg, postProcess); return; }
   setBusy(true);
   const deadline = performance.now() + CONSTRAINT_TIMEOUT_MS;
   let attempts = 0;
+  // Constraints are user-controlled text rendered into innerHTML via the #
+  // column — escape before display.
+  const labelBits = [];
+  if (constraint) { labelBits.push(`${escHtml(constraint)}=0`); }
+  if (constraintGt) { labelBits.push(`${escHtml(constraintGt)}>0`); }
+  const constraintLabel = labelBits.join(',');
+  const msgBits = [];
+  if (constraint) { msgBits.push(`"${constraint} = 0"`); }
+  if (constraintGt) { msgBits.push(`"${constraintGt} > 0"`); }
+  const constraintMsg = msgBits.join(' and ');
   try {
     while (performance.now() < deadline) {
       for (let i = 0; i < CONSTRAINT_CHUNK; i++) {
         attempts++;
         const gens = Array.from(genFn());
-        if (gens.length === 0) { continue; } // genFn gave up (e.g. Sym ran its own retry budget)
+        if (gens.length === 0) { continue; }
         const sg = js_compute(gens.join(','));
         if (!sg) { continue; }
-        // Build the final (possibly post-processed) semigroup *before*
-        // matching, so the constraint sees the same object the expr column
-        // will report. Without this, e.g. Sym+f matched the base Sym while
-        // the displayed columns reflected S ∪ {f}, giving misleading rows.
+        // Match against the post-processed semigroup so the constraint sees
+        // the same object the expr column will report.
         const finalGens = postProcess ? Array.from(postProcess(sg)) : gens;
         if (finalGens.length === 0) { continue; }
         const finalSg = postProcess ? js_compute(finalGens.join(',')) : sg;
         if (!finalSg) { continue; }
-        if (eval_expr(constraint, finalSg) === 0) {
-          gensInput.value = finalGens.join(', ');
-          // Constraint is user-controlled text rendered into innerHTML via the # column — escape.
-          _computeLabel = `${label}|${escHtml(constraint)}=0`;
-          setBusy(false);
-          compute();
-          return;
-        }
+        if (constraint && eval_expr(constraint, finalSg) !== 0) { continue; }
+        if (constraintGt && !(eval_expr(constraintGt, finalSg) > 0)) { continue; }
+        gensInput.value = finalGens.join(', ');
+        _computeLabel = `${label}|${constraintLabel}`;
+        setBusy(false);
+        compute();
+        return;
       }
       await new Promise(r => setTimeout(r, 0));
     }
-    showError(`No semigroup satisfying "${constraint} = 0" after ${CONSTRAINT_TIMEOUT_MS / 1000}s (${attempts} tries).`);
+    showError(`No semigroup satisfying ${constraintMsg} after ${CONSTRAINT_TIMEOUT_MS / 1000}s (${attempts} tries).`);
   } finally {
     setBusy(false);
   }
@@ -889,34 +908,6 @@ document.getElementById('random3f-btn').addEventListener('click', guarded(() => 
 }));
 document.getElementById('random2f-btn').addEventListener('click', guarded(() => {
   driveRandomCreator(() => js_random_with_multiplier(2), 'Rnd2m');
-}));
-
-document.getElementById('random-symmetric-btn').addEventListener('click', guarded(() => {
-  driveRandomCreator(js_random_symmetric, 'Sym',
-    'Could not find a symmetric semigroup after 10000 attempts.');
-}));
-document.getElementById('random-r1-btn').addEventListener('click', guarded(() => {
-  driveRandomCreator(js_random_pseudo_symmetric, 'PSym',
-    'Could not find a pseudo-symmetric semigroup (r = 1) after 10000 attempts.');
-}));
-document.getElementById('random-asym-btn').addEventListener('click', guarded(() => {
-  driveRandomCreator(js_random_almost_symmetric, 'ASym',
-    'Could not find a proper almost-symmetric semigroup (r = t − 1 with r ≥ 2) after 10000 attempts.');
-}));
-
-// "+f" variants: find a base semigroup, then toggle(f) (= add f as a generator).
-const addF = sg => Array.from(sg.toggle(sg.f).gen_set);
-document.getElementById('random-symmetric-plus-f-btn').addEventListener('click', guarded(() => {
-  driveRandomCreator(js_random_symmetric, 'Sym+f',
-    'Could not find a symmetric semigroup after 10000 attempts.', addF);
-}));
-document.getElementById('random-r1-plus-f-btn').addEventListener('click', guarded(() => {
-  driveRandomCreator(js_random_pseudo_symmetric, 'PSym+f',
-    'Could not find a pseudo-symmetric semigroup (r = 1) after 10000 attempts.', addF);
-}));
-document.getElementById('random-asym-plus-f-btn').addEventListener('click', guarded(() => {
-  driveRandomCreator(js_random_almost_symmetric, 'ASym+f',
-    'Could not find a proper almost-symmetric semigroup (r = t − 1 with r ≥ 2) after 10000 attempts.', addF);
 }));
 
 // "Prime": pick a random subset of 4–8 primes from the fixed list.

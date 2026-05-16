@@ -10,15 +10,12 @@
 use rand::Rng;
 use rand::seq::SliceRandom;
 
-use super::compute;
 use super::creators::PRIMES_LIST;
 use super::gcd_vec;
-use super::semigroup::Semigroup;
 
 const RAND_LO: usize = 10;
 const RAND_HI: usize = 100;
 const RAND_COUNT: usize = 8;
-const RAND_MATCH_MAX_ATTEMPTS: usize = 10_000;
 
 /// Eight uniformly random integers in `[10, 100]`.
 #[must_use]
@@ -49,20 +46,6 @@ pub fn random_with_multiplier_generators(k: usize) -> Vec<usize> {
         gens.push(block + i);
     }
     gens
-}
-
-/// Repeatedly draws a fresh [`random_generators`] list and returns the
-/// first one whose [`Semigroup`] satisfies `predicate`. Returns `None`
-/// after [`RAND_MATCH_MAX_ATTEMPTS`] failures.
-#[must_use]
-pub fn random_matching_generators(predicate: impl Fn(&Semigroup) -> bool) -> Option<Vec<usize>> {
-    for _ in 0..RAND_MATCH_MAX_ATTEMPTS {
-        let nums = random_generators();
-        if predicate(&compute(&nums)) {
-            return Some(nums);
-        }
-    }
-    None
 }
 
 /// 4 to 8 primes drawn uniformly at random (without replacement) from

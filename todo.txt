@@ -344,6 +344,64 @@ against the numericalsgps package on a spread of fixtures
 (m = 2..6, sym / asym / almost-sym, multi-generator) — all assertions
 pass.
 
+TODO 101) [DONE]
+remove the strata.html and that part of the sourcecode that is
+associated with it, but keep the part for the highlighting
+and the checkbox in index.html
+
+TODO 102) [DONE]
+in waldicone we generate a summary..list.html and a json file
+if everything in the list is also in the json,
+remove the generation of summary
+also remove the gmax 13,11,10,2 - we don't really need them
+delete the old index 5,6,7 html in ./normaliz and move the index8.html to ./history
+
+TODO 103) [DONE]
+in index.html under Generators we have a constraint=0 textbox
+add a second inputbox directly below with a >0 label
+user will put an expression there, and now the random buttons
+will check for the expr1=0 and expr2>0 until a semigroup is found
+once this is done to tests and then remove the
+"Sym", "PSym" "Asym" "Sym+f" "PSym+f" and "ASym+f" buttons
+(they all can be replaced by r=0 r-1=1 t-1-r=0 and Q=2g Q=2g+1 ..)
+
+TODO 104) [DONE]
+In the LaTex Tab in the latex we say "S is symmetric or S is not symmetric"
+replace this by symmetric, pseudosymmetric, almost symmetric if r=0, r=1, r=t-1 (and r>1) respectively)
+also show the r-Vector, i.e. (r_1,r_2,...r_{m-1}) with the 0 at \mu highlighted
+call it reflected gaps mod i
+
+TODO 105) [DONE]
+at the bottom of our diagonals tab, after a hline
+show a table with 1 + 2(m-1) columns and a
+first row <th>  "rn", r_1, . . . , r_{m-1}, n_1, ..., n_{m-1}
+second row <td> the values from the current semigroup
+where the r_i are as usual and the n_i = q_i -  r_i the number of normal gaps
+
+below that a matrix RSym with entries +1 and -1 such that
+RSym rn = 0 is equivalent with r_i=r_{mu-i} for all i and r_\mu = 0
+so RSym_{*,j} = 0 for j>m-1
+RSym_{1,1}=1 RSym_{1,mu-1 mod m}=-1
+RSym_{2,2}=1 RSym_{1,mu-2 mod m}=-1
+RSym_{i,i}=1 RSym_{1,mu-i mod m}=-1
+...
+RSym_{mu,mu}=1 and 0 everywhere else
+...
+should have (m-1) rows, i think we might get rid of the symmetry later
+compute the matrixproduct RSym * "rv" and check it is zero
+
+compute (1......1) "nv" and show it is == g
+
+TODO 106)
+(2m-f)*(f-m) > 0
+(3m-f)*(f-2m) > 0
+can replace the Rnd2m Rnd3m buttons, right?
+Remove these two buttons as well, clean up the code
+
+
+
+
+
 
 
 

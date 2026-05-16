@@ -4,8 +4,8 @@ use crate::combined_table::cell_cls;
 use crate::spans::{class_sets, span};
 use semigroup_math::math::Semigroup;
 use semigroup_math::math::matrix::{
-    DenseMatrix, Matrix, c_red, d_matrix, u_matrix, u_pair_relations, u_times_c_red, v_matrix,
-    zd_vector,
+    DenseMatrix, Matrix, c_red, d_matrix, pair_relations_rn, u_matrix, u_pair_relations,
+    u_times_c_red, v_matrix, zd_vector,
 };
 use std::fmt::Write as _;
 
@@ -281,10 +281,21 @@ fn render_rn_block(sg: &Semigroup) -> String {
         })
         .collect();
 
+    let pair_mat = pair_relations_rn(mult);
+    let pair_prod: Vec<i64> = (0..pair_mat.nrows())
+        .map(|row| {
+            (0..pair_mat.ncols())
+                .map(|col| pair_mat[(row, col)] * rn_aug[col])
+                .sum()
+        })
+        .collect();
+
     let mut html = String::new();
     html.push_str(&render_rn_table(&r_vec, &n_vec, mu));
     html.push_str(&render_r_sym_matrix(&r_sym, mult, g_signed));
     html.push_str(&render_r_sym_prod(&prod, mult));
+    html.push_str(&render_pair_rn_matrix(&pair_mat, mult));
+    html.push_str(&render_pair_rn_prod(&pair_prod, mult));
     html
 }
 
@@ -422,6 +433,57 @@ fn render_r_sym_prod(prod: &[i64], mult: usize) -> String {
     h
 }
 
+/// Pair labels `(i, j)` for `1 ≤ i ≤ j ≤ m−1` in lex order — same enumeration
+/// as `pair_relations_rn` and `u_pair_relations`.
+fn pair_labels(mult: usize) -> Vec<String> {
+    let dim = mult - 1;
+    (0..dim)
+        .flat_map(|a| (a..dim).map(move |b| format!("({},{})", a + 1, b + 1)))
+        .collect()
+}
+
+fn render_pair_rn_matrix(pair_mat: &DenseMatrix<i64>, mult: usize) -> String {
+    let labels = pair_labels(mult);
+    let mut h = String::from(
+        "<div class=\"table-wrap\">\
+         <table class=\"classify-table u-matrix-table\"><thead><tr>",
+    );
+    h.push_str(&rn_header_row("c(i,j)\u{2265}0", mult, 0, "", "1"));
+    h.push_str("</tr></thead><tbody>");
+    for (row_idx, label) in labels.iter().enumerate() {
+        let _ = write!(h, "<tr><th>{label}</th>");
+        for col in 0..pair_mat.ncols() {
+            h.push_str(&pm_cell(pair_mat[(row_idx, col)]));
+        }
+        h.push_str("</tr>");
+    }
+    h.push_str("</tbody></table></div>");
+    h
+}
+
+fn render_pair_rn_prod(prod: &[i64], mult: usize) -> String {
+    let all_nonneg = prod.iter().all(|&v| v >= 0);
+    let labels = pair_labels(mult);
+    let mut h = String::from(
+        "<div class=\"table-wrap\">\
+         <table class=\"classify-table u-matrix-table\"><thead><tr>\
+         <th>c(i,j)</th>",
+    );
+    for label in &labels {
+        let _ = write!(h, "<th>{label}</th>");
+    }
+    let _ = write!(h, "<th>\u{2265} 0?</th></tr></thead><tbody><tr><th></th>");
+    for v in prod {
+        let _ = write!(h, "<td>{v}</td>");
+    }
+    let _ = write!(
+        h,
+        "<td>{}</td></tr></tbody></table></div>",
+        check_glyph(all_nonneg)
+    );
+    h
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -450,5 +512,56 @@ mod tests {
         assert_rn_identities(&[5, 7, 9, 11]);
         // Larger multiplicity ⟨7, 9, 11, 13⟩.
         assert_rn_identities(&[7, 9, 11, 13]);
+    }
+
+    /// `pair_relations_rn(m) · rn_aug` must equal `u_pair_relations(m) · c1`
+    /// (the existing pair-relations table in q-coordinates), confirming the
+    /// two parametrisations agree on the c(i, j) vector for every pair.
+    #[allow(clippy::cast_possible_wrap)]
+    fn assert_pair_rn_matches_q_form(gens: &[usize]) {
+        let sg = compute(gens);
+        let mult = sg.m;
+        let dim = mult - 1;
+
+        let r_vec: Vec<i64> = (1..mult).map(|i| sg.r_i(i) as i64).collect();
+        let n_vec: Vec<i64> = (1..mult)
+            .map(|i| ((sg.apery_set[i] - i) / mult) as i64 - r_vec[i - 1])
+            .collect();
+        let mut rn_aug = r_vec;
+        rn_aug.extend(n_vec.iter().copied());
+        rn_aug.push(1);
+
+        let pair_mat = pair_relations_rn(mult);
+        let pair_prod: Vec<i64> = (0..pair_mat.nrows())
+            .map(|row| {
+                (0..pair_mat.ncols())
+                    .map(|col| pair_mat[(row, col)] * rn_aug[col])
+                    .sum()
+            })
+            .collect();
+
+        // Independent q-form computation: u_pair_relations(m) · c1 with c1 the
+        // first column of c_red. Both are the vector of c(i, j) values.
+        let cr = c_red(&sg);
+        let c1: Vec<i64> = (0..dim).map(|i| cr[(i, 0)] as i64).collect();
+        let u_pair = u_pair_relations(mult);
+        let q_prod: Vec<i64> = (0..u_pair.nrows())
+            .map(|row| (0..dim).map(|col| u_pair[(row, col)] * c1[col]).sum())
+            .collect();
+
+        assert_eq!(pair_prod, q_prod, "(r,n) and q forms disagree for {gens:?}");
+        assert!(
+            pair_prod.iter().all(|&v| v >= 0),
+            "pair-relations should give c(i,j) ≥ 0 for {gens:?}, got {pair_prod:?}",
+        );
+    }
+
+    #[test]
+    fn pair_rn_matches_q_form_examples() {
+        assert_pair_rn_matches_q_form(&[3, 5, 7]);
+        assert_pair_rn_matches_q_form(&[4, 5, 6]);
+        assert_pair_rn_matches_q_form(&[5, 7, 9, 11]);
+        assert_pair_rn_matches_q_form(&[7, 9, 11, 13]);
+        assert_pair_rn_matches_q_form(&[6, 9, 20]);
     }
 }

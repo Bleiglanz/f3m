@@ -304,6 +304,62 @@ pub fn u_pair_relations(m: usize) -> DenseMatrix<i64> {
     DenseMatrix::from_vec(total_rows, n, data)
 }
 
+// ── Pair-relations in augmented (r, n, 1) coordinates ────────────────────────
+
+/// Constructs the `m(m−1)/2 × (2m−1)` pair-relations matrix in augmented
+/// `(r, n, 1)` coordinates.
+///
+/// Columns index `(r_1, …, r_{m−1}, n_1, …, n_{m−1}, 1)`. Each row is one
+/// `(i, j)` pair with `1 ≤ i ≤ j ≤ m−1` in lex order; the entry pattern is
+///
+/// ```text
+/// +1 at r_i, r_j, n_i, n_j   (collapses to +2 on the diagonal i = j)
+/// −1 at r_k, n_k             (where k = (i+j) mod m, only when k ≠ 0)
+/// +1 in the constant column  (when i + j ≥ m, to absorb the wrap +1)
+/// ```
+///
+/// Multiplying by the augmented `rn = (r_1, …, r_{m−1}, n_1, …, n_{m−1}, 1)`
+/// vector yields the vector of Kunz coefficients `c(i, j)` in lex order. By
+/// the Kunz cone, every entry of that product is `≥ 0` for any numerical
+/// semigroup of the given `(m, μ, g)`.
+///
+/// # Panics
+///
+/// Panics if `m < 2`.
+#[must_use]
+pub fn pair_relations_rn(m: usize) -> DenseMatrix<i64> {
+    assert!(m >= 2, "pair_relations_rn requires m ≥ 2");
+    let n = m - 1;
+    let cols = 2 * n + 1;
+    let total_rows = n * (n + 1) / 2;
+    let mut data = vec![0i64; total_rows * cols];
+    let mut row_idx = 0;
+    for a in 0..n {
+        // a-based 0..n corresponds to one-based i = a+1.
+        for b in a..n {
+            let off = row_idx * cols;
+            let sum = (a + 1) + (b + 1);
+            let k = if sum >= m { sum - m } else { sum };
+            // +1 at r_i, r_j and n_i, n_j (collapses to +2 if a == b).
+            data[off + a] += 1;
+            data[off + b] += 1;
+            data[off + n + a] += 1;
+            data[off + n + b] += 1;
+            // −1 at r_k, n_k when k ≠ 0.
+            if k != 0 {
+                data[off + (k - 1)] -= 1;
+                data[off + n + (k - 1)] -= 1;
+            }
+            // Wraparound +1 in the constant slot.
+            if sum >= m {
+                data[off + 2 * n] += 1;
+            }
+            row_idx += 1;
+        }
+    }
+    DenseMatrix::from_vec(total_rows, cols, data)
+}
+
 // ── Zero-diagonal row vector ──────────────────────────────────────────────────
 
 /// Computes the zero-diagonal row vector zd(m) as a 1×(m−1) matrix.
@@ -1134,6 +1190,72 @@ mod tests {
                         a + 1,
                         b + 1
                     );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn pair_relations_rn_dimensions_and_row_structure() {
+        // Shape: m(m−1)/2 rows × (2m−1) cols. Per row:
+        // exactly four +1 entries among the r/n columns (collapses to two +2
+        // entries on the diagonal i = j); zero or two −1 entries (one for r_k,
+        // one for n_k when k = (i+j) mod m ≠ 0); the constant column is +1
+        // exactly when i + j ≥ m.
+        for m in 2..=8 {
+            let p = pair_relations_rn(m);
+            let n = m - 1;
+            assert_eq!(p.nrows(), n * (n + 1) / 2, "rows for m={m}");
+            assert_eq!(p.ncols(), 2 * n + 1, "cols for m={m}");
+            let mut row = 0;
+            for a in 0..n {
+                for b in a..n {
+                    let sum = (a + 1) + (b + 1);
+                    let k = if sum >= m { sum - m } else { sum };
+                    // Count positives in the r/n half only — the constant
+                    // column is checked separately because its +1 from i+j ≥ m
+                    // shouldn't muddle the diagonal-vs-off-diagonal accounting.
+                    let pos_rn = (0..2 * n).filter(|&c| p[(row, c)] > 0).count();
+                    let neg = (0..p.ncols()).filter(|&c| p[(row, c)] < 0).count();
+                    let row_sum: i64 = (0..p.ncols()).map(|c| p[(row, c)]).sum();
+                    if a == b {
+                        // Diagonal: +2 at r_a and n_a (one column each).
+                        assert_eq!(pos_rn, 2, "diag pair ({},{}) m={m}", a + 1, b + 1);
+                        assert_eq!(p[(row, a)], 2, "diag r-cell m={m} a={a}");
+                        assert_eq!(p[(row, n + a)], 2, "diag n-cell m={m} a={a}");
+                    } else {
+                        // Off-diagonal: +1 at four distinct r/n columns.
+                        assert_eq!(pos_rn, 4, "off-diag pair ({},{}) m={m}", a + 1, b + 1);
+                    }
+                    let expected_neg = if k == 0 { 0 } else { 2 };
+                    assert_eq!(
+                        neg,
+                        expected_neg,
+                        "neg-count for ({},{}) m={m} k={k}",
+                        a + 1,
+                        b + 1,
+                    );
+                    let const_col = p[(row, 2 * n)];
+                    assert_eq!(
+                        const_col,
+                        i64::from(u8::from(sum >= m)),
+                        "const-col for ({},{}) m={m}",
+                        a + 1,
+                        b + 1,
+                    );
+                    // Row sum identity: 4 − 2·[k≠0] + [sum≥m] = c(i,j) when all
+                    // r/n coefficients are 1 — i.e., this row applied to the
+                    // augmented all-ones vector reproduces 4 − 2·[k≠0] + δ.
+                    let expected_sum =
+                        4 - 2 * i64::from(u8::from(k != 0)) + i64::from(u8::from(sum >= m));
+                    assert_eq!(
+                        row_sum,
+                        expected_sum,
+                        "row sum for ({},{}) m={m}",
+                        a + 1,
+                        b + 1
+                    );
+                    row += 1;
                 }
             }
         }

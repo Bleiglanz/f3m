@@ -37,7 +37,7 @@ pub mod traits;
 pub use dense::DenseMatrix;
 pub use scalar::Scalar;
 pub use semigroup_matrices::{
-    c_red, d_matrix, kunz_matrix, l_matrix, to_i64, u_matrix, u_pair_relations, u_times_c_red,
-    v_matrix, zd_vector,
+    c_red, d_matrix, kunz_matrix, l_matrix, pair_relations_rn, to_i64, u_matrix, u_pair_relations,
+    u_times_c_red, v_matrix, zd_vector,
 };
 pub use traits::Matrix;

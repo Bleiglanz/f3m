@@ -405,9 +405,27 @@ TODO 107) [DONE]
 can replace the Rnd2m Rnd3m buttons, right?
 Remove these two buttons as well, clean up the code
 
+TODO 108) [DONE]
+Below the augmented RSym in the diagonals tab, show the Kunz pair-relations
+re-expressed in (r, n) coordinates. For each (i, j) with 1 ≤ i ≤ j ≤ m-1,
+c(i, j) = q_i + q_j - q_{(i+j) mod m} + δ_{i+j ≥ m}, and since q_k = r_k + n_k:
 
+    c(i, j) = r_i + n_i + r_j + n_j − r_k − n_k + δ_{i+j ≥ m}
 
+where k = (i+j) mod m (and the −r_k − n_k terms drop when k = 0). So per row:
+  +1 at r_i, r_j, n_i, n_j  (collapses to +2 on the diagonal i = j)
+  −1 at r_k, n_k             (when k ≠ 0)
+  +1 in the constant column   (when i + j ≥ m)
 
+Matrix is m(m-1)/2 × (2m-1). Rendered with pm_cell styling; the product
+of this matrix with the augmented rn vector yields the vector of c(i,j)
+values, all ≥ 0 — the Kunz cone slice in (r, n) coordinates.
+
+Open question: should the lattice-point enumeration eventually use Normaliz
+directly on this (r, n) polytope instead of the existing (q-coord) waldicone
+flow? Waldicone already uses Normaliz internally, so it would be the same
+software with an invertible change of basis; benefit would be presentation
+parity with the in-app view rather than performance.
 
 
 

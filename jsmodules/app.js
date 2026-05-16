@@ -2,8 +2,7 @@ import init, {
   js_compute, combined_table, tilt_table, shortprop_tds, testcase_csv, eval_expr,
   js_graph_edges_text, js_node_class, js_classify_table, js_diagonals_table, js_rolf_primes,
   js_tmf, js_arith,
-  js_random_generators, js_random_with_multiplier,
-  js_random_primes,
+  js_random_generators, js_random_primes,
   state_push, state_get, state_len, state_clear, state_current_idx, state_set_current_idx,
   state_get_eva_expr, state_set_eva_expr, state_gap_output, state_cmp,
   state_get_show_kunz, state_set_show_kunz,
@@ -901,13 +900,6 @@ const guardedCompute = guarded(compute);
 
 document.getElementById('random-btn').addEventListener('click', guarded(() => {
   driveRandomCreator(js_random_generators, 'Rnd');
-}));
-
-document.getElementById('random3f-btn').addEventListener('click', guarded(() => {
-  driveRandomCreator(() => js_random_with_multiplier(3), 'Rnd3m');
-}));
-document.getElementById('random2f-btn').addEventListener('click', guarded(() => {
-  driveRandomCreator(() => js_random_with_multiplier(2), 'Rnd2m');
 }));
 
 // "Prime": pick a random subset of 4–8 primes from the fixed list.

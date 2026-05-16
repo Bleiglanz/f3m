@@ -38,7 +38,7 @@ use semigroup_math::math::{
     Semigroup, compute,
     creators::{arith_generators, rolf_primes, tmf_generators},
     gap_block,
-    random_creators::{random_generators, random_primes_subset, random_with_multiplier_generators},
+    random_creators::{random_generators, random_primes_subset},
 };
 use std::cmp::Ordering;
 use wasm_bindgen::prelude::*;
@@ -407,14 +407,6 @@ pub fn js_arith(m: usize, d: usize, n: usize) -> Vec<u32> {
 #[must_use]
 pub fn js_random_generators() -> Vec<u32> {
     to_u32(&random_generators())
-}
-
-/// Random generators with the `[k·m, …, k·m + k·m]` block appended; pushes
-/// the resulting Frobenius number near `k·m`.
-#[wasm_bindgen]
-#[must_use]
-pub fn js_random_with_multiplier(k: usize) -> Vec<u32> {
-    to_u32(&random_with_multiplier_generators(k))
 }
 
 /// 4 to 8 randomly chosen primes from the fixed list, sorted ascending.

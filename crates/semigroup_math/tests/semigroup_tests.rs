@@ -10,7 +10,7 @@ use semigroup_math::math::{
     creators::{arith_generators, rolf_primes, tmf_generators},
     gcd,
     matrix::{c_red, d_matrix, u_matrix, zd_vector},
-    random_creators::{random_generators, random_primes_subset, random_with_multiplier_generators},
+    random_creators::{random_generators, random_primes_subset},
 };
 
 #[test]
@@ -947,10 +947,6 @@ fn test_random_creators_basic_shape() {
     let nums = random_generators();
     assert_eq!(nums.len(), 8);
     assert!(nums.iter().all(|&x| (10..=100).contains(&x)));
-
-    // multiplier-extended list yields a valid semigroup.
-    let s = compute(&random_with_multiplier_generators(2));
-    assert!(s.m >= 1);
 
     let primes = random_primes_subset();
     assert!((4..=8).contains(&primes.len()));

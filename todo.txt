@@ -392,7 +392,14 @@ compute the matrixproduct RSym * "rv" and check it is zero
 
 compute (1......1) "nv" and show it is == g
 
-TODO 106)
+TODO 106) [DONE]
+place the RSym stoff on top of the tab
+and i think we should add one column at the right to RSym
+always 0 - than add one row at the bottom
+(1,1,1,1,..,1,-g)
+This way RSym nv = 0 - right?
+
+TODO 107) [DONE]
 (2m-f)*(f-m) > 0
 (3m-f)*(f-2m) > 0
 can replace the Rnd2m Rnd3m buttons, right?

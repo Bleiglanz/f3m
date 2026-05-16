@@ -213,6 +213,8 @@ pub fn diagonals_table(sg: &Semigroup) -> String {
     let html_rn_block = render_rn_block(sg);
 
     let mut out = String::from("<div class=\"diagonals-pane\">");
+    out.push_str(&html_rn_block);
+    out.push_str("<hr class=\"diagonals-sep\">");
     let _ = write!(out, "<div class=\"table-wrap\">{html_u}</div>");
     let _ = write!(
         out,
@@ -233,14 +235,19 @@ pub fn diagonals_table(sg: &Semigroup) -> String {
     let _ = write!(out, "<div class=\"table-wrap\">{html_pair}</div>");
     let _ = write!(out, "<div class=\"table-wrap\">{html_d}</div>");
     let _ = write!(out, "<div class=\"table-wrap\">{html_d_prod}</div>");
-    out.push_str("<hr class=\"diagonals-sep\">");
-    out.push_str(&html_rn_block);
     out.push_str("</div>");
     out
 }
 
-/// Renders the rn table, the `RSym` matrix, the `RSym`·rv verification row,
-/// and the two sum identities `1·rv = r` and `1·nv = g − r`.
+/// Renders the rn (augmented) table, the augmented `RSym` matrix, and the
+/// `RSym·rn = 0` verification.
+///
+/// `rv = (r_1, …, r_{m-1})`, `nv = (q_i − r_i)` for i = 1..m-1, and the
+/// augmented vector `rn = rv ++ nv ++ [1]` has length `2(m−1) + 1 = 2m − 1`.
+/// `RSym` is `m × (2m−1)`: the first `m−1` rows place `+1` at column `i` and
+/// `−1` at column `(μ−i) mod m` (cancelling for the lone row `i = μ`), with
+/// a `0` in the rightmost column. The final row is `(1, …, 1, −g)`, encoding
+/// the identity `Σr_i + Σn_i = g`.
 fn render_rn_block(sg: &Semigroup) -> String {
     let mult = sg.m;
     if mult < 2 {
@@ -248,6 +255,8 @@ fn render_rn_block(sg: &Semigroup) -> String {
     }
     let dim = mult - 1;
     let mu = sg.mu;
+    let cols = 2 * dim + 1;
+    let rows = dim + 1;
     #[allow(clippy::cast_possible_wrap)]
     let r_vec: Vec<i64> = (1..mult).map(|i| sg.r_i(i) as i64).collect();
     #[allow(clippy::cast_possible_wrap)]
@@ -255,58 +264,54 @@ fn render_rn_block(sg: &Semigroup) -> String {
         .map(|i| ((sg.apery_set[i] - i) / mult) as i64 - r_vec[i - 1])
         .collect();
 
-    let mut html = String::new();
-    html.push_str(&render_rn_table(&r_vec, &n_vec, mu));
+    // rn_aug = (r_1, …, r_{m-1}, n_1, …, n_{m-1}, 1)
+    let mut rn_aug = r_vec.clone();
+    rn_aug.extend(n_vec.iter().copied());
+    rn_aug.push(1);
 
-    let cols2 = 2 * dim;
-    let r_sym = build_r_sym(mult, mu);
-    html.push_str(&render_r_sym_matrix(&r_sym, mult, cols2));
+    #[allow(clippy::cast_possible_wrap)]
+    let g_signed = sg.g as i64;
+    let r_sym = build_r_sym_aug(mult, mu, g_signed);
 
-    let prod: Vec<i64> = (0..dim)
+    let prod: Vec<i64> = (0..rows)
         .map(|row| {
-            (0..dim)
-                .map(|col| r_sym[row * cols2 + col] * r_vec[col])
+            (0..cols)
+                .map(|col| r_sym[row * cols + col] * rn_aug[col])
                 .sum()
         })
         .collect();
-    html.push_str(&render_r_sym_prod(&prod, mult));
 
-    let sum_r: i64 = r_vec.iter().sum();
-    let sum_n: i64 = n_vec.iter().sum();
-    #[allow(clippy::cast_possible_wrap)]
-    let r_expected = sg.r as i64;
-    #[allow(clippy::cast_possible_wrap)]
-    let gmr_expected = sg.g as i64 - r_expected;
-    let _ = write!(
-        html,
-        "<p class=\"det-note\">\u{03a3}r<sub>i</sub> = {sum_r}, \
-         r = {r_expected} {}</p>\
-         <p class=\"det-note\">\u{03a3}n<sub>i</sub> = {sum_n}, \
-         g \u{2212} r = {gmr_expected} {}</p>",
-        check_glyph(sum_r == r_expected),
-        check_glyph(sum_n == gmr_expected),
-    );
+    let mut html = String::new();
+    html.push_str(&render_rn_table(&r_vec, &n_vec, mu));
+    html.push_str(&render_r_sym_matrix(&r_sym, mult, g_signed));
+    html.push_str(&render_r_sym_prod(&prod, mult));
     html
 }
 
-/// `(m−1) × 2(m−1)` flat row-major `RSym` matrix. Row `i` (1-based) has
-/// `+1` at column `i`; if `(μ − i) mod m ≠ 0` it also has `−1` at column
-/// `(μ − i) mod m`; the lone row `i = μ` ends up all-zeros after the
-/// `−1` cancels the `+1` at column `μ`.
-fn build_r_sym(mult: usize, mu: usize) -> Vec<i64> {
+/// `m × (2m − 1)` flat row-major augmented `RSym` matrix. The top `m − 1`
+/// rows mirror `build_r_sym` extended by one zero column; the final row is
+/// `(1, …, 1, −g)`.
+fn build_r_sym_aug(mult: usize, mu: usize, g: i64) -> Vec<i64> {
     let dim = mult - 1;
-    let cols2 = 2 * dim;
-    let mut r_sym = vec![0i64; dim * cols2];
+    let cols = 2 * dim + 1;
+    let rows = dim + 1;
+    let mut r_sym = vec![0i64; rows * cols];
     for ii in 1..mult {
         let row = ii - 1;
-        r_sym[row * cols2 + row] += 1;
+        r_sym[row * cols + row] += 1;
         let j_mod = (mu + mult - ii) % mult;
         if j_mod == 0 {
-            r_sym[row * cols2 + row] -= 1;
+            r_sym[row * cols + row] -= 1;
         } else {
-            r_sym[row * cols2 + (j_mod - 1)] -= 1;
+            r_sym[row * cols + (j_mod - 1)] -= 1;
         }
     }
+    // Bottom row: (1, …, 1, −g) — encodes Σr_i + Σn_i − g = 0.
+    let last_row = dim;
+    for col in 0..(cols - 1) {
+        r_sym[last_row * cols + col] = 1;
+    }
+    r_sym[last_row * cols + (cols - 1)] = -g;
     r_sym
 }
 
@@ -314,10 +319,10 @@ const fn check_glyph(ok: bool) -> &'static str {
     if ok { "\u{2713}" } else { "\u{2717}" }
 }
 
-/// Header row `r_1 … r_{m-1} n_1 … n_{m-1}` after a caller-supplied title `<th>`.
-/// `mu_class` is added to the `r_μ` cell when non-empty (used to highlight the
-/// always-zero μ slot in the rn table).
-fn rn_header_row(title: &str, mult: usize, mu: usize, mu_class: &str) -> String {
+/// Header row `r_1 … r_{m-1} n_1 … n_{m-1} [pad]` after a caller-supplied
+/// title `<th>`. `mu_class` decorates the `r_μ` cell when non-empty.
+/// `pad_label` becomes a trailing header cell when non-empty.
+fn rn_header_row(title: &str, mult: usize, mu: usize, mu_class: &str, pad_label: &str) -> String {
     let mut h = format!("<th>{title}</th>");
     for i in 1..mult {
         let cls = if i == mu && !mu_class.is_empty() {
@@ -330,6 +335,9 @@ fn rn_header_row(title: &str, mult: usize, mu: usize, mu_class: &str) -> String 
     for i in 1..mult {
         let _ = write!(h, "<th>n<sub>{i}</sub></th>");
     }
+    if !pad_label.is_empty() {
+        let _ = write!(h, "<th>{pad_label}</th>");
+    }
     h
 }
 
@@ -339,7 +347,7 @@ fn render_rn_table(r_vec: &[i64], n_vec: &[i64], mu: usize) -> String {
         "<div class=\"table-wrap\">\
          <table class=\"classify-table u-matrix-table\"><thead><tr>",
     );
-    h.push_str(&rn_header_row("rn", mult, mu, "rn-mu"));
+    h.push_str(&rn_header_row("rn", mult, mu, "rn-mu", "1"));
     h.push_str("</tr></thead><tbody><tr><th></th>");
     for (idx, v) in r_vec.iter().enumerate() {
         let cls = if idx + 1 == mu {
@@ -352,22 +360,36 @@ fn render_rn_table(r_vec: &[i64], n_vec: &[i64], mu: usize) -> String {
     for v in n_vec {
         let _ = write!(h, "<td>{v}</td>");
     }
+    h.push_str("<td>1</td>");
     h.push_str("</tr></tbody></table></div>");
     h
 }
 
-fn render_r_sym_matrix(r_sym: &[i64], mult: usize, cols2: usize) -> String {
+fn render_r_sym_matrix(r_sym: &[i64], mult: usize, g: i64) -> String {
     let dim = mult - 1;
+    let cols = 2 * dim + 1;
+    let rows = dim + 1;
     let mut h = String::from(
         "<div class=\"table-wrap\">\
          <table class=\"classify-table u-matrix-table\"><thead><tr>",
     );
-    h.push_str(&rn_header_row("RSym", mult, 0, ""));
+    h.push_str(&rn_header_row("RSym", mult, 0, "", "1"));
     h.push_str("</tr></thead><tbody>");
-    for row in 0..dim {
-        let _ = write!(h, "<tr><th>{}</th>", row + 1);
-        for col in 0..cols2 {
-            h.push_str(&pm_cell(r_sym[row * cols2 + col]));
+    for row in 0..rows {
+        let label = if row + 1 == rows {
+            String::new()
+        } else {
+            (row + 1).to_string()
+        };
+        let _ = write!(h, "<tr><th>{label}</th>");
+        for col in 0..cols {
+            let v = r_sym[row * cols + col];
+            // Bottom-row final cell is −g (arbitrary magnitude) — render plain.
+            if row + 1 == rows && col + 1 == cols {
+                let _ = write!(h, "<td>\u{2212}{g}</td>");
+            } else {
+                h.push_str(&pm_cell(v));
+            }
         }
         h.push_str("</tr>");
     }
@@ -377,14 +399,17 @@ fn render_r_sym_matrix(r_sym: &[i64], mult: usize, cols2: usize) -> String {
 
 fn render_r_sym_prod(prod: &[i64], mult: usize) -> String {
     let all_zero = prod.iter().all(|&v| v == 0);
+    let dim = mult - 1;
+    let rows = dim + 1;
     let mut h = String::from(
         "<div class=\"table-wrap\">\
          <table class=\"classify-table u-matrix-table\"><thead><tr>\
-         <th>RSym\u{b7}rv</th>",
+         <th>RSym\u{b7}rn</th>",
     );
-    for i in 1..mult {
+    for i in 1..rows {
         let _ = write!(h, "<th>{i}</th>");
     }
+    h.push_str("<th>\u{03a3}</th>");
     let _ = write!(h, "<th>= 0?</th></tr></thead><tbody><tr><th></th>");
     for v in prod {
         let _ = write!(h, "<td>{v}</td>");

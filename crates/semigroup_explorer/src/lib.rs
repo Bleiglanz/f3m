@@ -246,10 +246,19 @@ impl JsSemigroup {
         to_u32(&self.0.compute_s_over_2().gen_set)
     }
 
-    /// Generators of the descent of S — a controlled step down the gaps ladder.
+    /// Generators of the descent-flip of S — a controlled step down the gaps
+    /// ladder, never adding `f`. Always changes the genus by exactly `−1`.
     #[must_use]
-    pub fn descent(&self) -> Vec<u32> {
-        to_u32(&self.0.descent().gen_set)
+    pub fn descent_flip(&self) -> Vec<u32> {
+        to_u32(&self.0.descent_flip().gen_set)
+    }
+
+    /// Generators of the descent-total of S — adds the maximally-deep gap
+    /// `f − (l − 1)·m` for the first stratum `l` that is not fully in S.
+    /// Inverse of [`ascent_total`].
+    #[must_use]
+    pub fn descent_total(&self) -> Vec<u32> {
+        to_u32(&self.0.descent_total().gen_set)
     }
 
     /// Generators of the fast descent of S — every step needed to drop `f`
@@ -259,11 +268,19 @@ impl JsSemigroup {
         to_u32(&self.0.fast_descent().gen_set)
     }
 
-    /// Generators of the ascent of S — toggles the largest min-gen in
-    /// `(f − m, f)` past `f`. Dual to [`descent`].
+    /// Generators of the ascent-flip of S — toggles the largest min-gen
+    /// landing in some stratum below `f`, never removing `f + m`.
+    /// Dual to [`descent_flip`].
     #[must_use]
-    pub fn ascent(&self) -> Vec<u32> {
-        to_u32(&self.0.ascent().gen_set)
+    pub fn ascent_flip(&self) -> Vec<u32> {
+        to_u32(&self.0.ascent_flip().gen_set)
+    }
+
+    /// Generators of the ascent-total of S — destroys the atom `f + m`
+    /// when present. Inverse of [`descent_total`].
+    #[must_use]
+    pub fn ascent_total(&self) -> Vec<u32> {
+        to_u32(&self.0.ascent_total().gen_set)
     }
 
     /// Generators of S with every pseudo-Frobenius number ≠ f added.
@@ -295,21 +312,6 @@ impl JsSemigroup {
     #[must_use]
     pub fn apery_shift_first(&self) -> Vec<u32> {
         to_u32(&self.0.compute_apery_shift_first().gen_set)
-    }
-
-    /// Returns `true` if the semigroup has a generator coprime to m (i.e. self-gluing is possible).
-    #[must_use]
-    pub fn can_self_glue(&self) -> bool {
-        semigroup_math::math::glue::can_self_glue(&self.0)
-    }
-
-    /// Returns the generators of the self-gluing of this semigroup, or an empty
-    /// vec if no generator is coprime to m.
-    #[must_use]
-    pub fn self_glue(&self) -> Vec<u32> {
-        semigroup_math::math::glue::self_glue(&self.0)
-            .map(|s| to_u32(&s.gen_set))
-            .unwrap_or_default()
     }
 }
 

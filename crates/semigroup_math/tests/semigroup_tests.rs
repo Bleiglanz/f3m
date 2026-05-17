@@ -327,17 +327,42 @@ fn check(
     }
     assert!(s.t <= s.r + 1);
     assert!(s.es <= s.e);
-    // todo 86: descent(ascent(S)) == S iff ascent enters its "f+m branch":
-    // f+m is a min-gen AND no min-gen lies in (m, f) ∩ (f-m, f). The window
-    // matches Semigroup::ascent's own filter (which excludes g = m so that
-    // the trivial branch is not taken).
-    let no_large_mingen = !s
-        .gen_set
-        .iter()
-        .any(|&g| g > s.m && g < s.f && g + s.m > s.f);
-    let fpm_is_mingen = s.gen_set.contains(&(s.f + s.m));
-    if no_large_mingen && fpm_is_mingen {
-        assert_eq!(s, s.ascent().descent(), "up-down identity for {gens:?}");
+    // No blanket ascent_total/descent_total round-trip assertion here.
+    // ascent_total is not injective over all S: removing f+m can produce
+    // a semigroup U whose canonical inverse under descent_total adds a
+    // *different* residue-μ gap (the first "kink" stratum's boundary), not
+    // necessarily the original f+m. See
+    // `test_ascent_total_descent_total_round_trip_fpm_branch` for the
+    // hand-picked cases where the inverse is well-defined, and the doc
+    // comments on `Semigroup::descent_total` for the general statement.
+    //
+    // Properties of descent_total whenever it fires (down != s):
+    //
+    //   • Δg = l, where l is the stratum index descent_total picked
+    //     (the added generator is x = f − (l−1)·m, which becomes the new
+    //     apery[μ]). Adding x only fills gaps in residue class μ; the
+    //     other residues' Apéry entries are unchanged because every
+    //     `x + apery[j]` exceeds apery[(μ+j) mod m] by the Kunz constraint.
+    //   • new apery[μ] = old apery[μ] − l·m (this is how l is defined).
+    //
+    // Note: ρ(down) is NOT in general equal to l. Counterexample:
+    // ⟨12, 14, 19, 77⟩ has l=1, Δg=1, but ρ(down) = 0 — residue 2 in down
+    // has only the single gap value 2, and f−2 = 61 ∈ S, so r₂ = 0.
+    // ρ(down) = l does hold for the small hand-picked fixtures
+    // (⟨5,7⟩, ⟨3,7⟩, ⟨3,5⟩, ⟨3,4⟩) but not universally.
+    let down = s.descent_total();
+    if down != s {
+        let l_used = (s.apery_set[s.mu] - down.apery_set[s.mu]) / s.m;
+        assert_eq!(
+            s.g,
+            down.g + l_used,
+            "descent_total drops g by l={l_used} for {gens:?}",
+        );
+        assert_eq!(
+            down.apery_set[s.mu] + l_used * s.m,
+            s.apery_set[s.mu],
+            "apery[μ] drops by l·m for {gens:?}",
+        );
     }
     test_up_downs(&s);
     // Selmer identity: one·U(m)·c₁ = m·g + m·(m−1)/2
@@ -995,24 +1020,23 @@ fn test_fast_descent_changes_r_by_exact_amount() {
 }
 
 #[test]
-fn test_ascent_f_plus_m_branch_concrete() {
-    // ⟨5, 7, 23⟩: V(S) = (5, 18) has no atom; f+m = 23 wins at k=1,
-    // ascent removes 23 → ⟨5, 7⟩.
+fn test_ascent_total_f_plus_m_branch_concrete() {
+    // ⟨5, 7, 23⟩: f+m = 23 is a min-gen. ascent_total destroys it → ⟨5, 7⟩.
     let s = compute(&[5, 7, 23]);
-    assert_eq!(s.ascent().gen_set, vec![5, 7]);
+    assert_eq!(s.ascent_total().gen_set, vec![5, 7]);
 
-    // ⟨2, 5⟩: V(S) is empty; f+m = 5 wins at k=1. The extended-range
-    // closure catches the new max Apéry 7 → ⟨2, 7⟩.
+    // ⟨2, 5⟩: f+m = 5 is a min-gen. ascent_total destroys it; the remaining
+    // single-element gen-set ⟨2⟩ gcd-normalises to ⟨1⟩ = ℕ.
     let s = compute(&[2, 5]);
-    assert_eq!(s.ascent().gen_set, vec![2, 7]);
+    assert_eq!(s.ascent_total().gen_set, vec![1]);
 }
 
 #[test]
-fn test_ascent_k_at_least_2_concrete() {
+fn test_ascent_flip_k_at_least_2_concrete() {
     // ⟨4, 5⟩: at k=2, atom 5 satisfies 2·5 = 10 = w₂ ∈ V(S) = (7, 11).
-    // Ascent toggles 5; {2·5, 3·5} = {10, 15} become fresh atoms.
+    // ascent_flip toggles 5; {2·5, 3·5} = {10, 15} become fresh atoms.
     let s = compute(&[4, 5]);
-    let up = s.ascent();
+    let up = s.ascent_flip();
     assert!(!up.gen_set.contains(&5));
     assert!(up.gen_set.contains(&10));
     assert!(up.gen_set.contains(&15));
@@ -1020,7 +1044,7 @@ fn test_ascent_k_at_least_2_concrete() {
 
     // ⟨5, 6⟩: at k=3, atom 6 satisfies 3·6 = 18 = w₃ ∈ V(S) = (14, 19).
     let s = compute(&[5, 6]);
-    let up = s.ascent();
+    let up = s.ascent_flip();
     assert!(!up.gen_set.contains(&6));
     assert!(up.gen_set.contains(&12));
     assert!(up.gen_set.contains(&18));
@@ -1028,18 +1052,18 @@ fn test_ascent_k_at_least_2_concrete() {
 }
 
 #[test]
-fn test_ascent_deeper_strata_concrete() {
+fn test_ascent_flip_deeper_strata_concrete() {
     // ⟨4, 9⟩: m=4, f=23. V(S) = (19, 23) has no match, but stratum
-    // l=1 = (15, 19) contains 18 = 2·9 = w₂, so ascent toggles 9.
+    // l=1 = (15, 19) contains 18 = 2·9 = w₂, so ascent_flip toggles 9.
     let s = compute(&[4, 9]);
-    let up = s.ascent();
+    let up = s.ascent_flip();
     assert!(!up.gen_set.contains(&9));
     assert_eq!(up.g, s.g + 1);
 
     // ⟨4, 13⟩: m=4, f=35. Stratum l=2 = (f−3m, f−2m) = (23, 27)
-    // contains 26 = 2·13 = w₂, so ascent toggles 13 at (l=2, k=2).
+    // contains 26 = 2·13 = w₂, so ascent_flip toggles 13 at (l=2, k=2).
     let s = compute(&[4, 13]);
-    let up = s.ascent();
+    let up = s.ascent_flip();
     assert!(!up.gen_set.contains(&13));
     assert_eq!(up.g, s.g + 1);
 }
@@ -1059,46 +1083,87 @@ fn test_apery_shift_first_when_kunz_move_is_blocked() {
 }
 
 #[test]
-fn test_ascent_inverts_descent_v_of_s_branch() {
-    // When descent enters the V(S) branch (smallest Apéry > f is NOT f+m),
-    // it picks the *largest* Apéry x ∈ (f, f+m) and adds x − m. The
-    // resulting atom lands in V(S'), and ascent's `.max()` on the new
-    // semigroup recovers exactly that atom — so a ∘ d = S.
+fn test_ascent_flip_inverts_descent_flip_v_of_s_branch() {
+    // When descent_flip enters the V(S) branch (an Apéry strictly between
+    // f and f+m exists), it picks the *largest* such Apéry x and adds
+    // x − m as a new generator. The new atom lands in V(S'), and
+    // ascent_flip's stratum walk recovers exactly that atom.
     //
     // ⟨10, 11, 13⟩: apéry = [0,11,22,13,24,35,26,37,48,39], f = 38;
-    // smallest > 38 is 39 ≠ 48 = f+m, largest in (38, 48) is 39, so
-    // descent adds 39 − 10 = 29.
+    // largest Apéry in (38, 48) is 39, so descent_flip adds 39 − 10 = 29.
     let s = compute(&[10, 11, 13]);
-    let d = s.descent();
-    assert!(d.gen_set.contains(&29), "descent should add 29 = 39 − m");
-    assert_eq!(d.ascent().gen_set, s.gen_set, "a ∘ d must round-trip");
+    let d = s.descent_flip();
+    assert!(
+        d.gen_set.contains(&29),
+        "descent_flip should add 29 = 39 − m"
+    );
+    assert_eq!(
+        d.ascent_flip().gen_set,
+        s.gen_set,
+        "ascent_flip ∘ descent_flip must round-trip in the V(S) branch",
+    );
 }
 
 #[test]
-fn test_up_down_identity_fpm_branch() {
-    // descent(ascent(S)) == S whenever ascent enters its f+m branch:
-    // f+m is a min-gen and no min-gen lies in (m, f) with g + m > f.
-    // The fixed cases are picked to span a few multiplicities.
+fn test_ascent_total_descent_total_round_trip_fpm_branch() {
+    // descent_total(ascent_total(S)) == S whenever f+m is a min-gen and
+    // m ≥ 3 (m = 2 collapses via gcd-normalisation). The fixed cases span
+    // a few multiplicities.
     for gens in [
         &[5_usize, 7, 23][..], // m=5, f=18, f+m=23 is the only min-gen in (m,f+m]
-        &[2, 5][..],           // m=2, f=3,  f+m=5 is a min-gen, (m,f) is empty
         &[3, 7, 8][..],        // m=3, f=5,  f+m=8 is a min-gen, no g in (3,5)
         &[4, 6, 7, 9][..],     // m=4, f=5,  f+m=9 is a min-gen, no g in (4,5)
     ] {
         let s = compute(gens);
-        let no_large_mingen = !s
-            .gen_set
-            .iter()
-            .any(|&g| g > s.m && g < s.f && g + s.m > s.f);
         let fpm_is_mingen = s.gen_set.contains(&(s.f + s.m));
         assert!(
-            no_large_mingen,
-            "precondition mismatch for {gens:?}: large min-gen present"
-        );
-        assert!(
             fpm_is_mingen,
-            "precondition mismatch for {gens:?}: f+m not a min-gen"
+            "precondition mismatch for {gens:?}: f+m not a min-gen",
         );
-        assert_eq!(s, s.ascent().descent(), "up-down identity for {gens:?}");
+        assert!(s.m >= 3, "precondition mismatch for {gens:?}: m < 3");
+        let up = s.ascent_total();
+        assert_eq!(
+            s,
+            up.descent_total(),
+            "ascent_total then descent_total identity for {gens:?}",
+        );
     }
+}
+
+#[test]
+fn test_descent_total_concrete() {
+    // Concrete cases hand-derived from the algorithm in
+    // Semigroup::descent_total: walk strata (f−(l+1)m, f−l m) for
+    // l = 1, 2, … and stop at the first that is not fully in S. Add
+    // f − (l−1)·m as a new generator.
+
+    // ⟨5, 7⟩: m=5, f=23. Stratum l=1 = (13, 18) has the gap 16.
+    // Add f − 0·m = 23 → ⟨5, 7, 23⟩.
+    let s = compute(&[5, 7]);
+    let d = s.descent_total();
+    assert!(
+        d.gen_set.contains(&23),
+        "expected 23 in descent_total of {:?}",
+        s.gen_set
+    );
+
+    // ⟨3, 7⟩: m=3, f=11. Stratum l=1 = (5, 8) = {6, 7} ⊆ S (full);
+    // stratum l=2 = (2, 5) has the gap 4. Add f − 1·m = 8 → ⟨3, 7, 8⟩.
+    let s = compute(&[3, 7]);
+    let d = s.descent_total();
+    assert!(
+        d.gen_set.contains(&8),
+        "expected 8 in descent_total of {:?}",
+        s.gen_set
+    );
+
+    // ⟨3, 4⟩: m=3, f=5, level=1. Stratum l=1 clamps to (0, 2) = {1};
+    // 1 is a gap, so add f − 0·m = 5 → ⟨3, 4, 5⟩.
+    let s = compute(&[3, 4]);
+    let d = s.descent_total();
+    assert!(
+        d.gen_set.contains(&5),
+        "expected 5 in descent_total of {:?}",
+        s.gen_set
+    );
 }

@@ -1,11 +1,9 @@
 //! Core numerical-semigroup algorithms: the [`compute`] entry point, the
 //! [`Semigroup`] data type, the GAP code generator, and helpers for related
-//! constructions (gluing, matrix views, symmetric partner).
+//! constructions (matrix views, symmetric partner).
 
 /// Parameterized creators: T(m,f), A(m,d,n), Rolf primes.
 pub mod creators;
-/// Self-gluing of a numerical semigroup: `m·S + x·S` with `gcd(m, x) = 1`.
-pub mod glue;
 /// Manipulators: `(&Semigroup, …) -> Semigroup` methods.
 pub mod manipulators;
 /// Dense `i64` matrices over the integers, with the U(m) and Kunz matrices.

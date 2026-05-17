@@ -95,18 +95,22 @@ pub const fn kunz_cls(n: usize) -> &'static str {
 
 /// Cell content for the descent/ascent arrow row in [`combined_table`].
 ///
-/// The conditions mirror the four legs of `test_up_downs` in
-/// `crates/semigroup_math/tests/integration.rs`. An arrow is only emitted
-/// when the corresponding property test fires for that residue:
+/// The conditions mirror the legs of `test_up_downs` in
+/// `crates/semigroup_math/tests/semigroup_tests.rs`. An arrow is only
+/// emitted when the corresponding property check fires for that residue:
 ///
 /// - **Residue 0**: never an arrow (the test loop runs over `1..m`).
 /// - **Descent leg** (`w_i > f` and `f > m`): `↓` whose click toggles the
-///   gap `w_i − m`, adding it to `S`. This is the "descent target" the
-///   test verifies via `s.toggle(w − m)`.
+///   gap `w_i − m`, adding it to `S`. This corresponds to either a
+///   `descent_flip` step (when `w_i < f + m`) or an `ascent_total` /
+///   `descent_total` round trip rooted at the max Apéry (when
+///   `w_i = f + m`).
 /// - **Ascent leg, large min-gen** (`w_i ∈ gen_set`, `f − m < w_i < f`):
-///   `↑` whose click toggles `w_i`, removing it from `S`.
+///   `↑` whose click toggles `w_i`, removing it from `S` (this matches
+///   `ascent_flip`'s shallow-stratum case).
 /// - **Ascent leg, max Apéry** (`w_i ∈ gen_set`, `w_i = f + m`): `↑`
-///   whose click toggles `w_i`, removing the max Apéry from `S`.
+///   whose click toggles `w_i`, removing the max Apéry from `S` (this
+///   matches `ascent_total`).
 ///
 /// Other cases yield an empty cell so the grid alignment is preserved.
 fn arrow_cell(sg: &Semigroup, residue: usize) -> String {

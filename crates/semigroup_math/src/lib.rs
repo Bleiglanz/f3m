@@ -2,7 +2,7 @@
 //!
 //! This crate implements the core mathematics: the [`Semigroup`](math::Semigroup)
 //! type and its derived invariants (Frobenius number, Apéry set, Kunz coefficients,
-//! pseudo-Frobenius numbers, glue/canonical-ideal/symmetric-partner constructions),
+//! pseudo-Frobenius numbers, canonical-ideal/symmetric-partner constructions),
 //! the integer matrix utilities under [`math::matrix`], the recursive-descent
 //! arithmetic evaluator in [`eva`], and the GAP-source generators used by the
 //! verification scripts.

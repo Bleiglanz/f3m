@@ -2,6 +2,12 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Repository conventions
+
+When marking an item in `todo.txt` complete, use `[DONE with <abbrev-hash>]` and cite the
+abbreviated hash (7+ chars) of the commit that landed the work. Past entries that say only
+`[DONE]` are left as-is.
+
 ## What this project is
 
 A **Numerical Semigroup Calculator** — a browser-based tool that computes properties of numerical semigroups (embedding dimension, Frobenius number, multiplicity, generators, Apéry set, gaps, etc.) from a user-supplied list of generators. The core algorithm runs in Rust compiled to WebAssembly; the UI is plain HTML/JS/CSS with no framework.
@@ -47,9 +53,8 @@ crates/
     src/math/creators.rs                 — parameterized creators (T(m,f), A(m,d,n),
                                            Rolf primes, PRIMES_LIST)
     src/math/random_creators.rs          — random creators (Rnd, Sym, PSym, ASym, P)
-    src/math/{glue,matrix,symmetric_partner}.rs
-                                         — gluing, U(m)/V(m)/D(m) matrices, symmetric
-                                           partner
+    src/math/{matrix,symmetric_partner}.rs
+                                         — U(m)/V(m)/D(m) matrices, symmetric partner
     src/eva/mod.rs                       — arithmetic expression evaluator
     tests/semigroup_tests.rs             — GAP-cross-checked property tests
     tests/math_tests.rs                  — pure-math tests (gcd, binom)

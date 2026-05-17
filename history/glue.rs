@@ -84,3 +84,59 @@ mod tests {
         assert_eq!(g.gen_set, vec![16, 28, 49]);
     }
 }
+
+// ===========================================================================
+// REMOVED CALL SITES (archived for reference; not compiled)
+//
+// The "glue" modifier button and its wiring were removed by TODO 110. The
+// glue.rs module above lived at crates/semigroup_math/src/math/glue.rs and
+// was wired up at the following sites; preserved here as commented-out
+// snippets so the feature can be reconstructed if revisited.
+// ---------------------------------------------------------------------------
+//
+// crates/semigroup_math/src/math/mod.rs (module declaration):
+//     pub mod glue;
+//
+// crates/semigroup_math/src/lib.rs (doc comment fragment):
+//     //! pseudo-Frobenius numbers, glue/canonical-ideal/symmetric-partner
+//     //! constructions),
+//
+// crates/semigroup_explorer/src/lib.rs (WASM shims on JsSemigroup):
+//
+//     /// Returns `true` if the semigroup has a generator coprime to m
+//     /// (i.e. self-gluing is possible).
+//     #[must_use]
+//     pub fn can_self_glue(&self) -> bool {
+//         semigroup_math::math::glue::can_self_glue(&self.0)
+//     }
+//
+//     /// Returns the generators of the self-gluing of this semigroup,
+//     /// or an empty vec if no generator is coprime to m.
+//     #[must_use]
+//     pub fn self_glue(&self) -> Vec<u32> {
+//         semigroup_math::math::glue::self_glue(&self.0)
+//             .map(|s| to_u32(&s.gen_set))
+//             .unwrap_or_default()
+//     }
+//
+// index.html (button in the "Manipulate" aside, plus help-tab row):
+//
+//     <button id="selfglue-btn" class="btn-mod"
+//         title="Self-glue: compute m·S + x·S where x is the first generator
+//                coprime to m"
+//         aria-label="Self-glue" style="display:none">glue</button>
+//
+//     <tr><td>glue</td><td>Self-gluing: compute m·S + x·S =
+//       ⟨m·g, x·g | g ∈ gen(S)⟩ where x is the first generator with
+//       gcd(m, x)=1 (shown when such x exists).</td></tr>
+//
+// jsmodules/app.js (visibility toggle + click wiring):
+//
+//     document.getElementById('selfglue-btn').style.display =
+//         s.can_self_glue() ? '' : 'none';
+//
+//     wireGenSetBtn('selfglue-btn', 'self_glue', 'glue', () => {
+//         state_set_show_kunz(false);
+//         document.getElementById('show-kunz').checked = false;
+//     });
+// ===========================================================================

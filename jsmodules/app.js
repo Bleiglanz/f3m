@@ -370,12 +370,6 @@ function render(s, toggle = null, label = '⏎') {
   document.getElementById('add-pf-btn').style.display = (s.type_t > 1 && s.f > 0) ? '' : 'none';
   document.getElementById('add-blobs-btn').style.display = s.blob.length > 0 ? '' : 'none';
   document.getElementById('add-fhalf-btn').style.display = (s.f > 0 && s.f % 2 === 0) ? '' : 'none';
-  document.getElementById('selfglue-btn').style.display = s.can_self_glue() ? '' : 'none';
-  // w₁+m is meaningful only when w₁ is a minimal generator; otherwise the
-  // shift collapses back to S because w₁ stays expressible from {m, w₂, …}.
-  const apery = s.apery_set;
-  const w1IsGen = apery.length >= 2 && s.gen_set.includes(apery[1]);
-  document.getElementById('apery-shift-btn').style.display = w1IsGen ? '' : 'none';
 
   if (document.getElementById('tab-csv').classList.contains('active')) { buildCsv(); }
   if (document.getElementById('tab-tests').classList.contains('active')) { buildTestcases(); }
@@ -979,18 +973,13 @@ function wireGenSetBtn(id, method, label, beforeCompute) {
 }
 
 wireGenSetBtn('fast-descent-btn', 'fast_descent',       'FastDescent');
-wireGenSetBtn('descent-btn',      'descent',            'Descent');
-wireGenSetBtn('ascent-btn',       'ascent',             'Ascent');
+wireGenSetBtn('descent-btn',      'descent_flip',       'DescentFlip');
+wireGenSetBtn('ascent-btn',       'ascent_flip',        'AscentFlip');
 wireGenSetBtn('half-btn',         's_over_2',           'S/2');
 wireGenSetBtn('sym-partner-btn',  'symmetric_partner',  'S=SYM/2');
 wireGenSetBtn('ks-btn',           'canonical_ideal',    'K(S)');
-wireGenSetBtn('apery-shift-btn',  'apery_shift_first',  'w₁+m');
 wireGenSetBtn('add-pf-btn',    'add_all_pf',         '+PF');
 wireGenSetBtn('add-blobs-btn', 'add_reflected_gaps',  '+refl');
-wireGenSetBtn('selfglue-btn',  'self_glue',           'glue', () => {
-  state_set_show_kunz(false);
-  document.getElementById('show-kunz').checked = false;
-});
 
 // "+f/2": toggle f/2 (always a reflected gap when f is even).
 document.getElementById('add-fhalf-btn').addEventListener('click', guarded(() => {
@@ -1006,23 +995,25 @@ let _running3d = null;
 const RUN_LOOP_DWELL_MS = 1000;
 const RUN_LOOP_MAX_STEPS = 500;
 
-// Smallest Apéry element above f — the value Rust's `descent` will reduce by m.
-// Always exists because a_μ = f + m > f. Returns null if S is N (f < m).
+// Mirror of `Semigroup::descent_flip` in manipulators.rs: the largest Apéry
+// element strictly in (f, f+m). Returns null when no such Apéry exists (the
+// only Apéry > f is then f+m itself, which descent_flip refuses to handle).
 function descentTarget(s) {
   if (s.f < s.m) { return null; }
+  const fm = s.f + s.m;
   let best = -1;
   for (const a of s.apery_set) {
-    if (a > s.f && (best === -1 || a < best)) { best = a; }
+    if (a > s.f && a < fm && a > best) { best = a; }
   }
   return best === -1 ? null : best;
 }
 
-// Mirror of `Semigroup::ascent` in manipulators.rs: returns the atom that
-// the next ascent step will toggle, or null when ascent will be a no-op.
+// Mirror of `Semigroup::ascent_flip` in manipulators.rs: the atom that the
+// next ascent_flip step will toggle, or null when ascent_flip will be a no-op.
+// Excludes the f+m case (which is handled by ascent_total, not ascent_flip).
 function ascentTarget(s) {
   const m = s.m;
   const f = s.f;
-  const fm = f + m;
   const level = Math.floor(f / m);
   const gens = Array.from(s.gen_set);
   const apery = Array.from(s.apery_set);        // indexed by residue mod m
@@ -1032,7 +1023,7 @@ function ascentTarget(s) {
       for (const a of gens) {
         const v = k * a;
         const inStratum = v > m && v + l * m < f && v + (l + 1) * m > f;
-        if ((inStratum || v === fm) && apery[v % m] === v && a > best) {
+        if (inStratum && apery[v % m] === v && a > best) {
           best = a;
         }
       }
@@ -1043,8 +1034,8 @@ function ascentTarget(s) {
 }
 
 const DIRS = {
-  descent: { target: descentTarget, animate: animate3dDescent, op: s => s.descent(), label: 'Descent' },
-  ascent:  { target: ascentTarget,  animate: animate3dAscent,  op: s => s.ascent(),  label: 'Ascent'  },
+  descent: { target: descentTarget, animate: animate3dDescent, op: s => s.descent_flip(), label: 'DescentFlip' },
+  ascent:  { target: ascentTarget,  animate: animate3dAscent,  op: s => s.ascent_flip(),  label: 'AscentFlip'  },
 };
 
 function update3dButtonState() {

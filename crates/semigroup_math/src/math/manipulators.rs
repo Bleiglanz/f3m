@@ -253,14 +253,16 @@ impl Semigroup {
     /// contribute `f`). When the only Apéry above `f` is `f + m` and no
     /// in-stratum match is found at any `l`, the function returns `self`.
     ///
-    /// Returns `self` when `f < m` (`S = ℕ`).
+    /// Returns `self` when `f < m` (`S = ℕ`) or when `m < 3` (for `m = 2`
+    /// the flip move is structurally vacuous; use [`Self::descent_total`]
+    /// instead).
     ///
     /// Duality: [`Self::ascent_flip`] is its structural reverse — see that
     /// function's doc comment for the conditions under which
     /// `ascent_flip ∘ descent_flip = id`.
     #[must_use]
     pub fn descent_flip(&self) -> Self {
-        if self.f < self.m {
+        if self.m < 3 || self.f < self.m {
             return self.clone();
         }
         let mut newgen = self.gen_set.clone();
@@ -273,7 +275,13 @@ impl Semigroup {
                 .max()
             {
                 newgen.push(*largest - self.m);
-                return compute(&newgen);
+                let candidate = compute(&newgen);
+                // Commit only when ascent_flip cleanly inverts; otherwise
+                // the would-be ascent is a μ-shift and we leave self unchanged.
+                if candidate.ascent_flip() == *self {
+                    return candidate;
+                }
+                return self.clone();
             }
         }
         self.clone()
@@ -295,9 +303,14 @@ impl Semigroup {
     /// `v = f + m` at every `l`, so the largest Apéry element is left
     /// alone. Use [`Self::ascent_total`] for that case.
     ///
-    /// Returns `self` when no `(l, k)` produces a match.
+    /// Returns `self` when no `(l, k)` produces a match, or when `m < 3`
+    /// (for `m = 2` the flip move is structurally vacuous; use
+    /// [`Self::ascent_total`] instead).
     #[must_use]
     pub fn ascent_flip(&self) -> Self {
+        if self.m < 3 {
+            return self.clone();
+        }
         // Apéry membership is O(1) via residue indexing:
         // v ∈ apery_set  ⇔  apery_set[v mod m] == v.
         let is_apery = |v: usize| self.apery_set[v % self.m] == v;

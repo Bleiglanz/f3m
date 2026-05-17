@@ -336,22 +336,26 @@ fn check(
     // hand-picked cases where the inverse is well-defined, and the doc
     // comments on `Semigroup::descent_total` for the general statement.
     //
-    // Properties of descent_total whenever it fires (down != s):
+    // Properties of descent_total whenever it actually fires (down != s).
+    // descent_total has a built-in safety gate: it commits the candidate
+    // x = f − (l−1)·m only when the round-trip `ascent_total(self ∪ {x})
+    // == self` holds. So `down != s` implies the round-trip is exact.
     //
-    //   • Δg = l, where l is the stratum index descent_total picked
-    //     (the added generator is x = f − (l−1)·m, which becomes the new
-    //     apery[μ]). Adding x only fills gaps in residue class μ; the
-    //     other residues' Apéry entries are unchanged because every
-    //     `x + apery[j]` exceeds apery[(μ+j) mod m] by the Kunz constraint.
+    //   • down.ascent_total() == s — clean round-trip by construction.
+    //   • Δg = l, where l is the stratum index descent_total picked.
     //   • new apery[μ] = old apery[μ] − l·m (this is how l is defined).
     //
-    // Note: ρ(down) is NOT in general equal to l. Counterexample:
-    // ⟨12, 14, 19, 77⟩ has l=1, Δg=1, but ρ(down) = 0 — residue 2 in down
-    // has only the single gap value 2, and f−2 = 61 ∈ S, so r₂ = 0.
-    // ρ(down) = l does hold for the small hand-picked fixtures
+    // Note: ρ(down) is NOT in general equal to l. Even for fixtures where
+    // descent_total commits, residue collisions can drag ρ down — the
+    // relation ρ(down) = l holds for the small hand-picked fixtures
     // (⟨5,7⟩, ⟨3,7⟩, ⟨3,5⟩, ⟨3,4⟩) but not universally.
     let down = s.descent_total();
     if down != s {
+        assert_eq!(
+            s,
+            down.ascent_total(),
+            "descent_total → ascent_total round-trip for {gens:?}",
+        );
         let l_used = (s.apery_set[s.mu] - down.apery_set[s.mu]) / s.m;
         assert_eq!(
             s.g,

@@ -178,22 +178,29 @@ impl Semigroup {
         }
     }
 
-    /// Descent (total): a canonical left-inverse of [`Self::ascent_total`].
-    /// Walks the strata `(f − (l+1)m, f − l m)` for `l = 1, 2, …` and stops
-    /// at the first `l` at which the stratum is **not** entirely contained
-    /// in `S`. Adds `f − (l − 1)·m` (a residue-`μ` gap of `S`) as a new
-    /// generator.
+    /// Descent (total): the right inverse of [`Self::ascent_total`] when
+    /// such an inverse exists, and the identity otherwise.
     ///
-    /// **Not a universal inverse of `ascent_total`.** `ascent_total` is
-    /// not injective: many semigroups `S` with the same `m` and the same
-    /// non-`μ` Apéry entries collapse to the same `U` after removing
-    /// `f + m`. `descent_total(U)` picks the canonical pre-image rooted
-    /// at the first "kink" stratum, which may differ from `S`. The
-    /// round-trip `S → ascent_total → descent_total = S` holds in the
-    /// hand-picked cases of
-    /// `test_ascent_total_descent_total_round_trip_fpm_branch`, but fails
-    /// for e.g. `⟨12, 14, 19, 77⟩` (whose canonical pre-image of
-    /// `⟨12, 14, 19⟩` is `⟨12, 14, 19, 65⟩`).
+    /// Walks the strata `(f − (l+1)m, f − l m)` for `l = 1, 2, …` and
+    /// stops at the first `l` at which the stratum is **not** entirely
+    /// contained in `S`. The candidate new generator is
+    /// `x = f − (l − 1)·m`, a residue-`μ` gap of `S`.
+    ///
+    /// **Safety gate:** the candidate is committed only when
+    /// `(self ∪ {x}).ascent_total() == self`. Two things can break the
+    /// round-trip and trigger the gate:
+    /// - μ shifts (some `apery[i]` for `i ≠ μ` exceeds `x`, so the new
+    ///   `f + m` is not `x`). Example: `⟨12, 14, 19, 77⟩` has
+    ///   `apery[3] = 75 > x = 65`, so the new max sits at residue 3, not 5.
+    /// - A residue-μ generator `g > x` of `S` becomes reducible as
+    ///   `g = x + k·m`, dropping it from the result's generator set so
+    ///   `ascent_total` can no longer recover it. Example:
+    ///   `⟨12, 30, 32, 38, 40, 41, 99⟩` collapses 99 = 87 + 12.
+    ///
+    /// When the gate trips, the function is a no-op and returns `self`.
+    /// This restores the contract `down.ascent_total() == self` whenever
+    /// `down := self.descent_total() != self`, at the price of letting
+    /// `descent_total` be silently inert on some semigroups.
     ///
     /// Returns `self` when `f < m` (`S = ℕ`) or when every stratum below
     /// `(f − m, f)` is fully in `S` (only possible in tiny edge cases like
@@ -218,7 +225,14 @@ impl Semigroup {
         };
         for l in 1..=self.level {
             if !stratum_in_s(l) {
-                return self.toggle(self.f - (l - 1) * self.m);
+                let candidate = self.toggle(self.f - (l - 1) * self.m);
+                // Commit only when ascent_total cleanly inverts; otherwise
+                // the would-be descent is a μ-shift or a gen-collapse and
+                // we leave self unchanged.
+                if candidate.ascent_total() == *self {
+                    return candidate;
+                }
+                return self.clone();
             }
         }
         self.clone()

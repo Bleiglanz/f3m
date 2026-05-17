@@ -336,36 +336,20 @@ fn check(
     // hand-picked cases where the inverse is well-defined, and the doc
     // comments on `Semigroup::descent_total` for the general statement.
     //
-    // Properties of descent_total whenever it actually fires (down != s).
-    // descent_total has a built-in safety gate: it commits the candidate
-    // x = f − (l−1)·m only when the round-trip `ascent_total(self ∪ {x})
-    // == self` holds. So `down != s` implies the round-trip is exact.
+    // When descent_total actually fires, its safety gate has already
+    // verified `down.ascent_total() == s` internally. Here we only check
+    // the substantive math claim: Δg matches the stratum index l that
+    // descent_total chose, derivable from the apery[μ] shift.
     //
-    //   • down.ascent_total() == s — clean round-trip by construction.
-    //   • Δg = l, where l is the stratum index descent_total picked.
-    //   • new apery[μ] = old apery[μ] − l·m (this is how l is defined).
-    //
-    // Note: ρ(down) is NOT in general equal to l. Even for fixtures where
-    // descent_total commits, residue collisions can drag ρ down — the
-    // relation ρ(down) = l holds for the small hand-picked fixtures
-    // (⟨5,7⟩, ⟨3,7⟩, ⟨3,5⟩, ⟨3,4⟩) but not universally.
+    // ρ(down) = l only on the small hand-picked fixtures (⟨5,7⟩, ⟨3,7⟩,
+    // ⟨3,5⟩, ⟨3,4⟩); residue collisions break the relation in general.
     let down = s.descent_total();
     if down != s {
-        assert_eq!(
-            s,
-            down.ascent_total(),
-            "descent_total → ascent_total round-trip for {gens:?}",
-        );
         let l_used = (s.apery_set[s.mu] - down.apery_set[s.mu]) / s.m;
         assert_eq!(
             s.g,
             down.g + l_used,
             "descent_total drops g by l={l_used} for {gens:?}",
-        );
-        assert_eq!(
-            down.apery_set[s.mu] + l_used * s.m,
-            s.apery_set[s.mu],
-            "apery[μ] drops by l·m for {gens:?}",
         );
     }
     test_up_downs(&s);

@@ -997,17 +997,23 @@ let _running3d = null;
 const RUN_LOOP_DWELL_MS = 1000;
 const RUN_LOOP_MAX_STEPS = 500;
 
-// Mirror of `Semigroup::descent_flip` in manipulators.rs: the largest Apéry
-// element strictly in (f, f+m). Returns null when no such Apéry exists (the
-// only Apéry > f is then f+m itself, which descent_flip refuses to handle).
+// Mirror of `Semigroup::descent_flip` in manipulators.rs: walks the strata
+// l = 0, 1, …, level − 1 and returns the largest Apéry element x with
+// x + l·m ∈ (f, f+m) at the first stratum that has such an x. The descent
+// step then adds x − m as a new generator. Returns null when no stratum
+// produces a candidate (and f+m is excluded by the strict upper bound).
 function descentTarget(s) {
   if (s.f < s.m) { return null; }
-  const fm = s.f + s.m;
-  let best = -1;
-  for (const a of s.apery_set) {
-    if (a > s.f && a < fm && a > best) { best = a; }
+  const m = s.m, f = s.f, fm = f + m;
+  const level = Math.floor(f / m);
+  for (let l = 0; l < level; l++) {
+    let best = -1;
+    for (const a of s.apery_set) {
+      if (a + l * m > f && a + l * m < fm && a > best) { best = a; }
+    }
+    if (best !== -1) { return best; }
   }
-  return best === -1 ? null : best;
+  return null;
 }
 
 // Mirror of `Semigroup::ascent_flip` in manipulators.rs: the atom that the

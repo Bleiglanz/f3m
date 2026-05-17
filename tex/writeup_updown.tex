@@ -6,6 +6,8 @@
 \usepackage{amsmath, amssymb, amsthm}
 \usepackage{graphicx}
 \usepackage[colorlinks=true, allcolors=blue]{hyperref}
+\usepackage{minted}
+\usepackage{booktabs}
 
 \def \N{{\mathbb Z}_{\geq 0}}
 \def \Npos{{\mathbb Z}_{>0}}
@@ -14,6 +16,81 @@
 \setlength{\parindent}{0em}
 
 \begin{document}
+
+\section{new descent/ascent}
+
+Let $S$ be a numerical semigroup with the usual $f, m, g, \sigma, r$
+and Apéry set $\{w_0, \dots, w_{m-1}\}$ indexed by residue. The four
+operators below each return a new numerical semigroup.
+
+\subsection{DescentFlip}
+Walk strata $l = 0, 1, \dots, \mathrm{level} - 1$. At the first
+stratum that contains an Apéry element $w$ of $S$ with $w \ne f+m$,
+pick the largest such $w$ and add $w - m$ as a generator (this is a
+gap of $S$, in the same residue class as $w$). No-op if $f < m$ or no
+such $w$ exists.
+
+\inputminted[firstline=262,lastline=280]{rust}{../crates/semigroup_math/src/math/manipulators.rs}
+
+\subsection{AscentFlip}
+Reverse of DescentFlip. Walk strata $l = 0, 1, \dots, \mathrm{level}-1$
+and $k = 1, \dots, \mathrm{level}$. Pick the largest atom $a$ such
+that $k a$ is an Apéry element of $S$ landing in stratum $l$ and
+$k a \ne f + m$. Remove $a$ from the generators (equivalent to
+toggling $a$).
+
+\inputminted[firstline=300,lastline=322]{rust}{../crates/semigroup_math/src/math/manipulators.rs}
+
+\subsection{DescentTotal}
+Walk strata $l = 1, 2, \dots$ and stop at the first $l$ at which
+the open interval $(f - (l+1)m,\, f - l m)$ is \emph{not} fully in
+$S$. Candidate new generator: $x := f - (l-1)m$ (a gap of residue
+$\mu$). Commit the candidate only if applying AscentTotal to the
+result returns $S$; otherwise no-op. The safety gate rejects two
+situations: (i) $\mu$ shifts because some $w_i$ with $i \ne \mu$
+exceeds $x$; (ii) a residue-$\mu$ generator $g > x$ of $S$ becomes
+reducible as $g = x + km$ and is dropped from the result.
+
+\inputminted[firstline=209,lastline=239]{rust}{../crates/semigroup_math/src/math/manipulators.rs}
+
+\subsection{AscentTotal}
+Destroy the atom $f + m$ when it lies in the generator set, i.e.
+return $\langle \operatorname{Atom}(S) \setminus \{f+m\}\rangle$.
+No-op when $f + m \notin \operatorname{Atom}(S)$.
+
+\inputminted[firstline=172,lastline=179]{rust}{../crates/semigroup_math/src/math/manipulators.rs}
+
+\subsection{Effect on $(g, \sigma, r)$ and on $e$}
+
+\begin{center}
+\begin{tabular}{lcccc}
+\toprule
+                & DescentFlip & DescentTotal & AscentFlip & AscentTotal \\
+\midrule
+$g'$            & $g - 1$            & $g - l$            & $g + 1$            & $g + \rho$            \\
+$\sigma'$       & $\sigma + 1$       & $\sigma + l$       & $\sigma - 1$       & $\sigma - \rho$       \\
+$r'$            & $r - 2$            & $r - 2l$           & $r + 2$            & $r + \rho(m-2)$       \\
+$e'$ if $f+m \in \operatorname{Atom}(S)$
+                & ?                  & ?                  & ?                  & ?                     \\
+$e'$ if $f+m \notin \operatorname{Atom}(S)$
+                & ?                  & ?                  & ?                  & ?                     \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The $(g, \sigma, r)$ entries follow from $r + \sigma = g$ and the
+fact that DescentFlip and AscentFlip each flip a single reflected-gap
+pair. The total operations bundle $l$ (resp.\ $\rho$) flips into a
+single step.
+
+Open question on $e' = e \pm \delta$ when $f + m$ is or is not an
+atom: e.g.\ DescentTotal can pull a residue-$\mu$ atom down to the
+new $f + m$ position, making the old $f + m$ reducible
+(${\sim} = x + km$), so $\delta$ can be negative; the count depends on
+how many residue-$\mu$ atoms lay above the new $x$. AscentTotal
+removes one atom by construction but may make several previously-
+expressible elements newly minimal. The exact counts are left as
+follow-up work and tagged "?" in the table.
 
 \section{Setup}
 Let $S$ be a numerical semigroup, with $f,\,m,\,g,\,\sigma$ as usual

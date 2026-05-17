@@ -515,6 +515,24 @@ e' if f+m decomp
 in the cell there is just a g-1 or r+2
 put ? in the e' cols, we will work this out later
 
+TODO 114)
+glue (DescentFlip, DescentTotal) into a single partial D and
+(AscentFlip, AscentTotal) into a single partial A so that
+A o D = id whenever D fires, and D o A = id whenever A fires.
+Recipe:
+- gate descent_flip the same way descent_total already is (commit
+  only if ascent_flip inverts the candidate exactly); same for
+  ascent_flip vs descent_flip
+- D(S) = DescentFlip(S) if its round-trip holds, else DescentTotal(S),
+  else S. A(S) symmetric with priority AF > AT.
+Cost: some S become fixed points (both A, D no-op). E.g. <5,7,23>
+loses its DF step because 23 = 16 + 7 collapses 23.
+Tasks for the implementation pass:
+- add the inverse-check inside descent_flip / ascent_flip
+- expose D and A as new fn / WASM shims + UI buttons
+- sweep CSV fixtures, count fixed points, decide if priority
+  Flip > Total or Total > Flip gives the denser orbit structure
+- pick the priority and lock it in
 
 
 

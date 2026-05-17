@@ -411,54 +411,96 @@ re-expressed in (r, n) coordinates. For each (i, j) with 1 ≤ i ≤ j ≤ m-1,
 c(i, j) = q_i + q_j - q_{(i+j) mod m} + δ_{i+j ≥ m}, and since q_k = r_k + n_k:
 
     c(i, j) = r_i + n_i + r_j + n_j − r_k − n_k + δ_{i+j ≥ m}
-
 where k = (i+j) mod m (and the −r_k − n_k terms drop when k = 0). So per row:
   +1 at r_i, r_j, n_i, n_j  (collapses to +2 on the diagonal i = j)
   −1 at r_k, n_k             (when k ≠ 0)
   +1 in the constant column   (when i + j ≥ m)
-
 Matrix is m(m-1)/2 × (2m-1). Rendered with pm_cell styling; the product
 of this matrix with the augmented rn vector yields the vector of c(i,j)
 values, all ≥ 0 — the Kunz cone slice in (r, n) coordinates.
-
 Open question: should the lattice-point enumeration eventually use Normaliz
 directly on this (r, n) polytope instead of the existing (q-coord) waldicone
 flow? Waldicone already uses Normaliz internally, so it would be the same
 software with an invertible change of basis; benefit would be presentation
 parity with the in-app view rather than performance.
-
 Note (monomial / toric framing of the (r, n) picture):
-
 Identify each r-vector with a monomial R = x_1^{r_1} · … · x_{m-1}^{r_{m-1}}
 and each n-vector with N = x_1^{n_1} · … · x_{m-1}^{n_{m-1}}; then R · N is
 the monomial with exponent vector q = r + n. The reflection symmetry on r
 restricts R to the sub-monoid of symmetric monomials avoiding the μ-axis:
-
     Σ_r |{R of degree r}| z^r = 1/(1-z)^s · 1/(1-z^2)^d
-
 where s = #self-paired indices in {1,…,m-1}\{μ} and d = #reflection pairs
 (s + 2d = m - 2). N has the usual generating function 1/(1-z)^{m-1}.
-
 The Kunz pair-relation c(i, j) ≥ 0 is NOT a monomial divisibility (it mixes
 coordinates across indices i, j, (i+j) mod m), but it IS a binomial relation
 in the toric ideal
-
     I = ⟨ x_i · x_j  −  t^δ · x_{(i+j) mod m}  :  1 ≤ i ≤ j ≤ m-1 ⟩
-
 with δ = 0 if i+j < m and δ = 1 if i+j ≥ m (the homogeniser t absorbs the
 wraparound +1, mirroring the constant column of pair_relations_rn). Lattice
 points of the Kunz cone are in bijection with monomials of k[x_1,…,x_{m-1},t]/I
 graded by total degree (= genus after pinning t = 1). The Hilbert series of
 this toric ring is exactly what Normaliz computes.
-
 Relaxed count (RSym only, no pair-relations) decomposes via g = r + σ:
-
     #{(r, n) : g = r + σ, RSym holds}
       = Σ_{r=0}^{g} [number of r-vectors of degree r] · C(σ + m-2, m-2)
-
 This is an upper bound on the count of numerical semigroups with the given
 (m, μ, g); the deficit equals the lattice points violating some c(i, j) ≥ 0.
 Could be worth plotting "true count / relaxed count" as a tightness metric.
+
+TODO 109) [DONE with 846cc9d]
+add to CLAUDE.md in the future, include the commit in todo.txe next
+to the [DONE], i.e. TODO 109) [DONE with 8cee44d]
+(no need to add these to the past TODOs)
+
+TODO 110) [DONE with 846cc9d]
+move glue.rs to ./history (add all relevant other code as comments for later), then
+completely remove the "glue" modifier button and all the source code associated with it
+
+TODO 111) [DONE with 846cc9d]
+completely remove the "w1+m" modifier button and every js code associated with it
+(it called toggle anyway, so there should be no non-ui code involved)
+Scope confirmed during implementation: UI-only. Kept Rust
+compute_apery_shift_first, its WASM shim apery_shift_first, and the
+three test_apery_shift_first_* tests since they document a meaningful
+Kunz-cone move beyond a plain toggle.
+
+TODO 112) [DONE with 846cc9d]
+there is a code change in modifier rs
+ascent now only flips (removes only atom != f+m)
+ascent_total should destroy the atom f+m
+descent now only flips (adds only w-m for w!=f+m)
+descent_total adds f-lm with maximal possible l
+review the code and the mathematics
+rename fn ascent to ascent_flip
+rename fn descent to descent_flip
+update the /// doc comments to the current implementation
+fix the broken tests:
+descent_flip: g'=g-1 sigma'=sigma+1 r'=r-2
+ascent_flip:  g'=g+1 sigma'=sigma-1 r'=r+2
+descent_total: not much to test? need a property akin to rho?
+ascent_total: as it is now, with rho in the changes
+Findings: descent_total's old v_l_in was vacuously false for l>=1 and
+the toggle target used (l-1) instead of (l-1)*m; rewritten predicate
+checks (f - (l+1)m, f - lm) inclusion in S. Universal invariants over
+the 108 CSV fixtures: Delta g = l, and apery[mu] drops by l*m, where
+l is the first stratum descent_total trips on. The natural round-trip
+ascent_total o descent_total = id holds on hand-picked f+m fixtures
+only -- ascent_total is not injective; smallest counterexample is
+<12, 14, 19, 77> (its canonical descent_total pre-image is
+<12, 14, 19, 65>). rho(down) = l holds for small fixtures but fails
+for the same counterexample (residue 2 in <12,14,19,65> has its
+single gap pair into S, dragging r_2 to 0).
+
+
+
+
+
+
+
+
+
+
+
 
 
 

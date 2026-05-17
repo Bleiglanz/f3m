@@ -972,9 +972,11 @@ function wireGenSetBtn(id, method, label, beforeCompute) {
   }));
 }
 
-wireGenSetBtn('fast-descent-btn', 'fast_descent',       'FastDescent');
-wireGenSetBtn('descent-btn',      'descent_flip',       'DescentFlip');
-wireGenSetBtn('ascent-btn',       'ascent_flip',        'AscentFlip');
+wireGenSetBtn('fast-descent-btn',  'fast_descent',       'FastDescent');
+wireGenSetBtn('descent-btn',       'descent_flip',       'DescentFlip');
+wireGenSetBtn('descent-total-btn', 'descent_total',      'DescentTotal');
+wireGenSetBtn('ascent-btn',        'ascent_flip',        'AscentFlip');
+wireGenSetBtn('ascent-total-btn',  'ascent_total',       'AscentTotal');
 wireGenSetBtn('half-btn',         's_over_2',           'S/2');
 wireGenSetBtn('sym-partner-btn',  'symmetric_partner',  'S=SYM/2');
 wireGenSetBtn('ks-btn',           'canonical_ideal',    'K(S)');

@@ -174,68 +174,43 @@ impl Semigroup {
         if self.gen_set.contains(&ae) {
             self.destroy_atom(ae)
         } else {
-            self.clone()
+            self.toggle(self.f+self.m)
         }
     }
 
-    /// Descent (total): the right inverse of [`Self::ascent_total`] when
-    /// such an inverse exists, and the identity otherwise.
+    /// Descent (total), per the writeup.
     ///
-    /// Walks the strata `(f − (l+1)m, f − l m)` for `l = 1, 2, …` and
-    /// stops at the first `l` at which the stratum is **not** entirely
-    /// contained in `S`. The candidate new generator is
-    /// `x = f − (l − 1)·m`, a residue-`μ` gap of `S`.
+    /// Let `V = {z ∈ ℕ : z ≢ 0 (mod m) and z ≢ μ (mod m)}`. Define
+    /// `L = max(V ∩ G(S))`, the largest gap of `S` in `V`. Let
+    /// `l = ⌊L/m⌋` and `L_↓ = μ + l·m`. Then `descent_total(S) = S ∪ {L_↓}`.
     ///
-    /// **Safety gate:** the candidate is committed only when
-    /// `(self ∪ {x}).ascent_total() == self`. Two things can break the
-    /// round-trip and trigger the gate:
-    /// - μ shifts (some `apery[i]` for `i ≠ μ` exceeds `x`, so the new
-    ///   `f + m` is not `x`). Example: `⟨12, 14, 19, 77⟩` has
-    ///   `apery[3] = 75 > x = 65`, so the new max sits at residue 3, not 5.
-    /// - A residue-μ generator `g > x` of `S` becomes reducible as
-    ///   `g = x + k·m`, dropping it from the result's generator set so
-    ///   `ascent_total` can no longer recover it. Example:
-    ///   `⟨12, 30, 32, 38, 40, 41, 99⟩` collapses 99 = 87 + 12.
+    /// `L_↓` is always a residue-μ gap of `S` (by `w_μ = f+m`, every
+    /// residue-μ element ≤ f is a gap; the construction guarantees
+    /// `L_↓ ≤ f`).
     ///
-    /// When the gate trips, the function is a no-op and returns `self`.
-    /// This restores the contract `down.ascent_total() == self` whenever
-    /// `down := self.descent_total() != self`, at the price of letting
-    /// `descent_total` be silently inert on some semigroups.
+    /// **Multiplicity may change**: when `l = 0` (i.e. when `L < m`),
+    /// `L_↓ = μ < m`, so the result has multiplicity `μ` rather than `m`.
+    /// The writeup flags this as the only structural caveat.
     ///
-    /// Returns `self` when `f < m` (`S = ℕ`) or when every stratum below
-    /// `(f − m, f)` is fully in `S` (only possible in tiny edge cases like
-    /// `μ = 1`).
+    /// Returns `self` when `m < 3` (the writeup assumes `m > 2`).
     #[must_use]
     pub fn descent_total(&self) -> Self {
-        if self.f < self.m {
+        if self.m < 3 {
             return self.clone();
         }
-        // Stratum-l predicate: returns true iff (f − (l+1)m, f − l m) ⊆ S.
-        // For l in 1..=level we have l·m ≤ level·m < f, so the upper bound
-        // `f − l·m` is always strictly positive; the lower bound can underflow
-        // when (l+1)·m > f, in which case we clamp to 0 (the interval still
-        // makes sense as (0, f − l·m)).
-        let stratum_in_s = |l: usize| -> bool {
-            let upper = self.f - l * self.m;
-            let lower = (l + 1)
-                .checked_mul(self.m)
-                .and_then(|p| self.f.checked_sub(p))
-                .unwrap_or(0);
-            ((lower + 1)..upper).all(|y| self.element(y))
+        // L = max(V ∩ G(S)) = max over residues r ∈ V of (w_r − m).
+        let Some(big_l) = (1..self.m)
+            .filter(|&r| r != self.mu)
+            .map(|r| self.apery_set[r] - self.m)
+            .max()
+        else {
+            // For m > 2, V has m − 2 ≥ 1 residues, so this is unreachable;
+            // defensively return self.
+            return self.clone();
         };
-        for l in 1..=self.level {
-            if !stratum_in_s(l) {
-                let candidate = self.toggle(self.f - (l - 1) * self.m);
-                // Commit only when ascent_total cleanly inverts; otherwise
-                // the would-be descent is a μ-shift or a gen-collapse and
-                // we leave self unchanged.
-                if candidate.ascent_total() == *self {
-                    return candidate;
-                }
-                return self.clone();
-            }
-        }
-        self.clone()
+        let l = big_l / self.m;
+        let target = self.mu + l * self.m;
+        self.toggle(target)
     }
 
     /// Descent (flip): walks the strata `(f − (l+1)m, f − l m)` for
@@ -278,54 +253,45 @@ impl Semigroup {
         self.clone()
     }
 
-    /// Ascent (flip): structural reverse of [`Self::descent_flip`].
+    /// Ascent (flip), per the writeup.
     ///
-    /// The interval `(μ, f)` decomposes into `self.level` **strata** of
-    /// width `m`: stratum `l` is `(f − (l+1)m, f − l m)`, for
-    /// `l = 0, 1, …, level − 1`. Stratum 0 is `V(S) = (f − m, f)`.
+    /// Let `V = {z ∈ ℕ : z ≢ 0 (mod m) and z ≢ μ (mod m)}` and
+    /// `X = (ℕ_{>0} · Atom(S)) ∩ V ∩ Ap(S)` — the Apéry elements in `V`
+    /// that are positive multiples of some atom. Pick `w = max(X)`, then
+    /// `a_↑ = max{a ∈ Atom(S) : a ∣ w}`. Return `S \ {a_↑}`, i.e. the
+    /// maximal subsemigroup of `S` not containing `a_↑` ([`Self::toggle`]).
     ///
-    /// For each stratum (shallow to deep) and each `k = 1, …, level`,
-    /// look for the largest atom `a` such that `k·a` is an Apéry element
-    /// of `S` landing in that stratum (and `> m`). Pick that atom `w`
-    /// and toggle it.
+    /// For `m > 2`, `X` is non-empty: every atom in `Atom(S) \ {m, f+m}`
+    /// is itself in `X` (atoms are Apéry, in `V` by `w_μ = f+m`), and
+    /// that set is non-empty (else `Atom(S) = {m, f+m}` would force
+    /// embedding dimension 2 and hence `m = 2` via the 2-generator
+    /// Frobenius identity).
     ///
-    /// **Never removes `f + m`**: the filter `v + l·m < f` excludes
-    /// `v = f + m` at every `l`, so the largest Apéry element is left
-    /// alone. Use [`Self::ascent_total`] for that case.
-    ///
-    /// Returns `self` when no `(l, k)` produces a match, or when `m < 3`
-    /// (for `m = 2` the flip move is structurally vacuous; use
-    /// [`Self::ascent_total`] instead).
-    ///
-    /// Invertibility with `descent_flip` is **not** enforced here; the
-    /// theoretical conditions under which `ascent_flip ∘ descent_flip`
-    /// (and vice versa) are the identity are out of scope for the
-    /// implementation.
+    /// Returns `self` when `m < 3`.
     #[must_use]
     pub fn ascent_flip(&self) -> Self {
         if self.m < 3 {
             return self.clone();
         }
-        // Apéry membership is O(1) via residue indexing:
-        // v ∈ apery_set  ⇔  apery_set[v mod m] == v.
-        let is_apery = |v: usize| self.apery_set[v % self.m] == v;
-        for l in 0..self.level {
-            for k in 1..=self.level {
-                let removable = |a: usize| -> bool {
-                    let v = k * a;
-                    v > self.m && v + l * self.m < self.f && v + (l + 1) * self.m > self.f
-                };
-                if let Some(w) = self
-                    .gen_set
-                    .iter()
-                    .copied()
-                    .filter(|&a| removable(a) && is_apery(k * a))
-                    .max()
-                {
-                    return self.toggle(w);
-                }
-            }
-        }
-        self.clone()
+        // X = {w_r : r ∈ V} ∩ {multiples of some atom}.
+        let Some(w) = (1..self.m)
+            .filter(|&r| r != self.mu)
+            .map(|r| self.apery_set[r])
+            .filter(|&w| self.gen_set.iter().any(|&a| w.is_multiple_of(a)))
+            .max()
+        else {
+            return self.clone();
+        };
+        // a_↑ = largest atom dividing w (non-empty by construction of X).
+        let Some(a_up) = self
+            .gen_set
+            .iter()
+            .copied()
+            .filter(|&a| w.is_multiple_of(a))
+            .max()
+        else {
+            return self.clone();
+        };
+        self.toggle(a_up)
     }
 }

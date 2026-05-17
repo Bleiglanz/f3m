@@ -327,24 +327,14 @@ fn check(
     }
     assert!(s.t <= s.r + 1);
     assert!(s.es <= s.e);
-    // No blanket ascent_total/descent_total round-trip assertion here.
-    // ascent_total is not injective over all S: removing f+m can produce
-    // a semigroup U whose canonical inverse under descent_total adds a
-    // *different* residue-μ gap (the first "kink" stratum's boundary), not
-    // necessarily the original f+m. See
-    // `test_ascent_total_descent_total_round_trip_fpm_branch` for the
-    // hand-picked cases where the inverse is well-defined, and the doc
-    // comments on `Semigroup::descent_total` for the general statement.
-    //
-    // When descent_total actually fires, its safety gate has already
-    // verified `down.ascent_total() == s` internally. Here we only check
-    // the substantive math claim: Δg matches the stratum index l that
-    // descent_total chose, derivable from the apery[μ] shift.
-    //
-    // ρ(down) = l only on the small hand-picked fixtures (⟨5,7⟩, ⟨3,7⟩,
-    // ⟨3,5⟩, ⟨3,4⟩); residue collisions break the relation in general.
+    // descent_total adds a residue-μ gap L_↓ = μ + l·m where l = ⌊L/m⌋
+    // and L = max(V ∩ G(S)). When that doesn't change the multiplicity,
+    // Δg = (s.apery[μ] − down.apery[μ]) / m counts the residue-μ gaps
+    // closed by the new generator. When l = 0 the multiplicity drops to
+    // μ and the apery vector reshapes, so we skip the assertion in that
+    // case (the multiplicity-preserving branch is the interesting one).
     let down = s.descent_total();
-    if down != s {
+    if down != s && down.m == s.m {
         let l_used = (s.apery_set[s.mu] - down.apery_set[s.mu]) / s.m;
         assert_eq!(
             s.g,
@@ -1095,65 +1085,57 @@ fn test_ascent_flip_inverts_descent_flip_v_of_s_branch() {
 }
 
 #[test]
+#[ignore = "ascent_total ∘ descent_total is no longer the identity in general: \
+            descent_total now follows the writeup (L_↓ = μ + l·m where \
+            l = ⌊L/m⌋, L = max(V ∩ G(S))) and is not designed as the inverse \
+            of ascent_total."]
 fn test_ascent_total_descent_total_round_trip_fpm_branch() {
-    // descent_total(ascent_total(S)) == S whenever f+m is a min-gen and
-    // m ≥ 3 (m = 2 collapses via gcd-normalisation). The fixed cases span
-    // a few multiplicities.
     for gens in [
-        &[5_usize, 7, 23][..], // m=5, f=18, f+m=23 is the only min-gen in (m,f+m]
-        &[3, 7, 8][..],        // m=3, f=5,  f+m=8 is a min-gen, no g in (3,5)
-        &[4, 6, 7, 9][..],     // m=4, f=5,  f+m=9 is a min-gen, no g in (4,5)
+        &[5_usize, 7, 23][..],
+        &[3, 7, 8][..],
+        &[4, 6, 7, 9][..],
     ] {
         let s = compute(gens);
-        let fpm_is_mingen = s.gen_set.contains(&(s.f + s.m));
-        assert!(
-            fpm_is_mingen,
-            "precondition mismatch for {gens:?}: f+m not a min-gen",
-        );
-        assert!(s.m >= 3, "precondition mismatch for {gens:?}: m < 3");
         let up = s.ascent_total();
-        assert_eq!(
-            s,
-            up.descent_total(),
-            "ascent_total then descent_total identity for {gens:?}",
-        );
+        assert_eq!(s, up.descent_total(), "round trip for {gens:?}");
     }
 }
 
 #[test]
 fn test_descent_total_concrete() {
-    // Concrete cases hand-derived from the algorithm in
-    // Semigroup::descent_total: walk strata (f−(l+1)m, f−l m) for
-    // l = 1, 2, … and stop at the first that is not fully in S. Add
-    // f − (l−1)·m as a new generator.
+    // Concrete cases under the writeup's descent_total formula:
+    //   L = max(V ∩ G(S)), l = ⌊L/m⌋, L_↓ = μ + l·m, add L_↓.
 
-    // ⟨5, 7⟩: m=5, f=23. Stratum l=1 = (13, 18) has the gap 16.
-    // Add f − 0·m = 23 → ⟨5, 7, 23⟩.
+    // ⟨5, 7⟩: m=5, f=23, μ=3, apery=[0,21,7,28,14].
+    // V-gaps = w_r − m for r ∈ {1,2,4} = {16, 2, 9}; L = 16, l = 3.
+    // L_↓ = 3 + 15 = 18 → ⟨5, 7, 18⟩.
     let s = compute(&[5, 7]);
     let d = s.descent_total();
     assert!(
-        d.gen_set.contains(&23),
-        "expected 23 in descent_total of {:?}",
+        d.gen_set.contains(&18),
+        "expected 18 in descent_total of {:?}",
         s.gen_set
     );
 
-    // ⟨3, 7⟩: m=3, f=11. Stratum l=1 = (5, 8) = {6, 7} ⊆ S (full);
-    // stratum l=2 = (2, 5) has the gap 4. Add f − 1·m = 8 → ⟨3, 7, 8⟩.
+    // ⟨3, 7⟩: m=3, f=11, μ=2, apery=[0,7,14].
+    // V-gaps = {7 − 3} = {4}; L = 4, l = 1. L_↓ = 2 + 3 = 5 → ⟨3, 5, 7⟩.
     let s = compute(&[3, 7]);
-    let d = s.descent_total();
-    assert!(
-        d.gen_set.contains(&8),
-        "expected 8 in descent_total of {:?}",
-        s.gen_set
-    );
-
-    // ⟨3, 4⟩: m=3, f=5, level=1. Stratum l=1 clamps to (0, 2) = {1};
-    // 1 is a gap, so add f − 0·m = 5 → ⟨3, 4, 5⟩.
-    let s = compute(&[3, 4]);
     let d = s.descent_total();
     assert!(
         d.gen_set.contains(&5),
         "expected 5 in descent_total of {:?}",
         s.gen_set
     );
+
+    // ⟨3, 4⟩: m=3, f=5, μ=2, apery=[0,4,8].
+    // V-gaps = {4 − 3} = {1}; L = 1, l = 0. L_↓ = 2 + 0 = 2 < m,
+    // so the result is ⟨2, 3⟩ (multiplicity drops to 2).
+    let s = compute(&[3, 4]);
+    let d = s.descent_total();
+    assert!(
+        d.gen_set.contains(&2),
+        "expected 2 in descent_total of {:?}",
+        s.gen_set
+    );
+    assert_eq!(d.m, 2, "l = 0 case: multiplicity drops to μ");
 }

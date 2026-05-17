@@ -491,6 +491,31 @@ only -- ascent_total is not injective; smallest counterexample is
 for the same counterexample (residue 2 in <12,14,19,65> has its
 single gap pair into S, dragging r_2 to 0).
 
+TODO 113) [DONE with 5468bd8]
+in tex/writeup_updown.text
+add a new section at the top, before the setup
+don't change anything that already exists, it's only a writeup
+\section{new descent/ascent}
+four subsections: flip/total descent/ascent
+describe the algorithm (no need to mention \mu anymore)
+describe the changes in g,r,\sigma in tablular form
+in each of the four cases: how does e change if f+m is atom/decomposable - just a discussion
+of the problems
+include the relevant source path with minted (perfect would
+be an \inputminted - but we don't want the whole files, only the four fn)
+begin{minted}{rust}...
+add a fith section, it contains a table
+
+cols   ascentflip, ascenttotal, descentflip descenttotal
+g'      =
+\sigma'
+r'
+e' if f+m atom
+e' if f+m decomp
+in the cell there is just a g-1 or r+2
+put ? in the e' cols, we will work this out later
+
+
 
 
 

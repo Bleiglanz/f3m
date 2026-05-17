@@ -515,7 +515,7 @@ e' if f+m decomp
 in the cell there is just a g-1 or r+2
 put ? in the e' cols, we will work this out later
 
-TODO 114)
+TODO 114) [DONE with f85bc3f]
 glue (DescentFlip, DescentTotal) into a single partial D and
 (AscentFlip, AscentTotal) into a single partial A so that
 A o D = id whenever D fires, and D o A = id whenever A fires.

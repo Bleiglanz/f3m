@@ -238,28 +238,25 @@ impl Semigroup {
         self.clone()
     }
 
-    /// Descent (flip): a controlled step down the gaps ladder that always
-    /// changes the genus by exactly `−1`.
-    ///
-    /// Walks the strata `(f − (l+1)m, f − l m)` for `l = 0, 1, …, level − 1`
-    /// and, at the first stratum that contains an Apéry element of `S`,
-    /// picks the largest such Apéry `w` and adds `w − m` as a new
-    /// generator. The added value is always a gap (it is the predecessor
-    /// of `w` in the same residue class), so the resulting semigroup
-    /// satisfies `g' = g − 1`, `σ' = σ + 1`, `r' = r − 2`.
+    /// Descent (flip): walks the strata `(f − (l+1)m, f − l m)` for
+    /// `l = 0, 1, …, level − 1` and, at the first stratum that contains
+    /// an Apéry element of `S`, picks the largest such Apéry `w` and
+    /// adds `w − m` as a new generator. The added value is always a gap
+    /// (the predecessor of `w` in the same residue class).
     ///
     /// **Never adds `f`**: the `l = 0` stratum filter is `w ∈ (f, f + m)`
-    /// strictly, which excludes `w = f + m` (the only Apéry that would
-    /// contribute `f`). When the only Apéry above `f` is `f + m` and no
-    /// in-stratum match is found at any `l`, the function returns `self`.
+    /// strictly, which excludes `w = f + m`. When the only Apéry above
+    /// `f` is `f + m` and no in-stratum match is found at any `l`, the
+    /// function returns `self`.
     ///
     /// Returns `self` when `f < m` (`S = ℕ`) or when `m < 3` (for `m = 2`
     /// the flip move is structurally vacuous; use [`Self::descent_total`]
     /// instead).
     ///
-    /// Duality: [`Self::ascent_flip`] is its structural reverse — see that
-    /// function's doc comment for the conditions under which
-    /// `ascent_flip ∘ descent_flip = id`.
+    /// Invertibility is **not** enforced here. `ascent_flip` is the
+    /// structural reverse but their composition is the identity only
+    /// under conditions we do not check at call time; see
+    /// [`Self::ascent_flip`].
     #[must_use]
     pub fn descent_flip(&self) -> Self {
         if self.m < 3 || self.f < self.m {
@@ -275,13 +272,7 @@ impl Semigroup {
                 .max()
             {
                 newgen.push(*largest - self.m);
-                let candidate = compute(&newgen);
-                // Commit only when ascent_flip cleanly inverts; otherwise
-                // the would-be ascent is a μ-shift and we leave self unchanged.
-                if candidate.ascent_flip() == *self {
-                    return candidate;
-                }
-                return self.clone();
+                return compute(&newgen);
             }
         }
         self.clone()
@@ -295,9 +286,8 @@ impl Semigroup {
     ///
     /// For each stratum (shallow to deep) and each `k = 1, …, level`,
     /// look for the largest atom `a` such that `k·a` is an Apéry element
-    /// of `S` landing in that stratum (and `> m`). Pick that atom `w` and
-    /// toggle it. The result satisfies `g' = g + 1`, `σ' = σ − 1`,
-    /// `r' = r + 2`.
+    /// of `S` landing in that stratum (and `> m`). Pick that atom `w`
+    /// and toggle it.
     ///
     /// **Never removes `f + m`**: the filter `v + l·m < f` excludes
     /// `v = f + m` at every `l`, so the largest Apéry element is left
@@ -306,6 +296,11 @@ impl Semigroup {
     /// Returns `self` when no `(l, k)` produces a match, or when `m < 3`
     /// (for `m = 2` the flip move is structurally vacuous; use
     /// [`Self::ascent_total`] instead).
+    ///
+    /// Invertibility with `descent_flip` is **not** enforced here; the
+    /// theoretical conditions under which `ascent_flip ∘ descent_flip`
+    /// (and vice versa) are the identity are out of scope for the
+    /// implementation.
     #[must_use]
     pub fn ascent_flip(&self) -> Self {
         if self.m < 3 {

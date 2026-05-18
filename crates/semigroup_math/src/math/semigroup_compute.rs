@@ -39,6 +39,7 @@ pub fn compute(input: &[usize]) -> Semigroup {
     let mut minimal_generators: usize = 1;
     let mut max_atom = m;
     let mut genset: Vec<usize> = Vec::new();
+    let mut mu:usize = 0;
     window[0] = 0;
     let mut i: usize = m; // startindex
     while runlength < m {
@@ -65,6 +66,7 @@ pub fn compute(input: &[usize]) -> Semigroup {
                     hit = true;
                     window[windowindex] = i as isize;
                     aperyset[residue] = i;
+                    mu=residue;
                     sum_apery += i;
                     if i > max_apery {
                         max_apery = i;
@@ -100,7 +102,10 @@ pub fn compute(input: &[usize]) -> Semigroup {
     assert_eq!(genset.len(), minimal_generators);
     genset.sort_unstable();
     assert_eq!(aperyset.len(), m);
-
+    if m>1 {
+        assert_eq!(max_apery % m, mu, "max_apery {max_apery} in residue {mu} mod {m}");
+        assert_eq!(max_apery, aperyset[mu], "max_apery in residue {mu} mod {m}");
+    }
     let element = |n: usize| -> bool { n >= aperyset[n % m] };
 
     let reflected_gap = |n: usize| -> bool { !element(n) && !element(max_apery - m - n) };
@@ -145,7 +150,26 @@ pub fn compute(input: &[usize]) -> Semigroup {
             .filter(|&x| !element(x))
             .count(),
     };
+    let rho = if 1==m { 0usize } else {(1..m)
+        .filter(|&i| i != mu)
+        .map(|i| (aperyset[i]+aperyset[(mu + m - i)%m] - max_apery) / m)
+        .min()
+        .unwrap_or(0)};
 
+    let pho = if 1==m {0usize}else{(1..m)
+        .filter(|&i| i != mu)
+        .map(|i| (aperyset[i]+aperyset[(mu+m-i)%m] - max_apery) / m)
+        .max()
+        .unwrap_or(0)};
+
+    let apn:Vec<usize> = (0..pho+1).map(|k| {
+        (0..m).filter(|&i|aperyset[i]+aperyset[(mu+m-i)%m]==max_apery+k*m).count()
+    }).collect();
+
+    let rvec:Vec<usize> = if 1==m {Vec::new()} else {
+        (0..m).map(|i| { (aperyset[i] + aperyset[(mu + m - i) % m] - max_apery) / m }).collect()
+    };
+    
     Semigroup {
         e: minimal_generators,
         f: max_apery - m,
@@ -169,5 +193,9 @@ pub fn compute(input: &[usize]) -> Semigroup {
         is_symmetric: type_count == 1,
         is_almost_symmetric: max_apery + type_count == m + 2 * (sum_apery - ((m - 1) * m) / 2) / m,
         deep,
+        rho,
+        pho,
+        apn,
+        rvec,
     }
 }

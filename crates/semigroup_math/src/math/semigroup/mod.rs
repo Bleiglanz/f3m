@@ -75,6 +75,17 @@ pub struct Semigroup {
     /// i.e. `m + i` is a gap for every non-zero residue class. Vacuously true
     /// when `m ≤ 1`.
     pub deep: bool,
+    ///
+    /// TODO 115
+    /// rho - minimum of the r_i
+    pub rho:usize,
+    /// pho - maximum of the r_i
+    pub pho:usize,
+    /// apn[i] = number of w_i, such that w_i+w_{mu-i}=f+m+im
+    /// length should be max(r_i)
+    pub apn:Vec<usize>,
+    /// the vector r_i for i=0...m-1
+    pub rvec:Vec<usize>,
 }
 
 /// Two semigroups are equal iff they have the same generators, Frobenius number,

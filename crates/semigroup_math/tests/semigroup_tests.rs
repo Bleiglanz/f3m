@@ -5,6 +5,8 @@
 
 #![allow(clippy::too_many_lines, clippy::cognitive_complexity)]
 
+pub mod semigroup_properties_test;
+
 use semigroup_math::math::{
     Semigroup, binom, compute,
     creators::{arith_generators, rolf_primes, tmf_generators},
@@ -279,11 +281,7 @@ fn check(
     t: usize,
 ) {
     let s = compute(gens);
-    assert_eq!(s.f + s.m, s.apery_set[s.mu], "max apery");
-    for i in 0..s.m {
-        assert_eq!(s.diag(i) + s.apery_set[i], s.f + s.m + s.r, "diag {i}");
-    }
-    assert_eq!(s.diag(s.mu), s.r);
+    semigroup_properties_test::basic(&s);
     assert_eq!(s.e, e, "e     for {gens:?}");
     assert_eq!(s.f, f, "f     for {gens:?}");
     assert_eq!(s.m, m, "m     for {gens:?}");
@@ -298,13 +296,7 @@ fn check(
     assert_eq!(actual_pf, expected_pf, "pf    for {gens:?}");
     assert_eq!(s.t, t, "type  for {gens:?}");
     assert_eq!(f + m, *apery.iter().max().unwrap(), "f ist max apery -m");
-    assert_eq!(s.sigma + s.r, s.g, "g ist sigma + r");
-    assert_eq!(s.f + s.r + 2, 2 * s.g + 1, "f+r+2=2g+1");
-    assert_eq!(
-        s.ae,
-        *s.gen_set.iter().max().unwrap(),
-        "maximum for {gens:?}"
-    );
+
     assert_eq!(t, s.t, "t for {gens:?}");
     assert_eq!(t, s.pf_set.len(), "type is length pf_set");
     let mut semi_pf = s.pf_set.clone();
@@ -316,17 +308,7 @@ fn check(
     );
     let aps: usize = s.apery_set.iter().sum();
     assert_eq!(aps, s.apery_sum);
-    // todo 82 / 85
-    // rl < t whenever t > 0: every gap counted by rl is pseudo-Frobenius and
-    // strictly below f, while f itself is always pseudo-Frobenius and never
-    // counted by rl. So PF ⊇ {rl-counted gaps} ⊔ {f}, hence rl + 1 ≤ t.
-    if s.t > 0 {
-        assert!(s.rl < s.t, "rl = {}, t = {} for {gens:?}", s.rl, s.t);
-    } else {
-        assert_eq!(s.rl, 0);
-    }
-    assert!(s.t <= s.r + 1);
-    assert!(s.es <= s.e);
+
     // descent_total adds a residue-μ gap L_↓ = μ + l·m where l = ⌊L/m⌋
     // and L = max(V ∩ G(S)). When that doesn't change the multiplicity,
     // Δg = (s.apery[μ] − down.apery[μ]) / m counts the residue-μ gaps

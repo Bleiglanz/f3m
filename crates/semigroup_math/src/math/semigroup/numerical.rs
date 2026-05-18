@@ -58,6 +58,7 @@ impl Semigroup {
         (0..self.m).map(|j| self.kunz(index + j, j)).sum()
     }
 
+    /// TODO 115 - simple rvec computation
     /// Number of reflected gaps in residue class `i` (mod `m`): the count of
     /// gaps `x` with `x ≡ i (mod m)` for which `f − x` is also a gap.
     ///
@@ -70,10 +71,10 @@ impl Semigroup {
         if self.m < 2 || i == 0 || i >= self.m {
             return 0;
         }
-        let j = (self.mu + self.m - i) % self.m;
-        self.kunz(i, j)
+        self.rvec[i]
     }
 
+    /// TODO 115 remove this function, this is a member usize now
     /// ρ(S): smallest `r_i` over residue classes `i ∈ 1..m, i ≠ μ`. The
     /// class `i = μ` is excluded because `r_μ = 0` for every numerical
     /// semigroup (a reflected gap with residue `μ` would have partner
@@ -83,10 +84,6 @@ impl Semigroup {
     /// empty (m = 2).
     #[must_use]
     pub fn rho(&self) -> usize {
-        (1..self.m)
-            .filter(|&i| i != self.mu)
-            .map(|i| self.r_i(i))
-            .min()
-            .unwrap_or(0)
+        self.rho
     }
 }

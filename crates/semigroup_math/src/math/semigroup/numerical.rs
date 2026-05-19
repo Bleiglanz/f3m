@@ -83,20 +83,18 @@ impl Semigroup {
     /// no information. Returns 0 when `m < 2` or when `1..m \ {μ}` is
     /// empty (m = 2).
     #[must_use]
-    pub fn rho(&self) -> usize {
+    pub const fn rho(&self) -> usize {
         self.rho
     }
-    /// max r_i is tau, also to be removed
+    /// max `r_i` is tau, also to be removed
     #[must_use]
-    pub fn tau(&self) -> usize { self.tau}
+    pub const fn tau(&self) -> usize {
+        self.tau
+    }
 
     /// apn is an infinite sequence
     #[must_use]
-    pub fn apn(&self,i:usize) -> usize {
-        if i>=self.apn.len() {
-            0
-        } else {
-            self.apn[i]
-        }
+    pub fn apn(&self, i: usize) -> usize {
+        if i >= self.apn.len() { 0 } else { self.apn[i] }
     }
 }

@@ -494,9 +494,9 @@ fn test_up_downs(s: &Semigroup) {
             if w == s.f + s.m && s.m >= 3 {
                 let rho = s.rho();
                 assert_eq!(
-                     up.g,
-                     s.g + rho,
-                     "removing atom generates rho gap for {i} and {w}"
+                    up.g,
+                    s.g + rho,
+                    "removing atom generates rho gap for {i} and {w}"
                 );
                 assert!(up.apery_set.contains(&(w + rho * s.m)));
                 assert_eq!(up.apery_set[i], w + rho * s.m);
@@ -1071,11 +1071,7 @@ fn test_ascent_flip_inverts_descent_flip_v_of_s_branch() {
             l = ⌊L/m⌋, L = max(V ∩ G(S))) and is not designed as the inverse \
             of ascent_total."]
 fn test_ascent_total_descent_total_round_trip_fpm_branch() {
-    for gens in [
-        &[5_usize, 7, 23][..],
-        &[3, 7, 8][..],
-        &[4, 6, 7, 9][..],
-    ] {
+    for gens in [&[5_usize, 7, 23][..], &[3, 7, 8][..], &[4, 6, 7, 9][..]] {
         let s = compute(gens);
         let up = s.ascent_total();
         assert_eq!(s, up.descent_total(), "round trip for {gens:?}");

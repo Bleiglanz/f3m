@@ -77,15 +77,15 @@ pub struct Semigroup {
     pub deep: bool,
     ///
     /// TODO 115
-    /// rho - minimum of the r_i
-    pub rho:usize,
-    /// tau - maximum of the r_i
-    pub tau:usize,
-    /// apn[i] = number of w_i, such that w_i+w_{mu-i}=f+m+im
-    /// length should be max(r_i)
-    pub apn:Vec<usize>,
-    /// the vector r_i for i=0...m-1
-    pub rvec:Vec<usize>,
+    /// `rho` - minimum of the `r_i`
+    pub rho: usize,
+    /// `tau` - maximum of the `r_i`
+    pub tau: usize,
+    /// `apn[i]` = number of `w_i`, such that `w_i + w_{mu-i} = f + m + i·m`;
+    /// length should be `max(r_i)`
+    pub apn: Vec<usize>,
+    /// the vector `r_i` for `i = 0..m-1`
+    pub rvec: Vec<usize>,
 }
 
 /// Two semigroups are equal iff they have the same generators, Frobenius number,

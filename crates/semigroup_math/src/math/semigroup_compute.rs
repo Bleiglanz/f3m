@@ -39,7 +39,7 @@ pub fn compute(input: &[usize]) -> Semigroup {
     let mut minimal_generators: usize = 1;
     let mut max_atom = m;
     let mut genset: Vec<usize> = Vec::new();
-    let mut mu:usize = 0;
+    let mut mu: usize = 0;
     window[0] = 0;
     let mut i: usize = m; // startindex
     while runlength < m {
@@ -66,7 +66,7 @@ pub fn compute(input: &[usize]) -> Semigroup {
                     hit = true;
                     window[windowindex] = i as isize;
                     aperyset[residue] = i;
-                    mu=residue;
+                    mu = residue;
                     sum_apery += i;
                     if i > max_apery {
                         max_apery = i;
@@ -102,8 +102,12 @@ pub fn compute(input: &[usize]) -> Semigroup {
     assert_eq!(genset.len(), minimal_generators);
     genset.sort_unstable();
     assert_eq!(aperyset.len(), m);
-    if m>1 {
-        assert_eq!(max_apery % m, mu, "max_apery {max_apery} in residue {mu} mod {m}");
+    if m > 1 {
+        assert_eq!(
+            max_apery % m,
+            mu,
+            "max_apery {max_apery} in residue {mu} mod {m}"
+        );
         assert_eq!(max_apery, aperyset[mu], "max_apery in residue {mu} mod {m}");
     }
     let element = |n: usize| -> bool { n >= aperyset[n % m] };
@@ -150,20 +154,37 @@ pub fn compute(input: &[usize]) -> Semigroup {
             .filter(|&x| !element(x))
             .count(),
     };
-    let rvec:Vec<usize> = if 1==m {vec!(0)} else {
-        (0..m).map(|i| { (aperyset[i] + aperyset[(mu + m - i) % m] - max_apery) / m }).collect()
+    let rvec: Vec<usize> = if 1 == m {
+        vec![0]
+    } else {
+        (0..m)
+            .map(|i| (aperyset[i] + aperyset[(mu + m - i) % m] - max_apery) / m)
+            .collect()
     };
 
-    let rho:usize = if 1==m { 0usize } else {
-        (1..m).filter(|i|*i!=mu).map(|i|rvec[i]).min().unwrap_or(0usize)
+    let rho: usize = if 1 == m {
+        0usize
+    } else {
+        (1..m)
+            .filter(|i| *i != mu)
+            .map(|i| rvec[i])
+            .min()
+            .unwrap_or(0usize)
     };
 
-    let tau:usize = if 1==m { 0usize } else {rvec[1..].iter().max().copied().unwrap_or(0usize)};
+    let tau: usize = if 1 == m {
+        0usize
+    } else {
+        rvec[1..].iter().max().copied().unwrap_or(0usize)
+    };
 
-    let apn:Vec<usize> = (0..tau+1).map(|k| {
-        (0..m).filter(|&i|aperyset[i]+aperyset[(mu+m-i)%m]==max_apery+k*m).count()
-    }).collect();
-
+    let apn: Vec<usize> = (0..=tau)
+        .map(|k| {
+            (0..m)
+                .filter(|&i| aperyset[i] + aperyset[(mu + m - i) % m] == max_apery + k * m)
+                .count()
+        })
+        .collect();
 
     Semigroup {
         e: minimal_generators,

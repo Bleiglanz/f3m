@@ -174,7 +174,7 @@ impl Semigroup {
         if self.gen_set.contains(&ae) {
             self.destroy_atom(ae)
         } else {
-            self.toggle(self.f+self.m)
+            self.toggle(self.f + self.m)
         }
     }
 

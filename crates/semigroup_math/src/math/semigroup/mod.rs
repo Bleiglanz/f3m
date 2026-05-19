@@ -79,8 +79,8 @@ pub struct Semigroup {
     /// TODO 115
     /// rho - minimum of the r_i
     pub rho:usize,
-    /// pho - maximum of the r_i
-    pub pho:usize,
+    /// tau - maximum of the r_i
+    pub tau:usize,
     /// apn[i] = number of w_i, such that w_i+w_{mu-i}=f+m+im
     /// length should be max(r_i)
     pub apn:Vec<usize>,

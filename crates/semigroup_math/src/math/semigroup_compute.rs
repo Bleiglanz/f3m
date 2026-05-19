@@ -150,26 +150,21 @@ pub fn compute(input: &[usize]) -> Semigroup {
             .filter(|&x| !element(x))
             .count(),
     };
-    let rho = if 1==m { 0usize } else {(1..m)
-        .filter(|&i| i != mu)
-        .map(|i| (aperyset[i]+aperyset[(mu + m - i)%m] - max_apery) / m)
-        .min()
-        .unwrap_or(0)};
+    let rvec:Vec<usize> = if 1==m {vec!(0)} else {
+        (0..m).map(|i| { (aperyset[i] + aperyset[(mu + m - i) % m] - max_apery) / m }).collect()
+    };
 
-    let pho = if 1==m {0usize}else{(1..m)
-        .filter(|&i| i != mu)
-        .map(|i| (aperyset[i]+aperyset[(mu+m-i)%m] - max_apery) / m)
-        .max()
-        .unwrap_or(0)};
+    let rho:usize = if 1==m { 0usize } else {
+        (1..m).filter(|i|*i!=mu).map(|i|rvec[i]).min().unwrap_or(0usize)
+    };
 
-    let apn:Vec<usize> = (0..pho+1).map(|k| {
+    let tau:usize = if 1==m { 0usize } else {rvec[1..].iter().max().copied().unwrap_or(0usize)};
+
+    let apn:Vec<usize> = (0..tau+1).map(|k| {
         (0..m).filter(|&i|aperyset[i]+aperyset[(mu+m-i)%m]==max_apery+k*m).count()
     }).collect();
 
-    let rvec:Vec<usize> = if 1==m {Vec::new()} else {
-        (0..m).map(|i| { (aperyset[i] + aperyset[(mu + m - i) % m] - max_apery) / m }).collect()
-    };
-    
+
     Semigroup {
         e: minimal_generators,
         f: max_apery - m,
@@ -194,7 +189,7 @@ pub fn compute(input: &[usize]) -> Semigroup {
         is_almost_symmetric: max_apery + type_count == m + 2 * (sum_apery - ((m - 1) * m) / 2) / m,
         deep,
         rho,
-        pho,
+        tau,
         apn,
         rvec,
     }

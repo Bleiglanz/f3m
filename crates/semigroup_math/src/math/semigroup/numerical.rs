@@ -86,4 +86,17 @@ impl Semigroup {
     pub fn rho(&self) -> usize {
         self.rho
     }
+    /// max r_i is tau, also to be removed
+    #[must_use]
+    pub fn tau(&self) -> usize { self.tau}
+
+    /// apn is an infinite sequence
+    #[must_use]
+    pub fn apn(&self,i:usize) -> usize {
+        if i>=self.apn.len() {
+            0
+        } else {
+            self.apn[i]
+        }
+    }
 }

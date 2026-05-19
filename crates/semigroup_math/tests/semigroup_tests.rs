@@ -494,9 +494,9 @@ fn test_up_downs(s: &Semigroup) {
             if w == s.f + s.m && s.m >= 3 {
                 let rho = s.rho();
                 assert_eq!(
-                    up.g,
-                    s.g + rho,
-                    "removing atom generates rho gap for {i} and {w}"
+                     up.g,
+                     s.g + rho,
+                     "removing atom generates rho gap for {i} and {w}"
                 );
                 assert!(up.apery_set.contains(&(w + rho * s.m)));
                 assert_eq!(up.apery_set[i], w + rho * s.m);
@@ -536,7 +536,6 @@ fn test_csv_fixtures() {
     let mut lines = csv.lines();
     let header = lines.next().expect("CSV has a header");
     assert_eq!(header, "gens;e;f;m;g;c;sym;apery;pf;t", "CSV header drift");
-
     let mut count = 0usize;
     for (idx, raw) in lines.enumerate() {
         if raw.trim().is_empty() {

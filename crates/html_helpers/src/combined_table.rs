@@ -284,10 +284,14 @@ pub fn combined_table(
             for &j in &perm {
                 let v = sg.kunz(i, j);
                 let sum = (i + j) % m;
+                // Cells on the cross-diagonal sum ≡ μ (mod m) are the
+                // c_{i, μ−i} = r_i reflected-gap counts; share the
+                // reflected-gap (sg-blob) background.
+                let zero_cls = kunz_cls(v);
+                let refl_cls = if sum == sg.mu { "sg-blob" } else { "" };
                 let _ = write!(
                     html,
-                    "<td class=\"{}\" data-kunz-i=\"{i}\" data-kunz-j=\"{j}\" data-kunz-sum=\"{sum}\">{v}</td>",
-                    kunz_cls(v)
+                    "<td class=\"{zero_cls} {refl_cls}\" data-kunz-i=\"{i}\" data-kunz-j=\"{j}\" data-kunz-sum=\"{sum}\">{v}</td>",
                 );
             }
             html.push_str("</tr>");

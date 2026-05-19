@@ -251,7 +251,7 @@ fn gap_block_extras(sg: &Semigroup, idx: usize, out: &mut String) {
             mu = sg.mu,
         )
         .unwrap();
-        writeln!(out, "Assert(0, rho{idx} = {});", sg.rho()).unwrap();
+        writeln!(out, "Assert(0, rho{idx} = {});", sg.rho).unwrap();
     }
 }
 

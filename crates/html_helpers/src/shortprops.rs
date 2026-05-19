@@ -41,7 +41,7 @@ pub fn shortprop_cells(sg: &Semigroup) -> String {
         rl = sg.rl,
         r = sg.r,
         ra = sg.ra,
-        rho = sg.rho(),
+        rho = sg.rho,
         fg = sg.fg,
         sym = glyph(sg.is_symmetric),
         vins = glyph(sg.v_in_s()),

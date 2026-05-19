@@ -312,7 +312,7 @@ fn props_cells(sg: &Semigroup) -> String {
         level = sg.level,
         wilf = sg.wilf(),
         inv_e = 1.0 / sg.e as f64,
-        rho = sg.rho(),
+        rho = sg.rho,
     )
 }
 
@@ -577,7 +577,7 @@ fn build_list_json(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
             level = sg.level,
             wilf = sg.wilf(),
             max_gen = sg.max_gen,
-            rho = sg.rho(),
+            rho = sg.rho,
             deep = sg.deep,
             vins = sg.v_in_s(),
             gen = json_array(&sg.gen_set),

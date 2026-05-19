@@ -193,7 +193,7 @@ impl JsSemigroup {
     #[wasm_bindgen(getter)]
     #[must_use]
     pub fn rho(&self) -> usize {
-        self.0.rho()
+        self.0.rho
     }
     /// Reflected-gaps-by-residue vector `(r_1, …, r_{m−1})`. The slot at
     /// `i = μ` is always 0.

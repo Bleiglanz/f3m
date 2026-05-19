@@ -154,37 +154,31 @@ pub fn compute(input: &[usize]) -> Semigroup {
             .filter(|&x| !element(x))
             .count(),
     };
-    let rvec: Vec<usize> = if 1 == m {
-        vec![0]
+    // Reflected-gap statistics. For m == 1 (S = ℕ) every quantity below is
+    // either undefined (rho/tau have no non-mu residue class to range over)
+    // or trivially 0, except apn which records the single residue 0 reflecting
+    // onto itself. Bypass the loops to avoid range/empty-iterator edge cases.
+    let (rvec, rho, tau, apn): (Vec<usize>, usize, usize, Vec<usize>) = if m < 2 {
+        (vec![0], 0, 0, vec![1])
     } else {
-        (0..m)
+        let rvec: Vec<usize> = (0..m)
             .map(|i| (aperyset[i] + aperyset[(mu + m - i) % m] - max_apery) / m)
-            .collect()
-    };
-
-    let rho: usize = if 1 == m {
-        0usize
-    } else {
-        (1..m)
+            .collect();
+        let rho = (1..m)
             .filter(|i| *i != mu)
             .map(|i| rvec[i])
             .min()
-            .unwrap_or(0usize)
+            .unwrap_or(0);
+        let tau = rvec[1..].iter().max().copied().unwrap_or(0);
+        let apn: Vec<usize> = (0..=tau)
+            .map(|k| {
+                (0..m)
+                    .filter(|&i| aperyset[i] + aperyset[(mu + m - i) % m] == max_apery + k * m)
+                    .count()
+            })
+            .collect();
+        (rvec, rho, tau, apn)
     };
-
-    let tau: usize = if 1 == m {
-        0usize
-    } else {
-        rvec[1..].iter().max().copied().unwrap_or(0usize)
-    };
-
-    let apn: Vec<usize> = (0..=tau)
-        .map(|k| {
-            (0..m)
-                .filter(|&i| aperyset[i] + aperyset[(mu + m - i) % m] == max_apery + k * m)
-                .count()
-        })
-        .collect();
 
     Semigroup {
         e: minimal_generators,

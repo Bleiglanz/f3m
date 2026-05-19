@@ -75,16 +75,16 @@ pub struct Semigroup {
     /// i.e. `m + i` is a gap for every non-zero residue class. Vacuously true
     /// when `m ≤ 1`.
     pub deep: bool,
-    ///
-    /// TODO 115
-    /// `rho` - minimum of the `r_i`
+    /// ρ = minimum of `r_i` over residue classes `i ∈ 1..m, i ≠ μ`. Zero
+    /// when `m < 2` or `1..m \ {μ}` is empty (`m = 2`).
     pub rho: usize,
-    /// `tau` - maximum of the `r_i`
+    /// τ = maximum of `r_i` over residue classes `i ∈ 1..m`. Zero when `m < 2`.
     pub tau: usize,
-    /// `apn[i]` = number of `w_i`, such that `w_i + w_{mu-i} = f + m + i·m`;
-    /// length should be `max(r_i)`
+    /// `apn[k]` counts residue classes `i ∈ 0..m` whose reflected partner
+    /// satisfies `w_i + w_{(μ−i) mod m} = max_apery + k·m`. Length is `τ + 1`.
     pub apn: Vec<usize>,
-    /// the vector `r_i` for `i = 0..m-1`
+    /// Per-residue reflected-gap counts `r_i` for `i ∈ 0..m`. Slot `μ`
+    /// is always 0 by construction.
     pub rvec: Vec<usize>,
 }
 

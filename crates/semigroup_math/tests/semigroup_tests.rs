@@ -466,7 +466,7 @@ fn test_up_downs(s: &Semigroup) {
             );
             let down = s.toggle(w - s.m);
             assert_eq!(down.g + 1, s.g);
-            //find failed testcase assert_eq!(down.rho(),s.rho()+1);
+            //find failed testcase assert_eq!(down.rho, s.rho + 1);
             if w == s.f + s.m && s.v_in_s() {
                 assert_eq!(down.r + 2, s.r + s.m, "r change w==f+m for i={i}");
                 assert_eq!(down.sigma + s.m, s.sigma + 1, "sigma");
@@ -492,7 +492,7 @@ fn test_up_downs(s: &Semigroup) {
             // to ℕ via gcd-normalisation (e.g. ⟨2, 5⟩ ⇒ ⟨2⟩ ⇒ ℕ). The "ascent
             // of w_μ" structural claim assumes another residue class survives.
             if w == s.f + s.m && s.m >= 3 {
-                let rho = s.rho();
+                let rho = s.rho;
                 assert_eq!(
                     up.g,
                     s.g + rho,
@@ -752,21 +752,21 @@ fn test_rho() {
     assert_eq!(sg.r_i(1), 2);
     assert_eq!(sg.r_i(2), 0);
     assert_eq!(sg.r_i(3), 1);
-    assert_eq!(sg.rho(), 1);
+    assert_eq!(sg.rho, 1);
 
     // <3, 5, 7>: f=4, μ=1. r_1=0, r_2=1 → min over {2} = 1.
     let sg = compute(&[3, 5, 7]);
-    assert_eq!(sg.rho(), 1);
+    assert_eq!(sg.rho, 1);
 
     // <3, 10, 11>: f=8, μ=2. r_1=3, r_2=0 → min over {1} = 3.
     let sg = compute(&[3, 10, 11]);
-    assert_eq!(sg.rho(), 3);
+    assert_eq!(sg.rho, 3);
 
     // m = 2: 1..m \ {μ} is empty (μ = 1 since f is odd) → rho = 0.
     // <2, 5>: f=3, μ=1.
     let sg = compute(&[2, 5]);
     assert_eq!(sg.mu, 1);
-    assert_eq!(sg.rho(), 0);
+    assert_eq!(sg.rho, 0);
 }
 
 #[test]
@@ -1063,19 +1063,6 @@ fn test_ascent_flip_inverts_descent_flip_v_of_s_branch() {
         s.gen_set,
         "ascent_flip ∘ descent_flip must round-trip in the V(S) branch",
     );
-}
-
-#[test]
-#[ignore = "ascent_total ∘ descent_total is no longer the identity in general: \
-            descent_total now follows the writeup (L_↓ = μ + l·m where \
-            l = ⌊L/m⌋, L = max(V ∩ G(S))) and is not designed as the inverse \
-            of ascent_total."]
-fn test_ascent_total_descent_total_round_trip_fpm_branch() {
-    for gens in [&[5_usize, 7, 23][..], &[3, 7, 8][..], &[4, 6, 7, 9][..]] {
-        let s = compute(gens);
-        let up = s.ascent_total();
-        assert_eq!(s, up.descent_total(), "round trip for {gens:?}");
-    }
 }
 
 #[test]

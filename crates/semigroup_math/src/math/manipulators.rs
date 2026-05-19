@@ -162,7 +162,7 @@ impl Semigroup {
     ///
     /// When the destruction fires, the new Apéry vector keeps every
     /// `w_i` for `i ≠ μ` and lifts `w_μ` from `f + m` to `f + (ρ + 1)·m`,
-    /// where `ρ = self.rho()`. Consequences (asserted in `tests/`):
+    /// where `ρ = self.rho`. Consequences (asserted in `tests/`):
     /// `g' = g + ρ`, `σ' = σ − (ρ − 1)·(m − 2) − 1`, and
     /// `r' = r − ρ·(m − 2)`.
     ///

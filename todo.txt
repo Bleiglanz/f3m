@@ -534,8 +534,11 @@ Tasks for the implementation pass:
   Flip > Total or Total > Flip gives the denser orbit structure
 - pick the priority and lock it in
 
-TODO 115)
-source code changes
+TODO 115) [DONE with 55e8587]
+Introduce rho, tau, apn, rvec on Semigroup and a property test that exercises
+them. Implementation landed in 55e8587 (rvec/apn) and 0631724 (almost-symmetric
+test coverage); fmt/clippy and follow-up API cleanup (drop rho()/tau() getters)
+followed.
 
 
 

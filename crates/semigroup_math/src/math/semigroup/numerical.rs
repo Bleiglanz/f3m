@@ -58,7 +58,6 @@ impl Semigroup {
         (0..self.m).map(|j| self.kunz(index + j, j)).sum()
     }
 
-    /// TODO 115 - simple rvec computation
     /// Number of reflected gaps in residue class `i` (mod `m`): the count of
     /// gaps `x` with `x ≡ i (mod m)` for which `f − x` is also a gap.
     ///
@@ -74,25 +73,8 @@ impl Semigroup {
         self.rvec[i]
     }
 
-    /// TODO 115 remove this function, this is a member usize now
-    /// ρ(S): smallest `r_i` over residue classes `i ∈ 1..m, i ≠ μ`. The
-    /// class `i = μ` is excluded because `r_μ = 0` for every numerical
-    /// semigroup (a reflected gap with residue `μ` would have partner
-    /// `f − x ≡ 0 (mod m)`, but `0, m, 2m, …` all lie in `S`), so
-    /// including it would pin the minimum to 0 unconditionally and carry
-    /// no information. Returns 0 when `m < 2` or when `1..m \ {μ}` is
-    /// empty (m = 2).
-    #[must_use]
-    pub const fn rho(&self) -> usize {
-        self.rho
-    }
-    /// max `r_i` is tau, also to be removed
-    #[must_use]
-    pub const fn tau(&self) -> usize {
-        self.tau
-    }
-
-    /// apn is an infinite sequence
+    /// `apn[i]` viewed as an infinite sequence: returns 0 when `i` is
+    /// outside the stored prefix.
     #[must_use]
     pub fn apn(&self, i: usize) -> usize {
         if i >= self.apn.len() { 0 } else { self.apn[i] }

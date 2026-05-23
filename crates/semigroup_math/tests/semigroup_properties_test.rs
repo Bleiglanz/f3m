@@ -72,5 +72,32 @@ pub fn basic(s: &Semigroup) {
         if s.tau >= 1 {
             assert_eq!(s.apn[0] + s.apn[1], s.m, "apn only in 0,1 for {gens:?}");
         }
+        if s.v_in_s() {
+            let sprime = s.toggle(s.f);
+            assert_eq!(sprime.f + s.m, s.f);
+            assert_eq!(sprime.m, s.m);
+            assert_eq!(sprime.g + 1, s.g);
+            assert_eq!(sprime.r + 2, s.r + s.m);
+            (1..s.m).all(|i| s.rvec[i] + 1 == sprime.rvec[i]);
+            if s.tau == 1 {
+                assert_eq!(sprime.tau, 2)
+            };
+            if s.rho < s.tau {
+                assert_eq!(sprime.rho, 1, "sprime tau {gens:?}")
+            };
+            let spminusf: Vec<usize> = s.pf_set.iter().copied().filter(|&x| x < s.f).collect();
+            assert!(spminusf.iter().all(|x| sprime.pf_set.contains(x)));
+            let gendiff: Vec<usize> = sprime.gen_set[0..sprime.e - 2]
+                .iter()
+                .map(|a| sprime.max_gen - a)
+                .collect();
+            assert!(
+                sprime
+                    .pf_set
+                    .iter()
+                    .all(|x| { s.pf_set.contains(x) || gendiff.contains(x) }),
+                "PF of S' for {gens:?}"
+            )
+        }
     }
 }

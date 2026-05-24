@@ -179,6 +179,10 @@ pub fn compute(input: &[usize]) -> Semigroup {
             .collect();
         (rvec, rho, tau, apn)
     };
+    //
+    // the pivot
+    //
+    let pivot:usize = pf_set.iter().copied().filter(|&x| x < max_apery - m).max().unwrap_or(max_apery - m);
 
     Semigroup {
         e: minimal_generators,
@@ -207,5 +211,6 @@ pub fn compute(input: &[usize]) -> Semigroup {
         tau,
         apn,
         rvec,
+        pivot,
     }
 }

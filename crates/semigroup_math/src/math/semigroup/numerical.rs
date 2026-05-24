@@ -79,4 +79,5 @@ impl Semigroup {
     pub fn apn(&self, i: usize) -> usize {
         if i >= self.apn.len() { 0 } else { self.apn[i] }
     }
+    
 }

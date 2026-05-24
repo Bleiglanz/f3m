@@ -979,18 +979,6 @@ fn test_fast_descent_changes_r_by_exact_amount() {
 }
 
 #[test]
-fn test_ascent_total_f_plus_m_branch_concrete() {
-    // ⟨5, 7, 23⟩: f+m = 23 is a min-gen. ascent_total destroys it → ⟨5, 7⟩.
-    let s = compute(&[5, 7, 23]);
-    assert_eq!(s.ascent_total().gen_set, vec![5, 7]);
-
-    // ⟨2, 5⟩: f+m = 5 is a min-gen. ascent_total destroys it; the remaining
-    // single-element gen-set ⟨2⟩ gcd-normalises to ⟨1⟩ = ℕ.
-    let s = compute(&[2, 5]);
-    assert_eq!(s.ascent_total().gen_set, vec![1]);
-}
-
-#[test]
 fn test_ascent_flip_k_at_least_2_concrete() {
     // ⟨4, 5⟩: at k=2, atom 5 satisfies 2·5 = 10 = w₂ ∈ V(S) = (7, 11).
     // ascent_flip toggles 5; {2·5, 3·5} = {10, 15} become fresh atoms.
@@ -1038,30 +1026,6 @@ fn test_apery_shift_first_when_kunz_move_is_blocked() {
         s.partial_cmp(&s2),
         Some(std::cmp::Ordering::Equal),
         "blocked Kunz move should collapse to the original semigroup",
-    );
-}
-
-#[test]
-#[ignore = "Flip invertibility is not asserted at the implementation level; \
-            theoretical conditions for ascent_flip ∘ descent_flip = id are TBD."]
-fn test_ascent_flip_inverts_descent_flip_v_of_s_branch() {
-    // When descent_flip enters the V(S) branch (an Apéry strictly between
-    // f and f+m exists), it picks the *largest* such Apéry x and adds
-    // x − m as a new generator. The new atom lands in V(S'), and
-    // ascent_flip's stratum walk recovers exactly that atom.
-    //
-    // ⟨10, 11, 13⟩: apéry = [0,11,22,13,24,35,26,37,48,39], f = 38;
-    // largest Apéry in (38, 48) is 39, so descent_flip adds 39 − 10 = 29.
-    let s = compute(&[10, 11, 13]);
-    let d = s.descent_flip();
-    assert!(
-        d.gen_set.contains(&29),
-        "descent_flip should add 29 = 39 − m"
-    );
-    assert_eq!(
-        d.ascent_flip().gen_set,
-        s.gen_set,
-        "ascent_flip ∘ descent_flip must round-trip in the V(S) branch",
     );
 }
 

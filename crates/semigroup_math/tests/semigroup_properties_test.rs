@@ -62,7 +62,14 @@ pub fn basic(s: &Semigroup) {
     // the sum of all apns must equal m (because they slice m)
     let apnsum = s.apn.iter().sum();
     assert_eq!(s.m, apnsum);
-
+    // fun fact: if L is a pf and L+s=a is an atom
+    // then s must be an atom itself
+    assert!(s.pf_set.iter().all(|&p| {
+        s.gen_set.iter().copied().filter(|&a| a < p).all(|a|
+            s.gen_set.contains(&(p - a)) || !s.element(p-a)
+        )
+    }
+    ));
     //almost symmetrical
     if s.r + 1 == s.t && s.m>1 {
         assert_eq!(2 * s.g, s.f + s.t, "2g=f+t {gens:?}");

@@ -86,6 +86,8 @@ pub struct Semigroup {
     /// Per-residue reflected-gap counts `r_i` for `i ∈ 0..m`. Slot `μ`
     /// is always 0 by construction.
     pub rvec: Vec<usize>,
+    /// is the largest pf < f or f if there is no such pf
+    pub pivot: usize,
 }
 
 /// Two semigroups are equal iff they have the same generators, Frobenius number,

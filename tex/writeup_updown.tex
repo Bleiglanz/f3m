@@ -16,8 +16,75 @@
 \setlength{\parindent}{0em}
 
 \begin{document}
+\section{new onepageer}
+Let $S$ be a semigroup, $m(S)>2$ and $V=\{z\in\N \;\mid\; z \neq 0 \mod m, z \neq \mu \mod m\}$
+\section{Ascent-Flip}
+Let $X = (\Npos \operatorname{Atom}(S)) \cap V \cap \operatorname{Ap}(S)$ be the set of all elements of $V$
+that are integer multiples of an atom and Apery, i.e. $X=\{z\in V \mid \exists a \operatorname{Atom}(S), a | z, z-m \notin S\}$
 
-\section{new descent/ascent}
+Remark: If $ka$ is Apery for an atom $a$, then all elements $a,2a,\dots,ka$ are Apery.
+
+By construction, $f+m$ and $m$ cannot be Elements of $X$, because they are not in $V$
+
+$X$ is not empty, because ($\operatorname{A}(S)\setminus \{m,f+m\}) \subseteq V$ and atoms $\neq m$ are Apery.
+
+Let $w=\max(X)$. Then 
+we define 
+\[
+a_{\uparrow}(S)=\max \{ a \in \operatorname{Atom}(S) \mid a | w \}
+\]
+This always exists, is $<f+m$, and we let $A(S)=S \setminus \{a_\uparrow\}$
+%
+%
+%
+\section{Descent-Flip}
+Let $Y = \operatorname{Ap}(S) \cap V$ be the set of all Apery-Elements in $V$
+
+$Y=\{w_1,\dots,w_{\mu-1},w_{\mu+1},\dots,w_{m-1}\}=\operatorname{Ap}(S)\setminus\{0,f+m\}$.
+
+$Y$ is not empty, because we assumed $m>2$
+
+Let $w=\max(Y)$. Then $w-m$ is the largest gap in $V$ 
+(TODO: $w-m$ is simply $\max(\operatorname{PF}(S)\setminus \{f\}$)
+and we define
+\[
+L_\downarrow = w-m > 0
+\]
+and $D(S)=S \cup \{L_\downarrow\}$
+%
+%
+%
+\section{Ascent-Total}
+If $f+m = a \in \operatorname{Atom}(S)$ let $a_\uparrow = f+m$ and define
+\[
+A_{t}(S) = \langle \operatorname{Atom}(S)\setminus \{ a_\uparrow \} \rangle
+\]
+(this is well defined because $m>2$).
+If $f+m$ is decomposable, define 
+\[
+A_{t} = \langle S \setminus \{f+m\}\rangle
+\]
+%
+%
+%
+\section{Descent-Total}
+Let $L = \max (V\cap G(S))$ be the largest gap in $V$ and let $l\geq 0$
+be the natural number such that $lm < L <(l+1)m$. Since $L<f$ and if $l>0$ we have $\mu+(l-1)m$ is a gap (since otherwise $f<L)$, we must have
+$\mu + lm \leq f$ and so we define:
+\[
+L_\downarrow = \mu+lm
+\]
+and $D(S):= S \cup \{ L_\downarrow \}$
+
+comment: if $l=0$ in the above $m(D(S))=\mu(S)$ and $\mu(D(S))<\mu(S)<m$
+
+
+
+
+
+
+
+\section{Older Version before 24th may 26}
 
 Let $S$ be a numerical semigroup with the usual $f, m, g, \sigma, r$
 and Apéry set $\{w_0, \dots, w_{m-1}\}$ indexed by residue. The four

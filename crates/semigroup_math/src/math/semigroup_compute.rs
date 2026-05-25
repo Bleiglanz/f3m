@@ -57,7 +57,7 @@ pub fn compute(input: &[usize]) -> Semigroup {
             hit = true;
             window[windowindex] = i as isize;
         } else {
-            // ok, we must ckeck this number by going back to windowindex-generator for all generators
+            // ok, we must check this number by going back to windowindex-generator for all generators
             for k in &inputnumbers[1..] {
                 if windowindex >= *k && window[windowindex - k] >= 0 {
                     // case window[windowindex - k] is already an element of S
@@ -179,10 +179,14 @@ pub fn compute(input: &[usize]) -> Semigroup {
             .collect();
         (rvec, rho, tau, apn)
     };
-    //
-    // the pivot
-    //
-    let pivot:usize = pf_set.iter().copied().filter(|&x| x < max_apery - m).max().unwrap_or(max_apery - m);
+    // pivot: the largest pseudo-Frobenius number strictly below f, or f
+    // itself when none exists. (Here f = max_apery − m.)
+    let pivot = pf_set
+        .iter()
+        .copied()
+        .filter(|&x| x < max_apery - m)
+        .max()
+        .unwrap_or(max_apery - m);
 
     Semigroup {
         e: minimal_generators,
@@ -197,7 +201,6 @@ pub fn compute(input: &[usize]) -> Semigroup {
         fg,
         sigma: sigma - m,
         g: (sum_apery - ((m - 1) * m) / 2) / m,
-        max_gen: *genset.iter().max().unwrap(),
         gen_set: genset,
         apery_set: aperyset,
         apery_sum: sum_apery,

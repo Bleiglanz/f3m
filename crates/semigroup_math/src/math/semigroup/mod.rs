@@ -36,7 +36,7 @@ pub struct Semigroup {
     pub es: usize,
     /// rl = large reflected gaps, gaps L with f − m < L < f (automatically reflected)
     pub rl: usize,
-    /// ae = the largest minimal generator, `max(gen_set)`
+    /// The largest minimal generator (the "last atom"), `max(gen_set)`.
     pub ae: usize,
     /// ra = number of apery-elements w such that w-m is a reflected gap
     pub ra: usize,
@@ -46,8 +46,6 @@ pub struct Semigroup {
     pub sigma: usize,
     /// Genus: number of gaps (positive integers not in S).
     pub g: usize,
-    /// Largest minimal generator.
-    pub max_gen: usize,
     /// Sorted list of minimal generators.
     pub gen_set: Vec<usize>,
     /// Apéry set w.r.t. m: `apery_set`[i] is the smallest element of S congruent to i mod m.
@@ -86,7 +84,8 @@ pub struct Semigroup {
     /// Per-residue reflected-gap counts `r_i` for `i ∈ 0..m`. Slot `μ`
     /// is always 0 by construction.
     pub rvec: Vec<usize>,
-    /// is the largest pf < f or f if there is no such pf
+    /// The largest pseudo-Frobenius number strictly below `f`, or `f` itself
+    /// when there is none.
     pub pivot: usize,
 }
 

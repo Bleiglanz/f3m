@@ -576,7 +576,7 @@ fn build_list_json(gmax: usize, all_data: &[(usize, GenusData)]) -> String {
             asym = sg.is_almost_symmetric,
             level = sg.level,
             wilf = sg.wilf(),
-            max_gen = sg.max_gen,
+            max_gen = sg.ae,
             rho = sg.rho,
             deep = sg.deep,
             vins = sg.v_in_s(),
@@ -648,12 +648,12 @@ fn print_asym_anomalies(all_data: &[(usize, GenusData)]) {
                 let s2 = compute(&gens);
                 let g2 = s2.g;
                 let fm2 = s2.f + s2.m;
-                let ok = s2.max_gen == fm2 && fm2 == 2 * g2;
+                let ok = s2.ae == fm2 && fm2 == 2 * g2;
                 if !ok {
                     anomalies += 1;
-                    let bucket = if s2.max_gen == fm2 && fm2 == 2 * g2 + 1 {
+                    let bucket = if s2.ae == fm2 && fm2 == 2 * g2 + 1 {
                         "2g+1"
-                    } else if s2.max_gen != fm2 {
+                    } else if s2.ae != fm2 {
                         "ae<f+m"
                     } else {
                         "other"
@@ -667,7 +667,7 @@ fn print_asym_anomalies(all_data: &[(usize, GenusData)]) {
                         fmt(&s2.gen_set),
                         s2.f,
                         s2.m,
-                        s2.max_gen,
+                        s2.ae,
                     );
                 }
             }

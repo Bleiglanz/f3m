@@ -65,13 +65,14 @@ pub fn basic(s: &Semigroup) {
     // fun fact: if L is a pf and L+s=a is an atom
     // then s must be an atom itself
     assert!(s.pf_set.iter().all(|&p| {
-        s.gen_set.iter().copied().filter(|&a| a < p).all(|a|
-            s.gen_set.contains(&(p - a)) || !s.element(p-a)
-        )
-    }
-    ));
+        s.gen_set
+            .iter()
+            .copied()
+            .filter(|&a| a < p)
+            .all(|a| s.gen_set.contains(&(p - a)) || !s.element(p - a))
+    }));
     //almost symmetrical
-    if s.r + 1 == s.t && s.m>1 {
+    if s.r + 1 == s.t && s.m > 1 {
         assert_eq!(2 * s.g, s.f + s.t, "2g=f+t {gens:?}");
         assert!(s.tau <= 1);
         assert!(s.r <= s.m - 2);
@@ -85,7 +86,14 @@ pub fn basic(s: &Semigroup) {
             assert_eq!(sprime.m, s.m);
             assert_eq!(sprime.g + 1, s.g);
             assert_eq!(sprime.r + 2, s.r + s.m);
-            (1..s.m).all(|i| s.rvec[i] + 1 == sprime.rvec[i]);
+            // Adding f lifts every reflected-gap count by one, except in
+            // residue μ (where rvec is 0 by construction in both S and S').
+            assert!(
+                (1..s.m)
+                    .filter(|&i| i != s.mu)
+                    .all(|i| s.rvec[i] + 1 == sprime.rvec[i]),
+                "rvec[i]+1 == sprime.rvec[i] for i != μ, {gens:?}"
+            );
             if s.tau == 1 {
                 assert_eq!(sprime.tau, 2)
             };
@@ -94,13 +102,15 @@ pub fn basic(s: &Semigroup) {
             };
             let spminusf: Vec<usize> = s.pf_set.iter().copied().filter(|&x| x < s.f).collect();
             assert!(spminusf.iter().all(|x| sprime.pf_set.contains(x)));
-            assert_eq!(sprime.gen_set[sprime.e-1],sprime.f+sprime.m);
+            assert_eq!(sprime.gen_set[sprime.e - 1], sprime.f + sprime.m);
             let generator_deltas: Vec<usize> = sprime.gen_set[0..sprime.e - 1]
                 .iter()
-                .filter(|&a| s.pf_set.iter().all(|&l| l == s.f  || *a < l ||
-                    !sprime.element(a-l)
-                ))
-                .map(|a| sprime.max_gen - a)
+                .filter(|&a| {
+                    s.pf_set
+                        .iter()
+                        .all(|&l| l == s.f || *a < l || !sprime.element(a - l))
+                })
+                .map(|a| sprime.ae - a)
                 .collect();
             assert!(
                 sprime
@@ -109,16 +119,18 @@ pub fn basic(s: &Semigroup) {
                     .all(|x| { s.pf_set.contains(x) || generator_deltas.contains(x) }),
                 "PF of S' for {gens:?}"
             );
-            let mut newpf:Vec<usize> = s.pf_set.iter().copied().filter(|&x| x < s.f).collect();
+            let mut newpf: Vec<usize> = s.pf_set.iter().copied().filter(|&x| x < s.f).collect();
             newpf.extend(generator_deltas.clone());
             newpf.dedup();
-            assert!(newpf.iter().all(
-                |x|
-                    sprime.pf_set.contains(x)),
-                    "pf S' for {:?} : \ncandidate: {newpf:?}\nshould be:  {:?}\nold pf (S): {:?} old r={}\ngenerator deltas {:?} "
-                    , sprime.gen_set,                                 sprime.pf_set, s.pf_set, s.r, generator_deltas);
-
-
+            assert!(
+                newpf.iter().all(|x| sprime.pf_set.contains(x)),
+                "pf S' for {:?} : \ncandidate: {newpf:?}\nshould be:  {:?}\nold pf (S): {:?} old r={}\ngenerator deltas {:?} ",
+                sprime.gen_set,
+                sprime.pf_set,
+                s.pf_set,
+                s.r,
+                generator_deltas
+            );
         }
     }
 }

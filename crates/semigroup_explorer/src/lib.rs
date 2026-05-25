@@ -114,7 +114,7 @@ impl JsSemigroup {
     #[wasm_bindgen(getter)]
     #[must_use]
     pub fn max_gen(&self) -> usize {
-        self.0.max_gen
+        self.0.ae
     }
 
     /// Sorted list of minimal generators.

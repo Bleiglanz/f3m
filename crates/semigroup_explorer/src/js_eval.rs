@@ -24,7 +24,7 @@ pub(super) struct EvalCtx<'a> {
     f: usize,
     t: usize,
     m: usize,
-    max_gen: usize,
+    ae: usize,    // largest minimal generator (bound to the `Q` eval variable)
     sigma: usize, // σ: semigroup elements below conductor (sigma)
     r: usize,     // reflected gap count
 }
@@ -38,7 +38,7 @@ impl EvalCtx<'_> {
             b'g' => Some(self.g),
             b'f' => Some(self.f),
             b't' => Some(self.t),
-            b'Q' => Some(self.max_gen),
+            b'Q' => Some(self.ae),
             b'A' => Some(self.f + self.m),
             b's' => Some(self.sigma),
             b'r' => Some(self.r),
@@ -172,7 +172,7 @@ pub fn eval_expr(expr: &str, s: &JsSemigroup) -> Option<usize> {
         f: sg.f,
         t: sg.t,
         m: sg.m,
-        max_gen: sg.max_gen,
+        ae: sg.ae,
         sigma: sg.sigma,
         r: sg.r,
     };

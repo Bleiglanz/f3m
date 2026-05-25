@@ -8,7 +8,6 @@ pub fn basic(s: &Semigroup) {
         assert_eq!(s.diag(s.mu), s.r)
     };
     let gens = s.gen_set.clone();
-    // todo 82 / 85
     // rl < t whenever t > 0: every gap counted by rl is pseudo-Frobenius and
     // strictly below f, while f itself is always pseudo-Frobenius and never
     // counted by rl. So PF ⊇ {rl-counted gaps} ⊔ {f}, hence rl + 1 ≤ t.
@@ -31,6 +30,26 @@ pub fn basic(s: &Semigroup) {
         *s.gen_set.iter().max().unwrap(),
         "maximum for {gens:?}"
     );
+
+    //test the pivot
+    assert!(s.pivot<=s.f,"pivot ={} is < f={} if !v in S {gens:?}",s.pivot,s.f);
+    if s.pivot==s.f && s.m>3{
+        assert_eq!(s.toggle(s.f).mu,s.mu,"{gens:?}");
+    }
+    if s.rl>0 {assert!(s.pivot < s.f)};
+    if s.pivot == s.f {assert_eq!{s.rl,0}}
+    if s.rl==0 {assert!(s.v_in_s())};
+    if s.rl>0  {assert!{s.rl>0}};
+    if s.t>1 {
+        let c = s.pf_set.iter().copied().filter(|&x| x<s.f).max().unwrap();
+        assert_eq!(s.pivot,c);
+    } else {assert_eq!(s.pivot,s.f)};
+    test_reflected(&s);
+    test_almost_symmetric(&s);
+}
+
+pub fn test_reflected(s: &Semigroup) {
+    let gens = s.gen_set.clone();
     assert!(s.rho <= s.tau);
     assert!(s.apn[0] >= 2);
     if s.ae == (s.f + s.m) {
@@ -71,8 +90,11 @@ pub fn basic(s: &Semigroup) {
             .filter(|&a| a < p)
             .all(|a| s.gen_set.contains(&(p - a)) || !s.element(p - a))
     }));
+}
+pub fn test_almost_symmetric(s: &Semigroup) {
     //almost symmetrical
     if s.r + 1 == s.t && s.m > 1 {
+        let gens = s.gen_set.clone();
         assert_eq!(2 * s.g, s.f + s.t, "2g=f+t {gens:?}");
         assert!(s.tau <= 1);
         assert!(s.r <= s.m - 2);

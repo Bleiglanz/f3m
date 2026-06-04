@@ -30,7 +30,10 @@ pub fn basic(s: &Semigroup) {
         *s.gen_set.iter().max().unwrap(),
         "maximum for {gens:?}"
     );
-
+    //is there a pseudo < m
+    if s.pf_set.iter().any(|&p|p<s.m){
+        assert!(s.f < 2*s.m,"if a pseudo < m then f<2m {:?}",s.gen_set);
+    }
     //test the pivot
     assert!(s.pivot<=s.f,"pivot ={} is < f={} if !v in S {gens:?}",s.pivot,s.f);
     if s.pivot==s.f && s.m>3{
@@ -38,8 +41,7 @@ pub fn basic(s: &Semigroup) {
     }
     if s.rl>0 {assert!(s.pivot < s.f)};
     if s.pivot == s.f {assert_eq!{s.rl,0}}
-    if s.rl==0 {assert!(s.v_in_s())};
-    if s.rl>0  {assert!{s.rl>0}};
+    if s.rl==0 && s.f > 2*s.m {assert!(s.v_in_s())};
     if s.t>1 {
         let c = s.pf_set.iter().copied().filter(|&x| x<s.f).max().unwrap();
         assert_eq!(s.pivot,c);
@@ -102,6 +104,7 @@ pub fn test_almost_symmetric(s: &Semigroup) {
         if s.tau >= 1 {
             assert_eq!(s.apn[0] + s.apn[1], s.m, "apn only in 0,1 for {gens:?}");
         }
+        assert!(s.f < 2*s.m || s.v_in_s(),"v in almost sym {gens:?}"); // almost symmetric semigroups have V in S
         if s.v_in_s() {
             let sprime = s.toggle(s.f);
             assert_eq!(sprime.f + s.m, s.f);

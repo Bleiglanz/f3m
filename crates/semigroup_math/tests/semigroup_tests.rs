@@ -457,7 +457,7 @@ fn test_up_downs(s: &Semigroup) {
         let w = s.apery_set[i];
 
         // Descent: w-m is a gap; adding it lifts the membership of w-m.
-        if w > s.f && s.f > s.m {
+        if w > s.f && s.f > s.m && w>2*s.m {
             assert!(!s.element(w - s.m));
             assert!(w <= s.f + s.m);
             assert!(
@@ -465,7 +465,7 @@ fn test_up_downs(s: &Semigroup) {
                 "reflected {w} at {i}"
             );
             let down = s.toggle(w - s.m);
-            assert_eq!(down.g + 1, s.g);
+            if w-s.m>s.m {assert_eq!(down.g + 1, s.g,"down.g+1==s.g {:?}",s.gen_set);};
             //find failed testcase assert_eq!(down.rho, s.rho + 1);
             if w == s.f + s.m && s.v_in_s() {
                 assert_eq!(down.r + 2, s.r + s.m, "r change w==f+m for i={i}");

@@ -30,15 +30,16 @@ pub fn basic(s: &Semigroup) {
         *s.gen_set.iter().max().unwrap(),
         "maximum for {gens:?}"
     );
-    //is there a pseudo < m
-    if s.pf_set.iter().any(|&p|p<s.m){
-        assert!(s.f < 2*s.m,"if a pseudo < m then f<2m {:?}",s.gen_set);
-    }
+    //is there a pseudo < m - conjectured only
+    //if s.f > 2*s.m && s.pf_set.iter().any(|&p|p<s.m){
+        //assert!(s.t==s.r+1,"if a pseudo < m then almost sym {:?}",s.gen_set);
+    //}
     //test the pivot
     assert!(s.pivot<=s.f,"pivot ={} is < f={} if !v in S {gens:?}",s.pivot,s.f);
     if s.pivot==s.f && s.m>3{
         assert_eq!(s.toggle(s.f).mu,s.mu,"{gens:?}");
     }
+    assert!(s.element(s.pivot*2)||2*s.pivot==s.f,"2*pivot is in S {:?} or ==f",s.gen_set);
     if s.rl>0 {assert!(s.pivot < s.f)};
     if s.pivot == s.f {assert_eq!{s.rl,0}}
     if s.rl==0 && s.f > 2*s.m {assert!(s.v_in_s())};
@@ -96,15 +97,18 @@ pub fn test_reflected(s: &Semigroup) {
 pub fn test_almost_symmetric(s: &Semigroup) {
     //almost symmetrical
     if s.r + 1 == s.t && s.m > 1 {
+        assert!(s.is_almost_symmetric);
         let gens = s.gen_set.clone();
         assert_eq!(2 * s.g, s.f + s.t, "2g=f+t {gens:?}");
         assert!(s.tau <= 1);
         assert!(s.r <= s.m - 2);
-        assert!(s.is_almost_symmetric);
+        if s.r==s.m-2 { assert_eq!(s.e,s.m)}; // r_i==1 for all i, must be MED
         if s.tau >= 1 {
             assert_eq!(s.apn[0] + s.apn[1], s.m, "apn only in 0,1 for {gens:?}");
         }
-        assert!(s.f < 2*s.m || s.v_in_s(),"v in almost sym {gens:?}"); // almost symmetric semigroups have V in S
+        //if s.e+2<s.m && s.m> 2 && s.f>2*s.m{ // probably wrong, search counterexample
+        //    assert!(s.v_in_s(),"v in almost sym {gens:?}"); // almost symmetric semigroups have V in S
+        // 7, 8, 11, 12
         if s.v_in_s() {
             let sprime = s.toggle(s.f);
             assert_eq!(sprime.f + s.m, s.f);

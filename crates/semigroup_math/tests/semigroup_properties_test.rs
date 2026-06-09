@@ -22,6 +22,12 @@ pub fn basic(s: &Semigroup) {
     for i in 0..s.m {
         assert_eq!(s.diag(i) + s.apery_set[i], s.f + s.m + s.r, "diag {i}");
     }
+    if s.e > 2 && s.gen_set[1]<2*s.m{
+        assert!(s.e+s.g+2>=s.gen_set[0]+s.gen_set[1],"e+g+2>=a1+a2 {gens:?}");
+    }
+    if s.e > 2 {
+        assert!(s.e+s.g+1>=2*s.m,"g+e+1>=2m {gens:?}");
+    }
     assert_eq!(s.diag(s.mu), s.r, "{gens:?}");
     assert_eq!(s.sigma + s.r, s.g, "g ist sigma + r");
     assert_eq!(s.f + s.r + 2, 2 * s.g + 1, "f+r+2=2g+1");
@@ -47,8 +53,8 @@ pub fn basic(s: &Semigroup) {
         let c = s.pf_set.iter().copied().filter(|&x| x<s.f).max().unwrap();
         assert_eq!(s.pivot,c);
     } else {assert_eq!(s.pivot,s.f)};
-    test_reflected(&s);
-    test_almost_symmetric(&s);
+    test_reflected(s);
+    test_almost_symmetric(s);
 }
 
 pub fn test_reflected(s: &Semigroup) {

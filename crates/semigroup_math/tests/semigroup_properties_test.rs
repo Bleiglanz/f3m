@@ -22,11 +22,14 @@ pub fn basic(s: &Semigroup) {
     for i in 0..s.m {
         assert_eq!(s.diag(i) + s.apery_set[i], s.f + s.m + s.r, "diag {i}");
     }
-    if s.e > 2 && s.gen_set[1]<2*s.m{
-        assert!(s.e+s.g+2>=s.gen_set[0]+s.gen_set[1],"e+g+2>=a1+a2 {gens:?}");
+    if s.e > 2 && s.gen_set[1] < 2 * s.m {
+        assert!(
+            s.e + s.g + 2 >= s.gen_set[0] + s.gen_set[1],
+            "e+g+2>=a1+a2 {gens:?}"
+        );
     }
     if s.e > 2 {
-        assert!(s.e+s.g+1>=2*s.m,"g+e+1>=2m {gens:?}");
+        assert!(s.e + s.g + 1 >= 2 * s.m, "g+e+1>=2m {gens:?}");
     }
     assert_eq!(s.diag(s.mu), s.r, "{gens:?}");
     assert_eq!(s.sigma + s.r, s.g, "g ist sigma + r");
@@ -38,21 +41,38 @@ pub fn basic(s: &Semigroup) {
     );
     //is there a pseudo < m - conjectured only
     //if s.f > 2*s.m && s.pf_set.iter().any(|&p|p<s.m){
-        //assert!(s.t==s.r+1,"if a pseudo < m then almost sym {:?}",s.gen_set);
+    //assert!(s.t==s.r+1,"if a pseudo < m then almost sym {:?}",s.gen_set);
     //}
     //test the pivot
-    assert!(s.pivot<=s.f,"pivot ={} is < f={} if !v in S {gens:?}",s.pivot,s.f);
-    if s.pivot==s.f && s.m>3{
-        assert_eq!(s.toggle(s.f).mu,s.mu,"{gens:?}");
+    assert!(
+        s.pivot <= s.f,
+        "pivot ={} is < f={} if !v in S {gens:?}",
+        s.pivot,
+        s.f
+    );
+    if s.pivot == s.f && s.m > 3 {
+        assert_eq!(s.toggle(s.f).mu, s.mu, "{gens:?}");
     }
-    assert!(s.element(s.pivot*2)||2*s.pivot==s.f,"2*pivot is in S {:?} or ==f",s.gen_set);
-    if s.rl>0 {assert!(s.pivot < s.f)};
-    if s.pivot == s.f {assert_eq!{s.rl,0}}
-    if s.rl==0 && s.f > 2*s.m {assert!(s.v_in_s())};
-    if s.t>1 {
-        let c = s.pf_set.iter().copied().filter(|&x| x<s.f).max().unwrap();
-        assert_eq!(s.pivot,c);
-    } else {assert_eq!(s.pivot,s.f)};
+    assert!(
+        s.element(s.pivot * 2) || 2 * s.pivot == s.f,
+        "2*pivot is in S {:?} or ==f",
+        s.gen_set
+    );
+    if s.rl > 0 {
+        assert!(s.pivot < s.f)
+    };
+    if s.pivot == s.f {
+        assert_eq! {s.rl,0}
+    }
+    if s.rl == 0 && s.f > 2 * s.m {
+        assert!(s.v_in_s())
+    };
+    if s.t > 1 {
+        let c = s.pf_set.iter().copied().filter(|&x| x < s.f).max().unwrap();
+        assert_eq!(s.pivot, c);
+    } else {
+        assert_eq!(s.pivot, s.f)
+    };
     test_reflected(s);
     test_almost_symmetric(s);
 }
@@ -106,9 +126,17 @@ pub fn test_almost_symmetric(s: &Semigroup) {
         assert!(s.is_almost_symmetric);
         let gens = s.gen_set.clone();
         assert_eq!(2 * s.g, s.f + s.t, "2g=f+t {gens:?}");
+        if s.f > 3 * s.m {
+            assert!(s.sigma + 1 >= s.m, "almost sigma >= m-1 {gens:?}");
+        } else if s.f > 2 * s.m && s.e < s.m {
+            assert!(s.sigma >= s.r, "almost sigma >= r {gens:?}");
+        }
+
         assert!(s.tau <= 1);
         assert!(s.r <= s.m - 2);
-        if s.r==s.m-2 { assert_eq!(s.e,s.m)}; // r_i==1 for all i, must be MED
+        if s.r == s.m - 2 {
+            assert_eq!(s.e, s.m)
+        }; // r_i==1 for all i, must be MED
         if s.tau >= 1 {
             assert_eq!(s.apn[0] + s.apn[1], s.m, "apn only in 0,1 for {gens:?}");
         }

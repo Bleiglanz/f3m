@@ -653,16 +653,21 @@ span[data-remove-gen]     { cursor: pointer; }
 .cl-diff    { color: var(--muted); font-size: 0.8em; }
 
 /* ─── Hide-gaps / Hide-S (white on white in the structure grid) ─── */
+/* Reflected gaps (sg-blob, sg-pf-blob) are governed by "refls" below, not by
+   "Gaps" — so they can stay visible with Gaps off and refls on. */
 body.hide-gaps .sg-grid span.sg-out,
 body.hide-gaps .sg-grid span.sg-frob,
-body.hide-gaps .sg-grid span.sg-pf,
-body.hide-gaps .sg-grid span.sg-pf-blob,
-body.hide-gaps .sg-grid span.sg-blob { opacity: 0; }
+body.hide-gaps .sg-grid span.sg-pf { opacity: 0; }
 
 body.hide-s .sg-grid span.sg-in,
 body.hide-s .sg-grid span.sg-gen,
 body.hide-s .sg-grid span.sg-apery,
 body.hide-s .sg-grid span.sg-large { opacity: 0; }
+
+/* "refls" toggle: hide reflected-gap cells (and PF cells that are also
+   reflected gaps) independently of the broader "Gaps" toggle. */
+body.hide-refls .sg-grid span.sg-blob,
+body.hide-refls .sg-grid span.sg-pf-blob { opacity: 0; }
 
 body.hide-classification .classify-row { display: none; }
 

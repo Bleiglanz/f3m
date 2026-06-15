@@ -47,13 +47,24 @@ new ResizeObserver(entries => {
 }).observe(document.getElementById('graph-resize-wrapper'));
 
 // CSS classes that belong to gaps (not elements of S).
-const GAP_CLASSES = new Set(['sg-out', 'sg-blob', 'sg-pf', 'sg-frob']);
+const GAP_CLASSES = new Set(['sg-out', 'sg-blob', 'sg-pf', 'sg-pf-blob', 'sg-frob']);
 // CSS classes that belong to elements of S.
 const S_CLASSES = new Set(['sg-in', 'sg-gen', 'sg-apery', 'sg-large']);
+// CSS classes that are reflected gaps (a subset of GAP_CLASSES); toggled by "refls".
+const REFL_CLASSES = new Set(['sg-blob', 'sg-pf-blob']);
+
+// Read the "refls" checkbox; defaults to visible if the element is absent.
+function reflsChecked() {
+  const el = document.getElementById('show-refls');
+  return el ? el.checked : true;
+}
 
 // Return true if node `n` should be shown given current toggle state.
-function isVisible(s, n, showGaps, showS) {
+// Reflected gaps are governed solely by "refls" — they show when refls is on
+// even if the broader "Gaps" toggle is off.
+function isVisible(s, n, showGaps, showS, showRefls) {
   const cls = js_node_class(s, n);
+  if (REFL_CLASSES.has(cls)) {return showRefls;}
   if (GAP_CLASSES.has(cls)) {return showGaps;}
   if (S_CLASSES.has(cls)) {return showS;}
   return true;
@@ -64,9 +75,10 @@ function isVisible(s, n, showGaps, showS) {
 export function rebuildGraph(s, upto, andFit = false) {
   const showGaps = state_get_show_gaps();
   const showS = state_get_show_s();
+  const showRefls = reflsChecked();
   const nodeIds = js_graph_node_ids(s, upto);
   const edgePairs = js_graph_edge_pairs(s, upto);
-  const visibleIds = new Set(Array.from(nodeIds).filter(n => isVisible(s, n, showGaps, showS)));
+  const visibleIds = new Set(Array.from(nodeIds).filter(n => isVisible(s, n, showGaps, showS, showRefls)));
   graphNodes.clear();
   graphEdges.clear();
   graphNodes.add([...visibleIds].map(n => visNode(s, n)));
@@ -110,6 +122,11 @@ export function setupShowGaps(getCurrentS, getUpto) {
   document.getElementById('graph-show-s').addEventListener('change', function() {
     state_set_show_s(this.checked);
     document.body.classList.toggle('hide-s', !this.checked);
+    rebuild();
+    update3dVisibility();
+  });
+  document.getElementById('show-refls').addEventListener('change', function() {
+    document.body.classList.toggle('hide-refls', !this.checked);
     rebuild();
     update3dVisibility();
   });

@@ -11,7 +11,7 @@ import init, {
   state_comp_html,
 } from '../pkg/semigroup_explorer.js';
 import { render3d, animate3dDescent, animate3dAscent } from './view3d.js';
-import { rebuildGraph, setupGraphUpto, setupShowGaps, setupGraphToggle } from './graph.js';
+import { rebuildGraph, setupGraphUpto, setupVisibilityToggles, setupGraphToggle } from './graph.js';
 
 const PROP_THEAD_TR = '<tr><th title="Index and operation label">#</th><th title="Generator added (+) or removed (\u2212)">toggle</th><th title="Multiplicity: smallest positive element">m</th><th title="Frobenius number: largest gap">f</th><th title="Small minimal generators: count of minimal generators g with g &lt; f\u2212m">es</th><th title="Embedding dimension: number of minimal generators (hover the cell to list them)">e</th><th title="Sporadic elements: elements of S below the conductor f+1">\u03C3</th><th title="Genus: number of gaps">g</th><th title="Large reflected gaps: gaps L with f\u2212m &lt; L &lt; f (automatically reflected)">rl</th><th title="Type: number of pseudo-Frobenius numbers (hover the cell to list them)">t</th><th title="Reflected gaps: gaps n where f\u2212n is also a gap">r</th><th title="Reflected Ap\u00E9ry: Ap\u00E9ry elements w where w\u2212m is a reflected gap">ra</th><th title="ρ: smallest r_i over residue classes i ∈ 1..m, i ≠ μ">ρ</th><th title="Fundamental gaps: gaps n with every multiple kn (k≥2) in S">fg</th><th title="Symmetric: t=1 and g=(f+1)/2">Sym</th><th title="V(S) = {f\u2212m+1, \u2026, f\u22121} \u2286 S: the interval just below f is full">V\u2286S</th><th title="Wilf quotient: \u03C3/(f+1) \u2265 1/e (conjecture)">Wilf</th><th title="Wilf conjecture lower bound: 1/e">1/e</th><th title="Pivot: largest pseudo-Frobenius number below f (or f itself when there is none)">piv</th><th title="Expression evaluated for this semigroup">expr</th><th title="Result of the expression">value</th><th title="Set-containment relation with previous entry">&#8838;?</th></tr>';
 
@@ -667,7 +667,7 @@ document.getElementById('current-prop-thead').innerHTML = PROP_THEAD_TR;
 document.querySelector('#tab-history .history-table thead').innerHTML = PROP_THEAD_TR;
 
 setupGraphUpto(() => currentS);
-setupShowGaps(() => currentS, () => Number(document.getElementById('graph-upto').value));
+setupVisibilityToggles(() => currentS, () => Number(document.getElementById('graph-upto').value));
 setupGraphToggle(val => doToggle(val));
 
 // Apéry-cell / residue-sep hover: highlight Kunz matrix rows, columns, anti-diagonals.

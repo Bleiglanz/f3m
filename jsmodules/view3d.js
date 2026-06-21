@@ -1,3 +1,5 @@
+import { isReflClass, reflsChecked } from './classes.js';
+
 // Three.js renderer state — kept module-level so render3d() can clean up on re-render.
 let _3dAnimId = null;    // requestAnimationFrame handle
 let _3dRenderer = null;  // WebGLRenderer instance
@@ -109,17 +111,6 @@ function classify(n, f, m, apery, genSet, pfSet, blobSet) {
 // True if the class represents a gap (hidden by "show gaps" unchecked).
 function isGapClass(cls) {
   return cls === 'sg-out' || cls === 'sg-frob' || cls === 'sg-pf' || cls === 'sg-pf-blob' || cls === 'sg-blob';
-}
-
-// True if the class is a reflected gap (toggled by the "refls" checkbox).
-function isReflClass(cls) {
-  return cls === 'sg-blob' || cls === 'sg-pf-blob';
-}
-
-// Read the "refls" checkbox; defaults to visible if the element is absent.
-function reflsChecked() {
-  const el = document.getElementById('show-refls');
-  return el ? el.checked : true;
 }
 
 // Whether a mesh of class `cls` should be visible under the current toggles.

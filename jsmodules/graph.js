@@ -1,6 +1,7 @@
 import { js_node_class, js_graph_node_ids, js_graph_edge_pairs, js_graph_edges_text,
          state_get_show_gaps, state_set_show_gaps, state_get_show_s, state_set_show_s } from '../pkg/semigroup_explorer.js';
 import { update3dVisibility } from './view3d.js';
+import { isReflClass, reflsChecked } from './classes.js';
 
 // CSS class → vis-network background/border colors.
 // Mirrors the color legend in style.css and CLAUDE.md.
@@ -46,25 +47,19 @@ new ResizeObserver(entries => {
   graphVisEl.style.height = `${w}px`;
 }).observe(document.getElementById('graph-resize-wrapper'));
 
-// CSS classes that belong to gaps (not elements of S).
-const GAP_CLASSES = new Set(['sg-out', 'sg-blob', 'sg-pf', 'sg-pf-blob', 'sg-frob']);
+// CSS classes that belong to gaps (not elements of S). Reflected-gap classes
+// (sg-blob, sg-pf-blob) are handled by the earlier isReflClass branch below, so
+// they are intentionally absent here.
+const GAP_CLASSES = new Set(['sg-out', 'sg-pf', 'sg-frob']);
 // CSS classes that belong to elements of S.
 const S_CLASSES = new Set(['sg-in', 'sg-gen', 'sg-apery', 'sg-large']);
-// CSS classes that are reflected gaps (a subset of GAP_CLASSES); toggled by "refls".
-const REFL_CLASSES = new Set(['sg-blob', 'sg-pf-blob']);
-
-// Read the "refls" checkbox; defaults to visible if the element is absent.
-function reflsChecked() {
-  const el = document.getElementById('show-refls');
-  return el ? el.checked : true;
-}
 
 // Return true if node `n` should be shown given current toggle state.
 // Reflected gaps are governed solely by "refls" — they show when refls is on
 // even if the broader "Gaps" toggle is off.
 function isVisible(s, n, showGaps, showS, showRefls) {
   const cls = js_node_class(s, n);
-  if (REFL_CLASSES.has(cls)) {return showRefls;}
+  if (isReflClass(cls)) {return showRefls;}
   if (GAP_CLASSES.has(cls)) {return showGaps;}
   if (S_CLASSES.has(cls)) {return showS;}
   return true;
@@ -110,8 +105,9 @@ export function setupGraphUpto(getCurrentS) {
   });
 }
 
-// Wire the "Show gaps" and "Show S" checkboxes; both share the same rebuild callback.
-export function setupShowGaps(getCurrentS, getUpto) {
+// Wire the "Gaps", "S", and "refls" visibility checkboxes; all share the same
+// rebuild callback and also refresh the 3D view.
+export function setupVisibilityToggles(getCurrentS, getUpto) {
   const rebuild = () => { const s = getCurrentS(); if (s) {rebuildGraph(s, getUpto());} };
   document.getElementById('graph-show-gaps').addEventListener('change', function() {
     state_set_show_gaps(this.checked);

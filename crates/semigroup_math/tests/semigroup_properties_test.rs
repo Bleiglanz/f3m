@@ -3,11 +3,24 @@ use semigroup_math::math::Semigroup;
 //for properties that do not depend on the values for prop in the csv
 //internal data is used, everything from the semigroup itself (consistency)
 pub fn basic(s: &Semigroup) {
-    //println!("test {s:?}");
+    let gens = s.gen_set.clone();
+    if s.m==4 && 2*s.g == s.ae+1 {
+        let gapset :Vec<usize>= (0..s.f+1).filter(|&x|!s.element(x)).collect();
+        let rae = gapset.iter().filter(|&&l| !s.element(s.ae - l)).count();
+        println!("m={} 2g-1={} ae={} has {gens:?}  ae==f+m {} #RG(ae)={} #RG(f)={}",s.m,2*s.g-1,s.ae,s.ae==s.f+s.m,rae,s.r);
+        if rae==2 {
+            let rae_set :Vec<usize>= gapset.iter().copied().filter(|&l| !s.element(s.ae - l)).collect();
+            println!("an ae refl gaps {rae_set:?}")
+        }
+
+
+    }
+
+
     if s.m > 1 {
         assert_eq!(s.diag(s.mu), s.r)
     };
-    let gens = s.gen_set.clone();
+
     // rl < t whenever t > 0: every gap counted by rl is pseudo-Frobenius and
     // strictly below f, while f itself is always pseudo-Frobenius and never
     // counted by rl. So PF ⊇ {rl-counted gaps} ⊔ {f}, hence rl + 1 ≤ t.

@@ -15,6 +15,7 @@ pub struct PageState {
     gap_blocks: String,
     show_gaps: bool,
     show_s: bool,
+    show_refls: bool,
     show_kunz: bool,
     show_classification: bool,
     show_strata: bool,
@@ -29,6 +30,7 @@ impl Default for PageState {
             gap_blocks: String::new(),
             show_gaps: true,
             show_s: true,
+            show_refls: true,
             show_kunz: true,
             show_classification: true,
             show_strata: false,
@@ -165,6 +167,18 @@ pub fn state_get_show_s() -> bool {
 #[wasm_bindgen]
 pub fn state_set_show_s(v: bool) {
     with_state_mut(|s| s.show_s = v);
+}
+
+/// Get the `show_refls` display toggle (reflected-gap visibility).
+#[wasm_bindgen]
+#[must_use]
+pub fn state_get_show_refls() -> bool {
+    with_state(|s| s.show_refls)
+}
+/// Set the `show_refls` display toggle (reflected-gap visibility).
+#[wasm_bindgen]
+pub fn state_set_show_refls(v: bool) {
+    with_state_mut(|s| s.show_refls = v);
 }
 
 /// Get the `show_kunz` display toggle.

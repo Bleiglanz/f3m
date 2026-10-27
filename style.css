@@ -664,8 +664,6 @@ body.hide-s .sg-grid span.sg-gen,
 body.hide-s .sg-grid span.sg-apery,
 body.hide-s .sg-grid span.sg-large { opacity: 0; }
 
-/* "refls" toggle: hide reflected-gap cells (and PF cells that are also
-   reflected gaps) independently of the broader "Gaps" toggle. */
 body.hide-refls .sg-grid span.sg-blob,
 body.hide-refls .sg-grid span.sg-pf-blob { opacity: 0; }
 

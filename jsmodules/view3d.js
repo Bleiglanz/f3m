@@ -1,12 +1,11 @@
-import { isReflClass, reflsChecked } from './classes.js';
+import { classVisible, visibilityToggles } from './classes.js';
 
 // Three.js renderer state — kept module-level so render3d() can clean up on re-render.
 let _3dAnimId = null;    // requestAnimationFrame handle
 let _3dRenderer = null;  // WebGLRenderer instance
 let _3dCamera = null;    // current PerspectiveCamera (for saving state on teardown)
 let _3dControls = null;  // current OrbitControls
-let _3dGapMeshes = [];  // cube meshes classified as gaps (for show/hide)
-let _3dSMeshes = [];    // cube meshes classified as semigroup elements (for show/hide)
+let _3dToggleMeshes = []; // tiles and cubes whose visibility follows the Gaps/S/refls toggles
 
 // ── Flatten animation state ──────────────────────────────────────��──────────
 // States: 'kunz' (3D), 'to-flat', 'flat', 'to-kunz'
@@ -108,20 +107,6 @@ function classify(n, f, m, apery, genSet, pfSet, blobSet) {
   return 'sg-out';
 }
 
-// True if the class represents a gap (hidden by "show gaps" unchecked).
-function isGapClass(cls) {
-  return cls === 'sg-out' || cls === 'sg-frob' || cls === 'sg-pf' || cls === 'sg-pf-blob' || cls === 'sg-blob';
-}
-
-// Whether a mesh of class `cls` should be visible under the current toggles.
-// Reflected gaps are governed solely by "refls" — they show when refls is on
-// even if the broader "Gaps" toggle is off.
-function meshVisible(cls, showGaps, showS, showRefls) {
-  if (isReflClass(cls)) { return showRefls; }
-  if (isGapClass(cls)) { return showGaps; }
-  return showS;
-}
-
 // Paint a tile canvas (128×128) with the given background, foreground, and
 // centered label. Shared by aperyTile() and the descent animation, which
 // repaints the moving tile each time its displayed integer changes.
@@ -155,13 +140,10 @@ function aperyTile(text, x, y, cls) {
   return mesh;
 }
 
-// Toggle 3D cube visibility to match the show_gaps / show_s checkboxes.
+// Toggle 3D tile/cube visibility to match the Gaps / S / refls checkboxes.
 export function update3dVisibility() {
-  const showGaps = document.getElementById('graph-show-gaps').checked;
-  const showS = document.getElementById('graph-show-s').checked;
-  const showRefls = reflsChecked();
-  for (const m of _3dGapMeshes) { m.visible = meshVisible(m.userData.cls, showGaps, showS, showRefls); }
-  for (const m of _3dSMeshes) { m.visible = showS; }
+  const toggles = visibilityToggles();
+  for (const m of _3dToggleMeshes) { m.visible = classVisible(m.userData.cls, toggles); }
 }
 
 // Create a text-only sprite for axis labels.
@@ -215,8 +197,7 @@ export function render3d(s, onToggle) {
   const pfSet = new Set(Array.from(s.pf));
   const blobSet = new Set(Array.from(s.blob));
 
-  _3dGapMeshes = [];
-  _3dSMeshes = [];
+  _3dToggleMeshes = [];
 
   // For each Apéry element, place at Kunz coordinates (i, k_i) and build z-column.
   const aperyPoints = []; // { x, y, val, cls }
@@ -338,9 +319,7 @@ export function render3d(s, onToggle) {
   scene.add(zLabel);
 
   // ── Apéry tiles (colored by class, labelled) in the z=0 plane ───────────
-  const showGaps = document.getElementById('graph-show-gaps').checked;
-  const showS = document.getElementById('graph-show-s').checked;
-  const showRefls = reflsChecked();
+  const toggles = visibilityToggles();
   const clickable = []; // all meshes that can be hovered/clicked
 
   for (const p of aperyPoints) {
@@ -348,11 +327,10 @@ export function render3d(s, onToggle) {
     const kunzPos = new THREE.Vector3(p.x + 0.5, p.y + 0.5, 0);
     const flatPos = flatPosOf(p.val, m);
     tile.userData = { val: p.val, cls: p.cls, kunzPos, flatPos, isCube: false };
-    const gap = isGapClass(p.cls);
-    tile.visible = meshVisible(p.cls, showGaps, showS, showRefls);
+    tile.visible = classVisible(p.cls, toggles);
     scene.add(tile);
     clickable.push(tile);
-    (gap ? _3dGapMeshes : _3dSMeshes).push(tile);
+    _3dToggleMeshes.push(tile);
   }
 
   // ── Cubes colored by structure-table class ────────────────────────────────
@@ -377,11 +355,10 @@ export function render3d(s, onToggle) {
     const kunzPos = new THREE.Vector3(c.x + 0.5, c.y + 0.5, c.z);
     const flatPos = flatPosOf(c.val, m);
     mesh.userData = { val: c.val, cls: c.cls, kunzPos, flatPos, isCube: true };
-    const gap = isGapClass(c.cls);
-    mesh.visible = meshVisible(c.cls, showGaps, showS, showRefls);
+    mesh.visible = classVisible(c.cls, toggles);
     scene.add(mesh);
     clickable.push(mesh);
-    (gap ? _3dGapMeshes : _3dSMeshes).push(mesh);
+    _3dToggleMeshes.push(mesh);
   }
 
   // ── Helper: 3D centre position of any integer value in Kunz coordinates ──

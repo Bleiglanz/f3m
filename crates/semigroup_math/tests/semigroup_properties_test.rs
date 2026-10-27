@@ -7,7 +7,6 @@ pub fn basic(s: &Semigroup) {
     if s.m > 1 {
         assert_eq!(s.diag(s.mu), s.r)
     };
-
     // rl < t whenever t > 0: every gap counted by rl is pseudo-Frobenius and
     // strictly below f, while f itself is always pseudo-Frobenius and never
     // counted by rl. So PF ⊇ {rl-counted gaps} ⊔ {f}, hence rl + 1 ≤ t.

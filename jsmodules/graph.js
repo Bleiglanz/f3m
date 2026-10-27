@@ -1,7 +1,7 @@
 import { js_node_class, js_graph_node_ids, js_graph_edge_pairs, js_graph_edges_text,
-         state_get_show_gaps, state_set_show_gaps, state_get_show_s, state_set_show_s } from '../pkg/semigroup_explorer.js';
+         state_set_show_gaps, state_set_show_s, state_set_show_refls } from '../pkg/semigroup_explorer.js';
 import { update3dVisibility } from './view3d.js';
-import { isReflClass, reflsChecked } from './classes.js';
+import { classVisible, visibilityToggles } from './classes.js';
 
 // CSS class → vis-network background/border colors.
 // Mirrors the color legend in style.css and CLAUDE.md.
@@ -47,33 +47,13 @@ new ResizeObserver(entries => {
   graphVisEl.style.height = `${w}px`;
 }).observe(document.getElementById('graph-resize-wrapper'));
 
-// CSS classes that belong to gaps (not elements of S). Reflected-gap classes
-// (sg-blob, sg-pf-blob) are handled by the earlier isReflClass branch below, so
-// they are intentionally absent here.
-const GAP_CLASSES = new Set(['sg-out', 'sg-pf', 'sg-frob']);
-// CSS classes that belong to elements of S.
-const S_CLASSES = new Set(['sg-in', 'sg-gen', 'sg-apery', 'sg-large']);
-
-// Return true if node `n` should be shown given current toggle state.
-// Reflected gaps are governed solely by "refls" — they show when refls is on
-// even if the broader "Gaps" toggle is off.
-function isVisible(s, n, showGaps, showS, showRefls) {
-  const cls = js_node_class(s, n);
-  if (isReflClass(cls)) {return showRefls;}
-  if (GAP_CLASSES.has(cls)) {return showGaps;}
-  if (S_CLASSES.has(cls)) {return showS;}
-  return true;
-}
-
 // Rebuild the graph for semigroup `s` up to value `upto`, respecting visibility toggles.
 // Edges whose endpoints are hidden are also suppressed.
 export function rebuildGraph(s, upto, andFit = false) {
-  const showGaps = state_get_show_gaps();
-  const showS = state_get_show_s();
-  const showRefls = reflsChecked();
+  const toggles = visibilityToggles();
   const nodeIds = js_graph_node_ids(s, upto);
   const edgePairs = js_graph_edge_pairs(s, upto);
-  const visibleIds = new Set(Array.from(nodeIds).filter(n => isVisible(s, n, showGaps, showS, showRefls)));
+  const visibleIds = new Set(Array.from(nodeIds).filter(n => classVisible(js_node_class(s, n), toggles)));
   graphNodes.clear();
   graphEdges.clear();
   graphNodes.add([...visibleIds].map(n => visNode(s, n)));
@@ -108,22 +88,18 @@ export function setupGraphUpto(getCurrentS) {
 // Wire the "Gaps", "S", and "refls" visibility checkboxes; all share the same
 // rebuild callback and also refresh the 3D view.
 export function setupVisibilityToggles(getCurrentS, getUpto) {
-  const rebuild = () => { const s = getCurrentS(); if (s) {rebuildGraph(s, getUpto());} };
-  document.getElementById('graph-show-gaps').addEventListener('change', function() {
-    state_set_show_gaps(this.checked);
-    document.body.classList.toggle('hide-gaps', !this.checked);
-    rebuild();
-    update3dVisibility();
-  });
-  document.getElementById('graph-show-s').addEventListener('change', function() {
-    state_set_show_s(this.checked);
-    document.body.classList.toggle('hide-s', !this.checked);
-    rebuild();
-    update3dVisibility();
-  });
-  document.getElementById('show-refls').addEventListener('change', function() {
-    document.body.classList.toggle('hide-refls', !this.checked);
-    rebuild();
-    update3dVisibility();
-  });
+  const toggles = [
+    ['graph-show-gaps', 'hide-gaps', state_set_show_gaps],
+    ['graph-show-s', 'hide-s', state_set_show_s],
+    ['show-refls', 'hide-refls', state_set_show_refls],
+  ];
+  for (const [id, hideClass, setState] of toggles) {
+    document.getElementById(id).addEventListener('change', function() {
+      setState(this.checked);
+      document.body.classList.toggle(hideClass, !this.checked);
+      const s = getCurrentS();
+      if (s) {rebuildGraph(s, getUpto());}
+      update3dVisibility();
+    });
+  }
 }
